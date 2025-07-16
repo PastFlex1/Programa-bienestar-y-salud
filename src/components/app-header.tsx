@@ -6,7 +6,6 @@ import { BrainCircuit } from "lucide-react";
 
 export function AppHeader() {
   const { userName, avatarUrl } = useUser();
-  const fallback = userName ? userName.charAt(0).toUpperCase() : "U";
 
   return (
     <header className="flex items-center justify-between p-4 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
@@ -16,7 +15,7 @@ export function AppHeader() {
       </div>
       <Avatar>
         <AvatarImage src={avatarUrl} alt="Perfil de usuario" data-ai-hint="woman smiling" />
-        <AvatarFallback>{fallback}</AvatarFallback>
+        <AvatarFallback>👤</AvatarFallback>
       </Avatar>
     </header>
   );

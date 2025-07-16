@@ -102,7 +102,7 @@ export default function ProfilePage() {
             <div className="flex items-center space-x-4">
               <Avatar className="h-20 w-20">
                 <AvatarImage src={previewAvatarUrl} alt={t.avatarAlt} data-ai-hint="woman smiling" />
-                <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
+                <AvatarFallback>👤</AvatarFallback>
               </Avatar>
               <Button variant="outline" onClick={handleAvatarButtonClick}>{t.changePhoto}</Button>
               <input
