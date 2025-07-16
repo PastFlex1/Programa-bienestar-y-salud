@@ -34,7 +34,7 @@ export function MeditationCard({ title, description, lengthMinutes, type, imageU
             {isRecommended && (
               <Badge variant="default" className="absolute top-2 left-2 bg-primary text-primary-foreground">
                 <Sparkles className="w-3 h-3 mr-1" />
-                Recommended for you
+                Recomendado para ti
               </Badge>
             )}
           </div>
@@ -55,7 +55,7 @@ export function MeditationCard({ title, description, lengthMinutes, type, imageU
             </div>
             <Button className="w-full sm:w-auto self-start">
               <Play className="h-4 w-4 mr-2" />
-              Start Session
+              Iniciar Sesión
             </Button>
           </div>
         </div>

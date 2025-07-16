@@ -24,14 +24,14 @@ export type PersonalizedMeditationRecommendationsInput = z.infer<
 >;
 
 const PersonalizedMeditationRecommendationsOutputSchema = z.object({
-  sessionTitle: z.string().describe('The title of the recommended meditation session.'),
+  sessionTitle: z.string().describe('El título de la sesión de meditación recomendada.'),
   sessionDescription: z
     .string()
-    .describe('A brief description of the recommended meditation session.'),
+    .describe('Una breve descripción de la sesión de meditación recomendada.'),
   sessionLengthMinutes: z
     .number()
-    .describe('The recommended session length in minutes.'),
-  meditationType: z.string().describe('The type of meditation (e.g., mindfulness, sleep).'),
+    .describe('La duración recomendada de la sesión en minutos.'),
+  meditationType: z.string().describe('El tipo de meditación (por ejemplo, mindfulness, sueño).'),
 });
 
 export type PersonalizedMeditationRecommendationsOutput = z.infer<
@@ -48,11 +48,11 @@ const prompt = ai.definePrompt({
   name: 'personalizedMeditationRecommendationsPrompt',
   input: {schema: PersonalizedMeditationRecommendationsInputSchema},
   output: {schema: PersonalizedMeditationRecommendationsOutputSchema},
-  prompt: `Based on the user's current mood of {{mood}} and the time of day being {{timeOfDay}},
-  recommend a personalized meditation session. Provide the session title, a brief description,
-  the session length in minutes, and the type of meditation that would be most suitable.
+  prompt: `Basado en el estado de ánimo actual del usuario de {{mood}} y la hora del día siendo {{timeOfDay}},
+  recomienda una sesión de meditación personalizada en español. Proporciona el título de la sesión, una breve descripción,
+  la duración de la sesión en minutos y el tipo de meditación que sería más adecuado.
 
-  Ensure the recommendation is tailored to enhance their meditation experience and fit their current needs.
+  Asegúrate de que la recomendación esté diseñada para mejorar su experiencia de meditación y se ajuste a sus necesidades actuales.
 `,
 });
 

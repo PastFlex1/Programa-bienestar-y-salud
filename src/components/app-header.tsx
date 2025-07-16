@@ -9,7 +9,7 @@ export function AppHeader() {
         <h1 className="text-3xl font-bold text-foreground font-headline">Zenith</h1>
       </div>
       <Avatar>
-        <AvatarImage src="https://placehold.co/100x100.png" alt="User profile" data-ai-hint="woman smiling" />
+        <AvatarImage src="https://placehold.co/100x100.png" alt="Perfil de usuario" data-ai-hint="woman smiling" />
         <AvatarFallback>U</AvatarFallback>
       </Avatar>
     </header>

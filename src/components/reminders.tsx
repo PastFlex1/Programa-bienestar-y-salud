@@ -9,17 +9,17 @@ export function Reminders() {
       <CardHeader>
         <CardTitle className="font-headline flex items-center gap-2">
           <BellRing className="w-6 h-6 text-primary" />
-          Daily Reminders
+          Recordatorios Diarios
         </CardTitle>
-        <CardDescription>Stay consistent with gentle nudges.</CardDescription>
+        <CardDescription>Mantente constante con suaves empujones.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between p-3 rounded-md transition-colors hover:bg-accent">
-          <Label htmlFor="meditation-reminder" className="font-medium text-sm flex-1">Meditate Daily</Label>
+          <Label htmlFor="meditation-reminder" className="font-medium text-sm flex-1">Meditar Diariamente</Label>
           <Switch id="meditation-reminder" />
         </div>
         <div className="flex items-center justify-between p-3 rounded-md transition-colors hover:bg-accent">
-          <Label htmlFor="habits-reminder" className="font-medium text-sm flex-1">Track Habits</Label>
+          <Label htmlFor="habits-reminder" className="font-medium text-sm flex-1">Seguimiento de Hábitos</Label>
           <Switch id="habits-reminder" />
         </div>
       </CardContent>

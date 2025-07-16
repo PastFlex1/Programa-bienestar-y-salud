@@ -6,9 +6,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { CheckCircle2, Coffee, Droplets, Footprints } from "lucide-react";
 
 const habits = [
-  { id: "hydrate", label: "Hydrate (8 glasses)", icon: <Droplets className="h-5 w-5 text-primary" /> },
-  { id: "walk", label: "Morning Walk", icon: <Footprints className="h-5 w-5 text-primary" /> },
-  { id: "mindful", label: "Mindful Moment", icon: <Coffee className="h-5 w-5 text-primary" /> },
+  { id: "hydrate", label: "Hidratarse (8 vasos)", icon: <Droplets className="h-5 w-5 text-primary" /> },
+  { id: "walk", label: "Caminata Matutina", icon: <Footprints className="h-5 w-5 text-primary" /> },
+  { id: "mindful", label: "Momento de Atención Plena", icon: <Coffee className="h-5 w-5 text-primary" /> },
 ];
 
 export function HabitTracker() {
@@ -17,9 +17,9 @@ export function HabitTracker() {
       <CardHeader>
         <CardTitle className="font-headline flex items-center gap-2">
           <CheckCircle2 className="h-6 w-6 text-primary" />
-          Daily Habits
+          Hábitos Diarios
         </CardTitle>
-        <CardDescription>Track your progress for a better you.</CardDescription>
+        <CardDescription>Sigue tu progreso para un mejor tú.</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">

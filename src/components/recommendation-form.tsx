@@ -30,8 +30,8 @@ import type { PersonalizedMeditationRecommendationsOutput } from "@/ai/flows/per
 import { MeditationCard } from "./meditation-card";
 
 const formSchema = z.object({
-  mood: z.string().min(1, "Please select your current mood."),
-  timeOfDay: z.string().min(1, "Please select the time of day."),
+  mood: z.string().min(1, "Por favor, selecciona tu estado de ánimo actual."),
+  timeOfDay: z.string().min(1, "Por favor, selecciona la hora del día."),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -58,7 +58,7 @@ export function RecommendationForm() {
       } else {
         toast({
           variant: "destructive",
-          title: "Recommendation Failed",
+          title: "Falló la Recomendación",
           description: response.error,
         });
       }
@@ -71,10 +71,10 @@ export function RecommendationForm() {
         <CardHeader>
           <CardTitle className="font-headline flex items-center gap-2">
             <Sparkles className="w-6 h-6 text-primary" />
-            Personalized Session
+            Sesión Personalizada
           </CardTitle>
           <CardDescription>
-            Tell us how you feel, and we'll suggest the perfect meditation for you.
+            Dinos cómo te sientes y te sugeriremos la meditación perfecta para ti.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -86,18 +86,18 @@ export function RecommendationForm() {
                   name="mood"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>How are you feeling?</FormLabel>
+                      <FormLabel>¿Cómo te sientes?</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select your mood" />
+                            <SelectValue placeholder="Selecciona tu estado de ánimo" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="Stressed">Stressed</SelectItem>
-                          <SelectItem value="Anxious">Anxious</SelectItem>
-                          <SelectItem value="Happy">Happy</SelectItem>
-                          <SelectItem value="Tired">Tired</SelectItem>
+                          <SelectItem value="Stressed">Estresado/a</SelectItem>
+                          <SelectItem value="Anxious">Ansioso/a</SelectItem>
+                          <SelectItem value="Happy">Feliz</SelectItem>
+                          <SelectItem value="Tired">Cansado/a</SelectItem>
                           <SelectItem value="Neutral">Neutral</SelectItem>
                         </SelectContent>
                       </Select>
@@ -110,18 +110,18 @@ export function RecommendationForm() {
                   name="timeOfDay"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>What time is it?</FormLabel>
+                      <FormLabel>¿Qué hora es?</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select time of day" />
+                            <SelectValue placeholder="Selecciona la hora del día" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="Morning">Morning</SelectItem>
-                          <SelectItem value="Afternoon">Afternoon</SelectItem>
-                          <SelectItem value="Evening">Evening</SelectItem>
-                          <SelectItem value="Night">Night</SelectItem>
+                          <SelectItem value="Morning">Mañana</SelectItem>
+                          <SelectItem value="Afternoon">Tarde</SelectItem>
+                          <SelectItem value="Evening">Noche</SelectItem>
+                          <SelectItem value="Night">Madrugada</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -133,10 +133,10 @@ export function RecommendationForm() {
                 {isPending ? (
                   <>
                     <Loader2 className="animate-spin" />
-                    Generating...
+                    Generando...
                   </>
                 ) : (
-                  "Find my Session"
+                  "Encontrar mi Sesión"
                 )}
               </Button>
             </form>

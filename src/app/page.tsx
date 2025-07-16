@@ -21,21 +21,21 @@ export default function Home() {
             <HabitTracker />
             <Reminders />
             <div>
-              <h2 className="text-2xl font-headline font-bold mb-4">Featured Sessions</h2>
+              <h2 className="text-2xl font-headline font-bold mb-4">Sesiones Destacadas</h2>
               <div className="space-y-4">
                 <MeditationCard
-                  title="Morning Awakening"
-                  description="Start your day with clarity and focus. A gentle session to awaken the senses."
+                  title="Despertar Matutino"
+                  description="Comienza tu día con claridad y enfoque. Una sesión suave para despertar los sentidos."
                   lengthMinutes={10}
                   type="Mindfulness"
                   imageUrl="https://placehold.co/600x400.png"
                   imageHint="sunrise yoga"
                 />
                 <MeditationCard
-                  title="Deep Sleep"
-                  description="A calming journey to release the day's tension and welcome restful sleep."
+                  title="Sueño Profundo"
+                  description="Un viaje relajante para liberar la tensión del día y dar la bienvenida a un sueño reparador."
                   lengthMinutes={20}
-                  type="Sleep"
+                  type="Sueño"
                   imageUrl="https://placehold.co/600x400.png"
                   imageHint="calm night"
                 />
