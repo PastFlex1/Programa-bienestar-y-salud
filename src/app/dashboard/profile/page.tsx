@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,8 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const [name, setName] = useState("Usuario de Zenith");
   const [email, setEmail] = useState("usuario@example.com");
+  const [avatarUrl, setAvatarUrl] = useState("https://placehold.co/100x100.png");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSaveChanges = () => {
     // En una aplicación real, aquí llamarías a una API para guardar los cambios.
@@ -21,6 +23,27 @@ export default function ProfilePage() {
       description: "Tus cambios han sido guardados exitosamente.",
     });
   };
+
+  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+        toast({
+          variant: "destructive",
+          title: "Archivo muy grande",
+          description: "Por favor, selecciona una imagen de menos de 2MB.",
+        });
+        return;
+      }
+      const newAvatarUrl = URL.createObjectURL(file);
+      setAvatarUrl(newAvatarUrl);
+    }
+  };
+
+  const handleAvatarButtonClick = () => {
+    fileInputRef.current?.click();
+  };
+
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -33,10 +56,17 @@ export default function ProfilePage() {
           <CardContent className="space-y-6">
             <div className="flex items-center space-x-4">
               <Avatar className="h-20 w-20">
-                <AvatarImage src="https://placehold.co/100x100.png" alt="Perfil de usuario" data-ai-hint="woman smiling" />
+                <AvatarImage src={avatarUrl} alt="Perfil de usuario" data-ai-hint="woman smiling" />
                 <AvatarFallback>U</AvatarFallback>
               </Avatar>
-              <Button variant="outline">Cambiar Foto</Button>
+              <Button variant="outline" onClick={handleAvatarButtonClick}>Cambiar Foto</Button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleAvatarChange}
+                className="hidden"
+                accept="image/png, image/jpeg, image/gif"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="name">Nombre</Label>
