@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode, useMemo } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useMemo, useEffect } from 'react';
 import { useLanguage } from './language-provider';
 
 type UserData = {
@@ -23,9 +23,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const { language } = useLanguage();
 
   const [userData, setUserData] = useState<UserData>({
-    userName: userNames[language],
+    userName: "", // Start with a consistent empty state
     avatarUrl: "https://placehold.co/100x100.png"
   });
+
+  useEffect(() => {
+    // This effect runs only on the client, after hydration
+    setUserData(prev => ({ ...prev, userName: userNames[language] }));
+  }, [language]);
+
 
   const updateUser = (data: Partial<UserData>) => {
     setUserData(prev => ({ ...prev, ...data }));
