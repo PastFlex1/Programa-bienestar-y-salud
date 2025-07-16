@@ -1,50 +1,35 @@
-import { AppHeader } from "@/components/app-header";
-import { HabitTracker } from "@/components/habit-tracker";
-import { MeditationCard } from "@/components/meditation-card";
-import { ProgressCharts } from "@/components/progress-charts";
-import { RecommendationForm } from "@/components/recommendation-form";
-import { Reminders } from "@/components/reminders";
 
-export default function Home() {
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { BrainCircuit } from 'lucide-react';
+
+export default function WelcomePage() {
   return (
-    <div className="bg-background min-h-screen text-foreground font-body">
-      <AppHeader />
-      <main className="p-4 sm:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-          
-          <div className="lg:col-span-2 space-y-8">
-            <RecommendationForm />
-            <ProgressCharts />
-          </div>
-
-          <div className="space-y-8">
-            <HabitTracker />
-            <Reminders />
-            <div>
-              <h2 className="text-2xl font-headline font-bold mb-4">Sesiones Destacadas</h2>
-              <div className="space-y-4">
-                <MeditationCard
-                  title="Despertar Matutino"
-                  description="Comienza tu día con claridad y enfoque. Una sesión suave para despertar los sentidos."
-                  lengthMinutes={10}
-                  type="Mindfulness"
-                  imageUrl="https://placehold.co/600x400.png"
-                  imageHint="sunrise yoga"
-                />
-                <MeditationCard
-                  title="Sueño Profundo"
-                  description="Un viaje relajante para liberar la tensión del día y dar la bienvenida a un sueño reparador."
-                  lengthMinutes={20}
-                  type="Sueño"
-                  imageUrl="https://placehold.co/600x400.png"
-                  imageHint="calm night"
-                />
-              </div>
-            </div>
-          </div>
-
+    <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4 text-center">
+      <div className="flex flex-col items-center justify-center flex-1">
+        <div className="relative mb-8">
+          <div className="absolute inset-0 bg-primary/30 rounded-full blur-2xl animate-pulse-slow"></div>
+          <BrainCircuit className="relative h-24 w-24 text-primary" />
         </div>
-      </main>
+        <h1 className="text-5xl font-bold font-headline mb-2">Zenith</h1>
+        <p className="text-lg text-muted-foreground mb-12 max-w-md">
+          "La paz interior comienza en el momento en que eliges no permitir que otra persona o evento controle tus emociones."
+        </p>
+        <div className="space-y-4 w-full max-w-xs">
+          <Button asChild size="lg" className="w-full">
+            <Link href="/dashboard">Iniciar sesión</Link>
+          </Button>
+          <Button asChild variant="secondary" size="lg" className="w-full">
+            <Link href="/dashboard">Registrarse</Link>
+          </Button>
+          <Button asChild variant="ghost" size="lg" className="w-full">
+            <Link href="/dashboard">Continuar como invitado</Link>
+          </Button>
+        </div>
+      </div>
+      <footer className="text-sm text-muted-foreground py-4">
+        <p>&copy; {new Date().getFullYear()} Zenith. Todos los derechos reservados.</p>
+      </footer>
     </div>
   );
 }
