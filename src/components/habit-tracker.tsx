@@ -57,7 +57,7 @@ export function HabitTracker() {
 
   React.useEffect(() => {
     setHabits(initialHabits);
-  }, [initialHabit]);
+  }, [initialHabits]);
 
   const handleToggleHabit = (id: string) => {
     setHabits(
