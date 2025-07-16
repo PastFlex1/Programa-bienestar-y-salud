@@ -87,8 +87,8 @@ const sessionsData: { [key: string]: MeditationSession[] } = {
     { title: { es: "Energía Positiva", en: "Positive Energy" }, description: { es: "Una sesión de 5 minutos para un gran día.", en: "A 5-minute session for a great day." }, lengthMinutes: 5, type: { es: "Energía", en: "Energy" }, imageUrl: "https://placehold.co/600x400.png", imageHint: "sunflower field" },
   ],
   unwindEvening: [
-    { title: { es: "Final del Día", en: "End of Day" }, description: { es: "Desconecta y relájate en 15 minutos.", en: "Disconnect and relax in 15 minutes." }, lengthMinutes: 15, type: { es: "Relajación", en: "Relaxation" }, imageUrl: "https://placehold.co/600x400.png", imageHint: "sunset view" },
-    { title: { es: "Pausa Nocturna", en: "Evening Pause" }, description: { es: "Reflexiona y calma tu mente antes de dormir.", en: "Reflect and calm your mind before sleep." }, lengthMinutes: 10, type: { es: "Calma", en: "Calm" }, imageUrl: "https://placehold.co/600x400.png", imageHint: "cup of tea" },
+    { title: { es: "Final del Día", en: "End of Day" }, description: { es: "Desconecta y relájate en 15 minutos.", en: "Disconnect and relax in 15 minutes." }, lengthMinutes: 15, type: { es: "Relajación", en: "Relaxation" }, imageUrl: "/sueño/sueño4.jpg", imageHint: "sunset view" },
+    { title: { es: "Pausa Nocturna", en: "Evening Pause" }, description: { es: "Reflexiona y calma tu mente antes de dormir.", en: "Reflect and calm your mind before sleep." }, lengthMinutes: 10, type: { es: "Calma", en: "Calm" }, imageUrl: "/sueño/sueño5.jpg", imageHint: "cup of tea" },
   ],
   walkingMeditation: [
     { title: { es: "Paseo Consciente", en: "Mindful Walk" }, description: { es: "Conecta con cada paso que das.", en: "Connect with every step you take." }, lengthMinutes: 20, type: { es: "Caminar", en: "Walking" }, imageUrl: "https://placehold.co/600x400.png", imageHint: "forest path" },
@@ -103,8 +103,8 @@ const sessionsData: { [key: string]: MeditationSession[] } = {
     { title: { es: "Calma y Concentración", en: "Calm and Concentration" }, description: { es: "El equilibrio perfecto para tu mente.", en: "The perfect balance for your mind." }, lengthMinutes: 20, type: { es: "Foco/Relax", en: "Focus/Relax" }, imageUrl: "https://placehold.co/600x400.png", imageHint: "stack of stones" },
   ],
   stressAndSleep: [
-    { title: { es: "Adiós Estrés, Hola Sueño", en: "Goodbye Stress, Hello Sleep" }, description: { es: "Prepara tu mente para un sueño reparador.", en: "Prepare your mind for a restful sleep." }, lengthMinutes: 18, type: { es: "Estrés/Sueño", en: "Stress/Sleep" }, imageUrl: "https://placehold.co/600x400.png", imageHint: "calm clouds" },
-    { title: { es: "Liberación Nocturna", en: "Nightly Release" }, description: { es: "Suelta las preocupaciones del día.", en: "Let go of the day's worries." }, lengthMinutes: 12, type: { es: "Estrés/Sueño", en: "Stress/Sleep" }, imageUrl: "https://placehold.co/600x400.png", imageHint: "dream catcher" },
+    { title: { es: "Adiós Estrés, Hola Sueño", en: "Goodbye Stress, Hello Sleep" }, description: { es: "Prepara tu mente para un sueño reparador.", en: "Prepare your mind for a restful sleep." }, lengthMinutes: 18, type: { es: "Estrés/Sueño", en: "Stress/Sleep" }, imageUrl: "/sueño/sueño6.png", imageHint: "calm clouds" },
+    { title: { es: "Liberación Nocturna", en: "Nightly Release" }, description: { es: "Suelta las preocupaciones del día.", en: "Let go of the day's worries." }, lengthMinutes: 12, type: { es: "Estrés/Sueño", en: "Stress/Sleep" }, imageUrl: "/sueño/sueño7.png", imageHint: "dream catcher" },
   ],
 };
 
