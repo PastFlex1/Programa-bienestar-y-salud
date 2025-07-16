@@ -68,9 +68,9 @@ const sessionsData: { [key: string]: MeditationSession[] } = {
     { title: { es: "Pausa Relajante", en: "Relaxing Pause" }, description: { es: "Una pausa de 15 minutos en tu día.", en: "A 15-minute break in your day." }, lengthMinutes: 15, type: { es: "Estrés", en: "Stress" }, imageUrl: "/alivioestres/estres3.jpg", imageHint: "calm waves" },
   ],
   deepSleep: [
-    { title: { es: "Viaje al Sueño", en: "Journey to Sleep" }, description: { es: "20 minutos para un descanso profundo.", en: "20 minutes for a deep rest." }, lengthMinutes: 20, type: { es: "Sueño", en: "Sleep" }, imageUrl: "https://placehold.co/600x400.png", imageHint: "starry night" },
-    { title: { es: "Noche Serena", en: "Serene Night" }, description: { es: "Música y guía para dormir.", en: "Music and guidance for sleep." }, lengthMinutes: 30, type: { es: "Sueño", en: "Sleep" }, imageUrl: "https://placehold.co/600x400.png", imageHint: "moonlit forest" },
-    { title: { es: "Relajación Nocturna", en: "Nightly Relaxation" }, description: { es: "Libera el día antes de dormir.", en: "Release the day before sleeping." }, lengthMinutes: 15, type: { es: "Sueño", en: "Sleep" }, imageUrl: "https://placehold.co/600x400.png", imageHint: "cozy bedroom" },
+    { title: { es: "Viaje al Sueño", en: "Journey to Sleep" }, description: { es: "20 minutos para un descanso profundo.", en: "20 minutes for a deep rest." }, lengthMinutes: 20, type: { es: "Sueño", en: "Sleep" }, imageUrl: "/sueño/sueño1.png", imageHint: "starry night" },
+    { title: { es: "Noche Serena", en: "Serene Night" }, description: { es: "Música y guía para dormir.", en: "Music and guidance for sleep." }, lengthMinutes: 30, type: { es: "Sueño", en: "Sleep" }, imageUrl: "/sueño/sueño2.png", imageHint: "moonlit forest" },
+    { title: { es: "Relajación Nocturna", en: "Nightly Relaxation" }, description: { es: "Libera el día antes de dormir.", en: "Release the day before sleeping." }, lengthMinutes: 15, type: { es: "Sueño", en: "Sleep" }, imageUrl: "/sueño/sueño3.png", imageHint: "cozy bedroom" },
   ],
   intenseFocus: [
     { title: { es: "Claridad Mental", en: "Mental Clarity" }, description: { es: "10 minutos para una mente aguda.", en: "10 minutes for a sharp mind." }, lengthMinutes: 10, type: { es: "Enfoque", en: "Focus" }, imageUrl: "https://placehold.co/600x400.png", imageHint: "focused work" },
@@ -194,3 +194,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
