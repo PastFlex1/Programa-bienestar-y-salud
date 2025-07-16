@@ -73,9 +73,9 @@ const sessionsData: { [key: string]: MeditationSession[] } = {
     { title: { es: "Relajación Nocturna", en: "Nightly Relaxation" }, description: { es: "Libera el día antes de dormir.", en: "Release the day before sleeping." }, lengthMinutes: 15, type: { es: "Sueño", en: "Sleep" }, imageUrl: "/sueño/sueño3.png", imageHint: "cozy bedroom" },
   ],
   intenseFocus: [
-    { title: { es: "Claridad Mental", en: "Mental Clarity" }, description: { es: "10 minutos para una mente aguda.", en: "10 minutes for a sharp mind." }, lengthMinutes: 10, type: { es: "Enfoque", en: "Focus" }, imageUrl: "https://placehold.co/600x400.png", imageHint: "focused work" },
-    { title: { es: "Concentración Total", en: "Total Concentration" }, description: { es: "15 minutos para eliminar distracciones.", en: "15 minutes to eliminate distractions." }, lengthMinutes: 15, type: { es: "Enfoque", en: "Focus" }, imageUrl: "https://placehold.co/600x400.png", imageHint: "geometric patterns" },
-    { title: { es: "Potencia tu Productividad", en: "Boost Your Productivity" }, description: { es: "Un impulso de 20 minutos para tu trabajo.", en: "A 20-minute boost for your work." }, lengthMinutes: 20, type: { es: "Enfoque", en: "Focus" }, imageUrl: "https://placehold.co/600x400.png", imageHint: "light bulb" },
+    { title: { es: "Claridad Mental", en: "Mental Clarity" }, description: { es: "10 minutos para una mente aguda.", en: "10 minutes for a sharp mind." }, lengthMinutes: 10, type: { es: "Enfoque", en: "Focus" }, imageUrl: "/enfoque/enfoque1.png", imageHint: "focused work" },
+    { title: { es: "Concentración Total", en: "Total Concentration" }, description: { es: "15 minutos para eliminar distracciones.", en: "15 minutes to eliminate distractions." }, lengthMinutes: 15, type: { es: "Enfoque", en: "Focus" }, imageUrl: "/enfoque/enfoque2.png", imageHint: "geometric patterns" },
+    { title: { es: "Potencia tu Productividad", en: "Boost Your Productivity" }, description: { es: "Un impulso de 20 minutos para tu trabajo.", en: "A 20-minute boost for your work." }, lengthMinutes: 20, type: { es: "Enfoque", en: "Focus" }, imageUrl: "/enfoque/enfoque3.png", imageHint: "light bulb" },
   ],
   anxietyReduction: [
     { title: { es: "Paz Interior", en: "Inner Peace" }, description: { es: "Encuentra la calma en 10 minutos.", en: "Find calm in 10 minutes." }, lengthMinutes: 10, type: { es: "Ansiedad", en: "Anxiety" }, imageUrl: "https://placehold.co/600x400.png", imageHint: "zen garden" },
