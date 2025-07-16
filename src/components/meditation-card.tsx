@@ -34,47 +34,43 @@ export function MeditationCard({ title, description, lengthMinutes, type, imageU
 
   return (
     <Card className={cn(
-      "overflow-hidden transition-all hover:shadow-lg w-full",
+      "overflow-hidden transition-all hover:shadow-lg w-full h-full flex flex-col",
       isRecommended && "border-primary border-2 shadow-primary/20"
     )}>
-      <CardContent className="p-0">
-        <div className="grid grid-cols-1 md:grid-cols-3">
-          <div className="md:col-span-1 relative h-48 md:h-full min-h-[150px]">
-            <Image
-              src={imageUrl}
-              alt={title}
-              fill
-              className="object-cover"
-              data-ai-hint={imageHint}
-            />
-            {isRecommended && (
-              <Badge variant="default" className="absolute top-2 left-2 bg-primary text-primary-foreground">
-                <Sparkles className="w-3 h-3 mr-1" />
-                {t.recommended}
-              </Badge>
-            )}
-          </div>
-          <div className="md:col-span-2 p-6 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Headphones className="h-4 w-4" />
-                  <span>{type}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Clock className="h-4 w-4" />
-                  <span>{lengthMinutes} min</span>
-                </div>
-              </div>
-              <h3 className="text-xl font-bold font-headline mb-2">{title}</h3>
-              <p className="text-muted-foreground text-sm mb-4">{description}</p>
+      <div className="relative w-full h-40">
+        <Image
+          src={imageUrl}
+          alt={title}
+          fill
+          className="object-cover"
+          data-ai-hint={imageHint}
+        />
+        {isRecommended && (
+          <Badge variant="default" className="absolute top-2 left-2 bg-primary text-primary-foreground">
+            <Sparkles className="w-3 h-3 mr-1" />
+            {t.recommended}
+          </Badge>
+        )}
+      </div>
+      <CardContent className="p-4 flex flex-col flex-grow">
+        <div className="flex-grow">
+          <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <Headphones className="h-4 w-4" />
+              <span>{type}</span>
             </div>
-            <Button className="w-full sm:w-auto self-start">
-              <Play className="h-4 w-4 mr-2" />
-              {t.startSession}
-            </Button>
+            <div className="flex items-center gap-1">
+              <Clock className="h-4 w-4" />
+              <span>{lengthMinutes} min</span>
+            </div>
           </div>
+          <h3 className="text-lg font-bold font-headline mb-2 leading-tight">{title}</h3>
+          <p className="text-muted-foreground text-sm mb-4">{description}</p>
         </div>
+        <Button className="w-full mt-auto">
+          <Play className="h-4 w-4 mr-2" />
+          {t.startSession}
+        </Button>
       </CardContent>
     </Card>
   );
