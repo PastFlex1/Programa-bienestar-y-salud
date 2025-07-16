@@ -1,23 +1,32 @@
 "use client";
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
+import { useUser } from '@/context/user-provider';
 
 export default function ProfilePage() {
   const { toast } = useToast();
-  const [name, setName] = useState("Usuario de Zenith");
-  const [email, setEmail] = useState("usuario@example.com");
-  const [avatarUrl, setAvatarUrl] = useState("https://placehold.co/100x100.png");
+  const { userName, avatarUrl, updateUser } = useUser();
+  
+  const [name, setName] = useState(userName);
+  const [email, setEmail] = useState("usuario@example.com"); // Email is not in context for now
+  const [previewAvatarUrl, setPreviewAvatarUrl] = useState(avatarUrl);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    setName(userName);
+    setPreviewAvatarUrl(avatarUrl);
+  }, [userName, avatarUrl]);
+
+
   const handleSaveChanges = () => {
-    // En una aplicación real, aquí llamarías a una API para guardar los cambios.
-    console.log("Guardando cambios:", { name, email });
+    updateUser({ userName: name, avatarUrl: previewAvatarUrl });
     toast({
       title: "Perfil Actualizado",
       description: "Tus cambios han sido guardados exitosamente.",
@@ -36,7 +45,7 @@ export default function ProfilePage() {
         return;
       }
       const newAvatarUrl = URL.createObjectURL(file);
-      setAvatarUrl(newAvatarUrl);
+      setPreviewAvatarUrl(newAvatarUrl);
     }
   };
 
@@ -56,8 +65,8 @@ export default function ProfilePage() {
           <CardContent className="space-y-6">
             <div className="flex items-center space-x-4">
               <Avatar className="h-20 w-20">
-                <AvatarImage src={avatarUrl} alt="Perfil de usuario" data-ai-hint="woman smiling" />
-                <AvatarFallback>U</AvatarFallback>
+                <AvatarImage src={previewAvatarUrl} alt="Perfil de usuario" data-ai-hint="woman smiling" />
+                <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
               <Button variant="outline" onClick={handleAvatarButtonClick}>Cambiar Foto</Button>
               <input

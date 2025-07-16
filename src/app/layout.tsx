@@ -3,6 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from '@/context/theme-provider';
 import { LanguageProvider } from '@/context/language-provider';
+import { UserProvider } from '@/context/user-provider';
 
 export const metadata: Metadata = {
   title: 'Zenith',
@@ -29,8 +30,10 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <LanguageProvider>
-            {children}
-            <Toaster />
+            <UserProvider>
+              {children}
+              <Toaster />
+            </UserProvider>
           </LanguageProvider>
         </ThemeProvider>
       </body>
