@@ -28,16 +28,20 @@ export function LanguageProvider({
   storageKey = "zenith-language",
   ...props
 }: LanguageProviderProps) {
-  const [language, setLanguage] = React.useState<Language>(() => {
-    if (typeof window === 'undefined') {
-      return defaultLanguage;
-    }
+  const [language, setLanguage] = React.useState<Language>(defaultLanguage);
+
+  React.useEffect(() => {
+    let storedLanguage: Language | null = null;
     try {
-      return (localStorage.getItem(storageKey) as Language) || defaultLanguage;
+      storedLanguage = localStorage.getItem(storageKey) as Language;
     } catch (e) {
-      return defaultLanguage;
+      // Ignore
     }
-  });
+    
+    if (storedLanguage && ["es", "en"].includes(storedLanguage)) {
+        setLanguage(storedLanguage);
+    }
+  }, [storageKey]);
 
   React.useEffect(() => {
      if (typeof window !== 'undefined') {
