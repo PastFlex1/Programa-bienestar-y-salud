@@ -1,6 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useMemo } from 'react';
+import { useLanguage } from './language-provider';
 
 type UserData = {
   userName: string;
@@ -13,9 +14,16 @@ type UserProviderState = UserData & {
 
 const UserContext = createContext<UserProviderState | undefined>(undefined);
 
+const userNames = {
+  es: "Usuario de Zenith",
+  en: "Zenith User"
+}
+
 export function UserProvider({ children }: { children: ReactNode }) {
+  const { language } = useLanguage();
+
   const [userData, setUserData] = useState<UserData>({
-    userName: "Usuario de Zenith",
+    userName: userNames[language],
     avatarUrl: "https://placehold.co/100x100.png"
   });
 
@@ -23,8 +31,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setUserData(prev => ({ ...prev, ...data }));
   };
 
+  const value = useMemo(() => ({
+    userName: userData.userName,
+    avatarUrl: userData.avatarUrl,
+    updateUser
+  }), [userData.userName, userData.avatarUrl]);
+
   return (
-    <UserContext.Provider value={{ ...userData, updateUser }}>
+    <UserContext.Provider value={value}>
       {children}
     </UserContext.Provider>
   );

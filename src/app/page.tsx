@@ -1,9 +1,30 @@
-
+"use client";
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { BrainCircuit } from 'lucide-react';
+import { useLanguage } from '@/context/language-provider';
+
+const translations = {
+  es: {
+    quote: '"La paz interior comienza en el momento en que eliges no permitir que otra persona o evento controle tus emociones."',
+    login: 'Iniciar sesión',
+    register: 'Registrarse',
+    guest: 'Continuar como invitado',
+    copyright: 'Zenith. Todos los derechos reservados.'
+  },
+  en: {
+    quote: '"Inner peace begins the moment you choose not to allow another person or event to control your emotions."',
+    login: 'Log In',
+    register: 'Sign Up',
+    guest: 'Continue as Guest',
+    copyright: 'Zenith. All rights reserved.'
+  }
+}
 
 export default function WelcomePage() {
+  const { language } = useLanguage();
+  const t = translations[language];
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4 text-center">
       <div className="flex flex-col items-center justify-center flex-1">
@@ -13,22 +34,22 @@ export default function WelcomePage() {
         </div>
         <h1 className="text-5xl font-bold font-headline mb-2">Zenith</h1>
         <p className="text-lg text-muted-foreground mb-12 max-w-md">
-          "La paz interior comienza en el momento en que eliges no permitir que otra persona o evento controle tus emociones."
+          {t.quote}
         </p>
         <div className="space-y-4 w-full max-w-xs">
           <Button asChild size="lg" className="w-full">
-            <Link href="/dashboard">Iniciar sesión</Link>
+            <Link href="/dashboard">{t.login}</Link>
           </Button>
           <Button asChild variant="secondary" size="lg" className="w-full">
-            <Link href="/dashboard">Registrarse</Link>
+            <Link href="/dashboard">{t.register}</Link>
           </Button>
           <Button asChild variant="ghost" size="lg" className="w-full">
-            <Link href="/dashboard">Continuar como invitado</Link>
+            <Link href="/dashboard">{t.guest}</Link>
           </Button>
         </div>
       </div>
       <footer className="text-sm text-muted-foreground py-4">
-        <p>&copy; {new Date().getFullYear()} Zenith. Todos los derechos reservados.</p>
+        <p>&copy; {new Date().getFullYear()} {t.copyright}</p>
       </footer>
     </div>
   );

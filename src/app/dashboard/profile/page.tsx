@@ -8,13 +8,49 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/context/user-provider';
+import { useLanguage } from '@/context/language-provider';
+
+const translations = {
+  es: {
+    title: "Perfil de Usuario",
+    description: "Gestiona la información de tu cuenta.",
+    changePhoto: "Cambiar Foto",
+    nameLabel: "Nombre",
+    emailLabel: "Correo Electrónico",
+    saveChanges: "Guardar Cambios",
+    toastSuccessTitle: "Perfil Actualizado",
+    toastSuccessDescription: "Tus cambios han sido guardados exitosamente.",
+    toastFileTooLargeTitle: "Archivo muy grande",
+    toastFileTooLargeDescription: "Por favor, selecciona una imagen de menos de 2MB.",
+    emailPlaceholder: "usuario@example.com",
+    avatarAlt: "Perfil de usuario"
+  },
+  en: {
+    title: "User Profile",
+    description: "Manage your account information.",
+    changePhoto: "Change Photo",
+    nameLabel: "Name",
+    emailLabel: "Email",
+    saveChanges: "Save Changes",
+    toastSuccessTitle: "Profile Updated",
+    toastSuccessDescription: "Your changes have been saved successfully.",
+    toastFileTooLargeTitle: "File Too Large",
+    toastFileTooLargeDescription: "Please select an image smaller than 2MB.",
+    emailPlaceholder: "user@example.com",
+    avatarAlt: "User profile"
+  }
+};
+
 
 export default function ProfilePage() {
+  const { language } = useLanguage();
+  const t = translations[language];
+
   const { toast } = useToast();
   const { userName, avatarUrl, updateUser } = useUser();
   
   const [name, setName] = useState(userName);
-  const [email, setEmail] = useState("usuario@example.com"); // Email is not in context for now
+  const [email, setEmail] = useState(t.emailPlaceholder); 
   const [previewAvatarUrl, setPreviewAvatarUrl] = useState(avatarUrl);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -28,8 +64,8 @@ export default function ProfilePage() {
   const handleSaveChanges = () => {
     updateUser({ userName: name, avatarUrl: previewAvatarUrl });
     toast({
-      title: "Perfil Actualizado",
-      description: "Tus cambios han sido guardados exitosamente.",
+      title: t.toastSuccessTitle,
+      description: t.toastSuccessDescription,
     });
   };
 
@@ -39,8 +75,8 @@ export default function ProfilePage() {
       if (file.size > 2 * 1024 * 1024) { // 2MB limit
         toast({
           variant: "destructive",
-          title: "Archivo muy grande",
-          description: "Por favor, selecciona una imagen de menos de 2MB.",
+          title: t.toastFileTooLargeTitle,
+          description: t.toastFileTooLargeDescription,
         });
         return;
       }
@@ -59,16 +95,16 @@ export default function ProfilePage() {
       <div className="max-w-2xl mx-auto space-y-8">
         <Card>
           <CardHeader>
-            <CardTitle>Perfil de Usuario</CardTitle>
-            <CardDescription>Gestiona la información de tu cuenta.</CardDescription>
+            <CardTitle>{t.title}</CardTitle>
+            <CardDescription>{t.description}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="flex items-center space-x-4">
               <Avatar className="h-20 w-20">
-                <AvatarImage src={previewAvatarUrl} alt="Perfil de usuario" data-ai-hint="woman smiling" />
+                <AvatarImage src={previewAvatarUrl} alt={t.avatarAlt} data-ai-hint="woman smiling" />
                 <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
-              <Button variant="outline" onClick={handleAvatarButtonClick}>Cambiar Foto</Button>
+              <Button variant="outline" onClick={handleAvatarButtonClick}>{t.changePhoto}</Button>
               <input
                 type="file"
                 ref={fileInputRef}
@@ -78,7 +114,7 @@ export default function ProfilePage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="name">Nombre</Label>
+              <Label htmlFor="name">{t.nameLabel}</Label>
               <Input 
                 id="name" 
                 value={name} 
@@ -86,7 +122,7 @@ export default function ProfilePage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Correo Electrónico</Label>
+              <Label htmlFor="email">{t.emailLabel}</Label>
               <Input 
                 id="email" 
                 type="email" 
@@ -94,7 +130,7 @@ export default function ProfilePage() {
                 onChange={(e) => setEmail(e.target.value)} 
               />
             </div>
-            <Button onClick={handleSaveChanges}>Guardar Cambios</Button>
+            <Button onClick={handleSaveChanges}>{t.saveChanges}</Button>
           </CardContent>
         </Card>
       </div>

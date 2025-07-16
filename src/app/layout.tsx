@@ -7,7 +7,7 @@ import { UserProvider } from '@/context/user-provider';
 
 export const metadata: Metadata = {
   title: 'Zenith',
-  description: 'Una interfaz serena para meditación guiada y seguimiento de hábitos.',
+  description: 'A serene interface for guided meditation and habit tracking.',
 };
 
 export default function RootLayout({

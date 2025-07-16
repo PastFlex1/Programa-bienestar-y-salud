@@ -1,21 +1,41 @@
-
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, ListTodo, BarChart3, User, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/context/language-provider";
 
-const navItems = [
-  { href: "/dashboard", icon: Home, label: "Meditación" },
-  { href: "/dashboard/habits", icon: ListTodo, label: "Hábitos" },
-  { href: "/dashboard/progress", icon: BarChart3, label: "Progreso" },
-  { href: "/dashboard/profile", icon: User, label: "Perfil" },
-  { href: "/dashboard/settings", icon: Settings, label: "Ajustes" },
-];
+const translations = {
+  es: {
+    meditation: "Meditación",
+    habits: "Hábitos",
+    progress: "Progreso",
+    profile: "Perfil",
+    settings: "Ajustes",
+  },
+  en: {
+    meditation: "Meditation",
+    habits: "Habits",
+    progress: "Progress",
+    profile: "Profile",
+    settings: "Settings",
+  },
+};
 
 export function BottomNav() {
   const pathname = usePathname();
+  const { language } = useLanguage();
+  const t = translations[language];
+
+  const navItems = [
+    { href: "/dashboard", icon: Home, label: t.meditation },
+    { href: "/dashboard/habits", icon: ListTodo, label: t.habits },
+    { href: "/dashboard/progress", icon: BarChart3, label: t.progress },
+    { href: "/dashboard/profile", icon: User, label: t.profile },
+    { href: "/dashboard/settings", icon: Settings, label: t.settings },
+  ];
+
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 h-20 bg-card border-t border-border/80 shadow-t-lg z-20">

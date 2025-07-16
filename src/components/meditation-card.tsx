@@ -1,9 +1,22 @@
+"use client";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Clock, Play, Headphones, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/context/language-provider";
+
+const translations = {
+  es: {
+    recommended: "Recomendado para ti",
+    startSession: "Iniciar Sesión"
+  },
+  en: {
+    recommended: "Recommended for you",
+    startSession: "Start Session"
+  }
+}
 
 interface MeditationCardProps {
   title: string;
@@ -16,6 +29,9 @@ interface MeditationCardProps {
 }
 
 export function MeditationCard({ title, description, lengthMinutes, type, imageUrl, imageHint, isRecommended = false }: MeditationCardProps) {
+  const { language } = useLanguage();
+  const t = translations[language];
+
   return (
     <Card className={cn(
       "overflow-hidden transition-all hover:shadow-lg w-full",
@@ -34,7 +50,7 @@ export function MeditationCard({ title, description, lengthMinutes, type, imageU
             {isRecommended && (
               <Badge variant="default" className="absolute top-2 left-2 bg-primary text-primary-foreground">
                 <Sparkles className="w-3 h-3 mr-1" />
-                Recomendado para ti
+                {t.recommended}
               </Badge>
             )}
           </div>
@@ -55,7 +71,7 @@ export function MeditationCard({ title, description, lengthMinutes, type, imageU
             </div>
             <Button className="w-full sm:w-auto self-start">
               <Play className="h-4 w-4 mr-2" />
-              Iniciar Sesión
+              {t.startSession}
             </Button>
           </div>
         </div>
