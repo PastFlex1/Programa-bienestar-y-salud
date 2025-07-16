@@ -1,7 +1,8 @@
 {
-  "name": "nextn",
+  "name": "zenith-mobile",
   "version": "0.1.0",
   "private": true,
+  "description": "User-centric mobile interface for a meditation and habit tracking application.",
   "scripts": {
     "dev": "next dev --turbopack -p 9002",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
