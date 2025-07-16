@@ -3,30 +3,30 @@
 @tailwind utilities;
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Alegreya', serif;
 }
 
 @layer base {
   :root {
-    --background: 60 56% 93%;
+    --background: 48 33% 94%; /* pale beige (#F5F5DC) */
     --foreground: 240 10% 20%;
-    --card: 240 67% 97%;
+    --card: 48 33% 98%;
     --card-foreground: 240 10% 20%;
-    --popover: 240 67% 97%;
+    --popover: 48 33% 98%;
     --popover-foreground: 240 10% 20%;
-    --primary: 190 42% 61%;
-    --primary-foreground: 190 100% 10%;
+    --primary: 240 67% 94%; /* soft lavender (#E6E6FA) */
+    --primary-foreground: 240 60% 20%;
     --secondary: 240 50% 96.1%;
     --secondary-foreground: 240 5.9% 10%;
     --muted: 240 50% 96.1%;
     --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 60% 90%;
-    --accent-foreground: 190 42% 40%;
+    --accent: 190 42% 61%; /* muted teal (#70B8C5) */
+    --accent-foreground: 190 100% 10%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 60 30% 85%;
-    --input: 60 30% 88%;
-    --ring: 190 42% 61%;
+    --border: 240 30% 85%;
+    --input: 240 30% 88%;
+    --ring: 240 67% 94%;
     --chart-1: 190 42% 61%;
     --chart-2: 240 40% 75%;
     --chart-3: 197 37% 24%;
@@ -41,19 +41,19 @@ body {
     --card-foreground: 60 30% 96%;
     --popover: 240 5% 15%;
     --popover-foreground: 60 30% 96%;
-    --primary: 190 42% 61%;
-    --primary-foreground: 190 100% 10%;
+    --primary: 240 67% 88%;
+    --primary-foreground: 240 60% 10%;
     --secondary: 240 5% 20%;
     --secondary-foreground: 60 30% 96%;
     --muted: 240 5% 20%;
     --muted-foreground: 60 30% 70%;
-    --accent: 240 10% 25%;
+    --accent: 190 42% 55%;
     --accent-foreground: 60 30% 96%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     --border: 240 5% 25%;
     --input: 240 5% 25%;
-    --ring: 190 42% 61%;
+    --ring: 240 67% 88%;
     --chart-1: 190 42% 61%;
     --chart-2: 240 40% 75%;
     --chart-3: 30 80% 55%;
