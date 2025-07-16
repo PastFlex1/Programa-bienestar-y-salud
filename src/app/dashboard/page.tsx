@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useState } from "react";
 import { MeditationSection } from "@/components/meditation-section";
 import { RecommendationForm } from "@/components/recommendation-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Search } from "lucide-react";
 import { useLanguage } from "@/context/language-provider";
 import type { MeditationSession } from "@/components/meditation-section";
+import { Button } from "@/components/ui/button";
 
 const translations = {
   es: {
@@ -20,6 +22,7 @@ const translations = {
     badgeSleep: "Sueño",
     badgeFocus: "Enfoque",
     badgeAnxiety: "Ansiedad",
+    resetFilter: "Mostrar Todo",
     sections: {
       stressRelief: "Alivio del Estrés",
       deepSleep: "Sueño Profundo",
@@ -42,6 +45,7 @@ const translations = {
     badgeSleep: "Sleep",
     badgeFocus: "Focus",
     badgeAnxiety: "Anxiety",
+    resetFilter: "Show All",
     sections: {
       stressRelief: "Stress Relief",
       deepSleep: "Deep Sleep",
@@ -104,14 +108,40 @@ const sessionsData: { [key: string]: MeditationSession[] } = {
   ],
 };
 
+const allSections = [
+  { id: 'stressRelief', category: 'Stressed' },
+  { id: 'deepSleep', category: 'Tired' },
+  { id: 'intenseFocus', category: 'Focus' },
+  { id: 'anxietyReduction', category: 'Anxious' },
+  { id: 'morningStart', category: 'Focus' },
+  { id: 'unwindEvening', category: 'Tired' },
+  { id: 'walkingMeditation', category: 'Stressed' },
+  { id: 'bodyScan', category: 'Anxious' },
+  { id: 'focusAndRelax', category: 'Focus' },
+  { id: 'stressAndSleep', category: 'Stressed' },
+];
+
 export default function DashboardPage() {
   const { language } = useLanguage();
   const t = translations[language];
+  const [moodFilter, setMoodFilter] = useState<string | null>(null);
+
+  const handleFilter = (mood: string) => {
+    setMoodFilter(mood);
+  };
+
+  const handleResetFilter = () => {
+    setMoodFilter(null);
+  }
+
+  const filteredSections = moodFilter
+    ? allSections.filter(section => section.category === moodFilter)
+    : allSections;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8">
       <div className="max-w-7xl mx-auto">
-        <RecommendationForm />
+        <RecommendationForm onFilter={handleFilter} />
       </div>
 
       <div className="max-w-7xl mx-auto">
@@ -127,11 +157,11 @@ export default function DashboardPage() {
                 <Input placeholder={t.searchPlaceholder} className="pl-10" />
               </div>
               <div className="flex flex-wrap gap-2">
-                <Badge variant="secondary">{t.badgeAll}</Badge>
-                <Badge variant="outline">{t.badgeStress}</Badge>
-                <Badge variant="outline">{t.badgeSleep}</Badge>
-                <Badge variant="outline">{t.badgeFocus}</Badge>
-                <Badge variant="outline">{t.badgeAnxiety}</Badge>
+                <Badge variant="secondary" onClick={() => setMoodFilter(null)} className="cursor-pointer">{t.badgeAll}</Badge>
+                <Badge variant="outline" onClick={() => setMoodFilter('Stressed')} className="cursor-pointer">{t.badgeStress}</Badge>
+                <Badge variant="outline" onClick={() => setMoodFilter('Tired')} className="cursor-pointer">{t.badgeSleep}</Badge>
+                <Badge variant="outline" onClick={() => setMoodFilter('Focus')} className="cursor-pointer">{t.badgeFocus}</Badge>
+                <Badge variant="outline" onClick={() => setMoodFilter('Anxious')} className="cursor-pointer">{t.badgeAnxiety}</Badge>
               </div>
             </div>
           </CardContent>
@@ -139,16 +169,27 @@ export default function DashboardPage() {
       </div>
 
       <div className="max-w-7xl mx-auto space-y-12">
-        <MeditationSection title={t.sections.stressRelief} sessions={sessionsData.stressRelief} />
-        <MeditationSection title={t.sections.deepSleep} sessions={sessionsData.deepSleep} />
-        <MeditationSection title={t.sections.intenseFocus} sessions={sessionsData.intenseFocus} />
-        <MeditationSection title={t.sections.anxietyReduction} sessions={sessionsData.anxietyReduction} />
-        <MeditationSection title={t.sections.morningStart} sessions={sessionsData.morningStart} />
-        <MeditationSection title={t.sections.unwindEvening} sessions={sessionsData.unwindEvening} />
-        <MeditationSection title={t.sections.walkingMeditation} sessions={sessionsData.walkingMeditation} />
-        <MeditationSection title={t.sections.bodyScan} sessions={sessionsData.bodyScan} />
-        <MeditationSection title={t.sections.focusAndRelax} sessions={sessionsData.focusAndRelax} />
-        <MeditationSection title={t.sections.stressAndSleep} sessions={sessionsData.stressAndSleep} />
+        {filteredSections.length < allSections.length && (
+          <div className="text-center">
+            <Button onClick={handleResetFilter}>{t.resetFilter}</Button>
+          </div>
+        )}
+        
+        {filteredSections.map(sectionInfo => (
+            <MeditationSection 
+              key={sectionInfo.id} 
+              title={t.sections[sectionInfo.id as keyof typeof t.sections]} 
+              sessions={sessionsData[sectionInfo.id]} 
+            />
+        ))}
+
+        {filteredSections.length === 0 && (
+          <Card className="text-center p-8">
+            <CardContent>
+              <p>No hay sesiones para la categoría seleccionada.</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
