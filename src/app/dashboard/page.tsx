@@ -6,7 +6,7 @@ import { Reminders } from "@/components/reminders";
 
 export default function DashboardPage() {
   return (
-    <main className="p-4 sm:p-6 lg:p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         
         <div className="lg:col-span-2 space-y-8">
@@ -41,6 +41,6 @@ export default function DashboardPage() {
         </div>
 
       </div>
-    </main>
+    </div>
   );
 }
