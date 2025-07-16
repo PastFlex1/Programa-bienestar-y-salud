@@ -63,9 +63,9 @@ const translations = {
 
 const sessionsData: { [key: string]: MeditationSession[] } = {
   stressRelief: [
-    { title: { es: "Calma Rápida", en: "Quick Calm" }, description: { es: "5 minutos para liberar tensión.", en: "5 minutes to release tension." }, lengthMinutes: 5, type: { es: "Estrés", en: "Stress" }, imageUrl: "https://placehold.co/600x400.png", imageHint: "serene lake" },
-    { title: { es: "Respiración Consciente", en: "Mindful Breathing" }, description: { es: "10 minutos de respiración para el estrés.", en: "10 minutes of breathing for stress." }, lengthMinutes: 10, type: { es: "Estrés", en: "Stress" }, imageUrl: "https://placehold.co/600x400.png", imageHint: "person meditating" },
-    { title: { es: "Pausa Relajante", en: "Relaxing Pause" }, description: { es: "Una pausa de 15 minutos en tu día.", en: "A 15-minute break in your day." }, lengthMinutes: 15, type: { es: "Estrés", en: "Stress" }, imageUrl: "https://placehold.co/600x400.png", imageHint: "calm waves" },
+    { title: { es: "Calma Rápida", en: "Quick Calm" }, description: { es: "5 minutos para liberar tensión.", en: "5 minutes to release tension." }, lengthMinutes: 5, type: { es: "Estrés", en: "Stress" }, imageUrl: "/alivioestres/estres1.png", imageHint: "serene lake" },
+    { title: { es: "Respiración Consciente", en: "Mindful Breathing" }, description: { es: "10 minutos de respiración para el estrés.", en: "10 minutes of breathing for stress." }, lengthMinutes: 10, type: { es: "Estrés", en: "Stress" }, imageUrl: "/alivioestres/estres2.png", imageHint: "person meditating" },
+    { title: { es: "Pausa Relajante", en: "Relaxing Pause" }, description: { es: "Una pausa de 15 minutos en tu día.", en: "A 15-minute break in your day." }, lengthMinutes: 15, type: { es: "Estrés", en: "Stress" }, imageUrl: "/alivioestres/estres3.jpg", imageHint: "calm waves" },
   ],
   deepSleep: [
     { title: { es: "Viaje al Sueño", en: "Journey to Sleep" }, description: { es: "20 minutos para un descanso profundo.", en: "20 minutes for a deep rest." }, lengthMinutes: 20, type: { es: "Sueño", en: "Sleep" }, imageUrl: "https://placehold.co/600x400.png", imageHint: "starry night" },
