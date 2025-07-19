@@ -12,7 +12,6 @@ import { useLanguage } from "@/context/language-provider";
 
 const translations = {
   es: {
-    title: "Hábitos Diarios",
     description: "Sigue tu progreso para un mejor tú.",
     addHabit: "Agregar Hábito",
     addNewHabit: "Agregar Nuevo Hábito",
@@ -26,7 +25,6 @@ const translations = {
     read: "Leer 10 páginas",
   },
   en: {
-    title: "Daily Habits",
     description: "Track your progress for a better you.",
     addHabit: "Add Habit",
     addNewHabit: "Add New Habit",
@@ -41,7 +39,12 @@ const translations = {
   }
 };
 
-export function HabitTracker() {
+interface HabitTrackerProps {
+  selectedDate?: Date;
+  title: string;
+}
+
+export function HabitTracker({ selectedDate, title }: HabitTrackerProps) {
   const { language } = useLanguage();
   const t = translations[language];
 
@@ -56,8 +59,10 @@ export function HabitTracker() {
   const [newHabit, setNewHabit] = React.useState("");
 
   React.useEffect(() => {
+    // Here you would typically fetch habits for the selectedDate
+    // For now, we just reset to the initial list for demonstration
     setHabits(initialHabits);
-  }, [initialHabits]);
+  }, [selectedDate, initialHabits]);
 
   const handleToggleHabit = (id: string) => {
     setHabits(
@@ -85,7 +90,7 @@ export function HabitTracker() {
         <div>
           <CardTitle className="font-headline flex items-center gap-2">
             <CheckCircle2 className="h-6 w-6 text-primary" />
-            {t.title}
+            {title}
           </CardTitle>
           <CardDescription>{t.description}</CardDescription>
         </div>
