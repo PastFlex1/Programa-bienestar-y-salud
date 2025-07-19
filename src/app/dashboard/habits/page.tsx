@@ -71,9 +71,8 @@ export default function HabitsPage() {
       { id: "mindful", label: t.initialHabits.mindful, icon: <Brain className="h-5 w-5 text-primary" />, completed: false },
       { id: "read", label: t.initialHabits.read, icon: <BookOpen className="h-5 w-5 text-primary" />, completed: false },
     ];
-    // For simplicity, we give every new day the same starting habits.
-    // In a real app, this might be based on a user's template.
-    return JSON.parse(JSON.stringify(defaultHabits)); // Deep copy
+    // Deep copy habits to avoid sharing state between days
+    return defaultHabits.map(habit => ({ ...habit }));
   }
 
   const handleSelectDate = (selectedDate: Date | undefined) => {
