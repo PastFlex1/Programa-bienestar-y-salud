@@ -66,7 +66,7 @@ export default function HabitsPage() {
                     <CardTitle className="text-xl">{t.calendarTitle}</CardTitle>
                     <CardDescription>{t.calendarDescription}</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex justify-center">
                     <Calendar
                         mode="single"
                         selected={date}
