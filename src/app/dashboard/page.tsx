@@ -83,24 +83,24 @@ const sessionsData: { [key: string]: MeditationSession[] } = {
     { title: { es: "Suelta la Preocupación", en: "Let Go of Worry" }, description: { es: "Una sesión de 20 minutos para liberarte.", en: "A 20-minute session to free yourself." }, lengthMinutes: 20, type: { es: "Ansiedad", en: "Anxiety" }, imageUrl: "/ansiedad/ansiedad3.png", imageHint: "dandelion seeds" },
   ],
    morningStart: [
-    { title: { es: "Despertar Matutino", en: "Morning Awakening" }, description: { es: "Comienza tu día con claridad y enfoque.", en: "Start your day with clarity and focus." }, lengthMinutes: 10, type: { es: "Mindfulness", en: "Mindfulness" }, imageUrl: "https://placehold.co/600x400.png", imageHint: "sunrise yoga" },
-    { title: { es: "Energía Positiva", en: "Positive Energy" }, description: { es: "Una sesión de 5 minutos para un gran día.", en: "A 5-minute session for a great day." }, lengthMinutes: 5, type: { es: "Energía", en: "Energy" }, imageUrl: "https://placehold.co/600x400.png", imageHint: "sunflower field" },
+    { title: { es: "Despertar Matutino", en: "Morning Awakening" }, description: { es: "Comienza tu día con claridad y enfoque.", en: "Start your day with clarity and focus." }, lengthMinutes: 10, type: { es: "Mindfulness", en: "Mindfulness" }, imageUrl: "/cocentracion/concentracion1.jpg", imageHint: "sunrise yoga" },
+    { title: { es: "Energía Positiva", en: "Positive Energy" }, description: { es: "Una sesión de 5 minutos para un gran día.", en: "A 5-minute session for a great day." }, lengthMinutes: 5, type: { es: "Energía", en: "Energy" }, imageUrl: "/cocentracion/concentracion2.jpg", imageHint: "sunflower field" },
   ],
   unwindEvening: [
     { title: { es: "Final del Día", en: "End of Day" }, description: { es: "Desconecta y relájate en 15 minutos.", en: "Disconnect and relax in 15 minutes." }, lengthMinutes: 15, type: { es: "Relajación", en: "Relaxation" }, imageUrl: "/sueño/sueño4.jpg", imageHint: "sunset view" },
     { title: { es: "Pausa Nocturna", en: "Evening Pause" }, description: { es: "Reflexiona y calma tu mente antes de dormir.", en: "Reflect and calm your mind before sleep." }, lengthMinutes: 10, type: { es: "Calma", en: "Calm" }, imageUrl: "/sueño/sueño5.jpg", imageHint: "cup of tea" },
   ],
   walkingMeditation: [
-    { title: { es: "Paseo Consciente", en: "Mindful Walk" }, description: { es: "Conecta con cada paso que das.", en: "Connect with every step you take." }, lengthMinutes: 20, type: { es: "Caminar", en: "Walking" }, imageUrl: "https://placehold.co/600x400.png", imageHint: "forest path" },
-    { title: { es: "Caminata Urbana", en: "Urban Walk" }, description: { es: "Encuentra la paz en la ciudad.", en: "Find peace in the city." }, lengthMinutes: 15, type: { es: "Caminar", en: "Walking" }, imageUrl: "https://placehold.co/600x400.png", imageHint: "city park" },
+    { title: { es: "Paseo Consciente", en: "Mindful Walk" }, description: { es: "Conecta con cada paso que das.", en: "Connect with every step you take." }, lengthMinutes: 20, type: { es: "Caminar", en: "Walking" }, imageUrl: "/cocentracion/concentracion3.jpg", imageHint: "forest path" },
+    { title: { es: "Caminata Urbana", en: "Urban Walk" }, description: { es: "Encuentra la paz en la ciudad.", en: "Find peace in the city." }, lengthMinutes: 15, type: { es: "Caminar", en: "Walking" }, imageUrl: "/cocentracion/concentracion4.jpg", imageHint: "city park" },
   ],
   bodyScan: [
-    { title: { es: "Escaneo Corporal Profundo", en: "Deep Body Scan" }, description: { es: "25 minutos de conexión con tu cuerpo.", en: "25 minutes of connection with your body." }, lengthMinutes: 25, type: { es: "Escaneo Corporal", en: "Body Scan" }, imageUrl: "https://placehold.co/600x400.png", imageHint: "human anatomy" },
-    { title: { es: "Relajación de Pies a Cabeza", en: "Head to Toe Relaxation" }, description: { es: "Libera la tensión acumulada.", en: "Release accumulated tension." }, lengthMinutes: 15, type: { es: "Escaneo Corporal", en: "Body Scan" }, imageUrl: "https://placehold.co/600x400.png", imageHint: "person stretching" },
+    { title: { es: "Escaneo Corporal Profundo", en: "Deep Body Scan" }, description: { es: "25 minutos de conexión con tu cuerpo.", en: "25 minutes of connection with your body." }, lengthMinutes: 25, type: { es: "Escaneo Corporal", en: "Body Scan" }, imageUrl: "/cocentracion/concentracion5.jpg", imageHint: "human anatomy" },
+    { title: { es: "Relajación de Pies a Cabeza", en: "Head to Toe Relaxation" }, description: { es: "Libera la tensión acumulada.", en: "Release accumulated tension." }, lengthMinutes: 15, type: { es: "Escaneo Corporal", en: "Body Scan" }, imageUrl: "/cocentracion/concentracion6.jpg", imageHint: "person stretching" },
   ],
   focusAndRelax: [
-    { title: { es: "Foco Relajado", en: "Relaxed Focus" }, description: { es: "Encuentra tu centro para trabajar mejor.", en: "Find your center to work better." }, lengthMinutes: 15, type: { es: "Foco/Relax", en: "Focus/Relax" }, imageUrl: "https://placehold.co/600x400.png", imageHint: "zen office" },
-    { title: { es: "Calma y Concentración", en: "Calm and Concentration" }, description: { es: "El equilibrio perfecto para tu mente.", en: "The perfect balance for your mind." }, lengthMinutes: 20, type: { es: "Foco/Relax", en: "Focus/Relax" }, imageUrl: "https://placehold.co/600x400.png", imageHint: "stack of stones" },
+    { title: { es: "Foco Relajado", en: "Relaxed Focus" }, description: { es: "Encuentra tu centro para trabajar mejor.", en: "Find your center to work better." }, lengthMinutes: 15, type: { es: "Foco/Relax", en: "Focus/Relax" }, imageUrl: "/cocentracion/concentracion7.jpg", imageHint: "zen office" },
+    { title: { es: "Calma y Concentración", en: "Calm and Concentration" }, description: { es: "El equilibrio perfecto para tu mente.", en: "The perfect balance for your mind." }, lengthMinutes: 20, type: { es: "Foco/Relax", en: "Focus/Relax" }, imageUrl: "/cocentracion/concentracion8.jpg", imageHint: "stack of stones" },
   ],
   stressAndSleep: [
     { title: { es: "Adiós Estrés, Hola Sueño", en: "Goodbye Stress, Hello Sleep" }, description: { es: "Prepara tu mente para un sueño reparador.", en: "Prepare your mind for a restful sleep." }, lengthMinutes: 18, type: { es: "Estrés/Sueño", en: "Stress/Sleep" }, imageUrl: "/sueño/sueño6.png", imageHint: "calm clouds" },
@@ -194,6 +194,8 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
 
     
 
