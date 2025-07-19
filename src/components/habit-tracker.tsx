@@ -4,7 +4,7 @@ import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Droplets, Footprints, Plus, Brain, BookOpen } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,10 +19,6 @@ const translations = {
     placeholder: "Ej: Meditar por 5 minutos",
     cancel: "Cancelar",
     add: "Agregar",
-    hydrate: "Hidratarse (8 vasos)",
-    walk: "Caminata Matutina",
-    mindful: "Momento de Atención Plena",
-    read: "Leer 10 páginas",
   },
   en: {
     description: "Track your progress for a better you.",
@@ -32,66 +28,39 @@ const translations = {
     placeholder: "E.g.: Meditate for 5 minutes",
     cancel: "Cancel",
     add: "Add",
-    hydrate: "Hydrate (8 glasses)",
-    walk: "Morning Walk",
-    mindful: "Mindful Moment",
-    read: "Read 10 pages",
   }
 };
 
-interface HabitTrackerProps {
-  selectedDate?: Date;
-  title: string;
+export interface Habit {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  completed: boolean;
 }
 
-export function HabitTracker({ selectedDate, title }: HabitTrackerProps) {
+interface HabitTrackerProps {
+  title: string;
+  habits: Habit[];
+  onAddHabit: (newHabitName: string) => void;
+  onToggleHabit: (id: string) => void;
+}
+
+export function HabitTracker({ title, habits, onAddHabit, onToggleHabit }: HabitTrackerProps) {
   const { language } = useLanguage();
   const t = translations[language];
 
-  const initialHabits = React.useMemo(() => [
-    { id: "hydrate", label: t.hydrate, icon: <Droplets className="h-5 w-5 text-primary" />, completed: false },
-    { id: "walk", label: t.walk, icon: <Footprints className="h-5 w-5 text-primary" />, completed: true },
-    { id: "mindful", label: t.mindful, icon: <Brain className="h-5 w-5 text-primary" />, completed: false },
-    { id: "read", label: t.read, icon: <BookOpen className="h-5 w-5 text-primary" />, completed: false },
-  ], [t]);
-  
-  const [habits, setHabits] = React.useState(initialHabits);
   const [newHabit, setNewHabit] = React.useState("");
 
-  React.useEffect(() => {
-    // Here you would typically fetch habits for the selectedDate
-    // For now, we just reset to the initial list for demonstration
-    setHabits(initialHabits);
-  }, [selectedDate, initialHabits]);
-
-  const handleToggleHabit = (id: string) => {
-    setHabits(
-      habits.map((habit) =>
-        habit.id === id ? { ...habit, completed: !habit.completed } : habit
-      )
-    );
-  };
-
-  const handleAddHabit = () => {
-    if (newHabit.trim() === "") return;
-    const newHabitObject = {
-      id: `custom-${Date.now()}`,
-      label: newHabit,
-      icon: <CheckCircle2 className="h-5 w-5 text-primary" />,
-      completed: false,
-    };
-    setHabits([...habits, newHabitObject]);
-    setNewHabit("");
+  const handleAddClick = () => {
+    onAddHabit(newHabit);
+    setNewHabit(""); // Reset input after adding
   };
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle className="font-headline flex items-center gap-2">
-            <CheckCircle2 className="h-6 w-6 text-primary" />
-            {title}
-          </CardTitle>
+          <CardTitle className="font-headline">{title}</CardTitle>
           <CardDescription>{t.description}</CardDescription>
         </div>
         <Dialog>
@@ -126,7 +95,7 @@ export function HabitTracker({ selectedDate, title }: HabitTrackerProps) {
                 </Button>
               </DialogClose>
               <DialogClose asChild>
-                 <Button type="submit" onClick={handleAddHabit}>{t.add}</Button>
+                 <Button type="submit" onClick={handleAddClick}>{t.add}</Button>
               </DialogClose>
             </DialogFooter>
           </DialogContent>
@@ -142,7 +111,7 @@ export function HabitTracker({ selectedDate, title }: HabitTrackerProps) {
               <Checkbox
                 id={habit.id}
                 checked={habit.completed}
-                onCheckedChange={() => handleToggleHabit(habit.id)}
+                onCheckedChange={() => onToggleHabit(habit.id)}
                 className="h-5 w-5"
               />
               <div className="flex-1 flex items-center gap-3">
