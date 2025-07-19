@@ -1,5 +1,6 @@
 import { AppHeader } from "@/components/app-header";
 import { BottomNav } from "@/components/bottom-nav";
+import { MotivationalQuote } from "@/components/motivational-quote";
 
 export default function DashboardLayout({
   children,
@@ -11,6 +12,7 @@ export default function DashboardLayout({
       <AppHeader />
       <main className="pb-24">{children}</main>
       <BottomNav />
+      <MotivationalQuote />
     </div>
   );
 }
