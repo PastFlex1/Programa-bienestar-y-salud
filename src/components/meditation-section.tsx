@@ -59,8 +59,6 @@ export function MeditationSection({ title, sessions }: MeditationSectionProps) {
             </CarouselItem>
           ))}
         </CarouselContent>
-        <CarouselPrevious className="hidden sm:inline-flex" />
-        <CarouselNext className="hidden sm:inline-flex" />
       </Carousel>
     </section>
   );
