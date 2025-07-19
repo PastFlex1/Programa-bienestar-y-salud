@@ -62,7 +62,7 @@ export default function HabitsPage() {
   const [habitsByDate, setHabitsByDate] = React.useState<HabitsByDate>({});
 
   const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
-  const completedDays = Object.keys(habitsByDate).map(key => new Date(key));
+  const completedDays = Object.keys(habitsByDate).filter(key => habitsByDate[key].length > 0).map(key => new Date(key));
 
   const getInitialHabitsForDay = (): Habit[] => {
     const defaultHabits = [
@@ -80,8 +80,13 @@ export default function HabitsPage() {
     if (selectedDate) {
       const key = format(selectedDate, 'yyyy-MM-dd');
       if (!habitsByDate[key]) {
-        // You can decide if you want to auto-populate habits for a new day
-        // For now, we'll leave it empty until a habit is added.
+        // We will initialize the day with default habits only when user wants to see them
+        // or add a new one. For now, let's decide to initialize it on selection
+        // to show a pre-populated list.
+        setHabitsByDate(prev => ({
+          ...prev,
+          [key]: getInitialHabitsForDay()
+        }));
       }
     }
   };
@@ -97,7 +102,7 @@ export default function HabitsPage() {
     };
 
     setHabitsByDate(prev => {
-      const currentHabits = prev[dateKey] ? [...prev[dateKey]] : getInitialHabitsForDay();
+      const currentHabits = prev[dateKey] || [];
       const updatedHabits = [...currentHabits, newHabitObject];
       return { ...prev, [dateKey]: updatedHabits };
     });
@@ -123,6 +128,19 @@ export default function HabitsPage() {
   };
 
   const currentHabits = habitsByDate[dateKey] || [];
+  
+  React.useEffect(() => {
+    if (date) {
+      const key = format(date, 'yyyy-MM-dd');
+      if (!habitsByDate[key]) {
+        setHabitsByDate(prev => ({
+          ...prev,
+          [key]: getInitialHabitsForDay()
+        }));
+      }
+    }
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
