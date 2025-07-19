@@ -23,6 +23,7 @@ const translations = {
     badgeFocus: "Enfoque",
     badgeAnxiety: "Ansiedad",
     resetFilter: "Mostrar Todo",
+    noResults: "No se encontraron sesiones que coincidan con tu búsqueda.",
     sections: {
       stressRelief: "Alivio del Estrés",
       deepSleep: "Sueño Profundo",
@@ -46,6 +47,7 @@ const translations = {
     badgeFocus: "Focus",
     badgeAnxiety: "Anxiety",
     resetFilter: "Show All",
+    noResults: "No sessions found matching your search.",
     sections: {
       stressRelief: "Stress Relief",
       deepSleep: "Deep Sleep",
@@ -125,6 +127,7 @@ export default function DashboardPage() {
   const { language } = useLanguage();
   const t = translations[language];
   const [moodFilter, setMoodFilter] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const handleFilter = (mood: string) => {
     setMoodFilter(mood);
@@ -137,6 +140,21 @@ export default function DashboardPage() {
   const filteredSections = moodFilter
     ? allSections.filter(section => section.category === moodFilter)
     : allSections;
+
+  const sectionsWithFilteredSessions = filteredSections.map(sectionInfo => {
+    const filteredSessionsData = sessionsData[sectionInfo.id].filter(session => {
+        const query = searchQuery.toLowerCase();
+        const title = session.title[language].toLowerCase();
+        const description = session.description[language].toLowerCase();
+        return title.includes(query) || description.includes(query);
+    });
+
+    return {
+        ...sectionInfo,
+        sessions: filteredSessionsData,
+    };
+  }).filter(section => section.sessions.length > 0);
+
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-8">
@@ -154,14 +172,19 @@ export default function DashboardPage() {
             <div className="space-y-6">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input placeholder={t.searchPlaceholder} className="pl-10" />
+                <Input 
+                  placeholder={t.searchPlaceholder} 
+                  className="pl-10"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
               </div>
               <div className="flex flex-wrap gap-2">
-                <Badge variant="secondary" onClick={() => setMoodFilter(null)} className="cursor-pointer">{t.badgeAll}</Badge>
-                <Badge variant="outline" onClick={() => setMoodFilter('Stressed')} className="cursor-pointer">{t.badgeStress}</Badge>
-                <Badge variant="outline" onClick={() => setMoodFilter('Tired')} className="cursor-pointer">{t.badgeSleep}</Badge>
-                <Badge variant="outline" onClick={() => setMoodFilter('Focus')} className="cursor-pointer">{t.badgeFocus}</Badge>
-                <Badge variant="outline" onClick={() => setMoodFilter('Anxious')} className="cursor-pointer">{t.badgeAnxiety}</Badge>
+                <Badge variant={moodFilter === null ? "default" : "outline"} onClick={() => setMoodFilter(null)} className="cursor-pointer">{t.badgeAll}</Badge>
+                <Badge variant={moodFilter === 'Stressed' ? "default" : "outline"} onClick={() => setMoodFilter('Stressed')} className="cursor-pointer">{t.badgeStress}</Badge>
+                <Badge variant={moodFilter === 'Tired' ? "default" : "outline"} onClick={() => setMoodFilter('Tired')} className="cursor-pointer">{t.badgeSleep}</Badge>
+                <Badge variant={moodFilter === 'Focus' ? "default" : "outline"} onClick={() => setMoodFilter('Focus')} className="cursor-pointer">{t.badgeFocus}</Badge>
+                <Badge variant={moodFilter === 'Anxious' ? "default" : "outline"} onClick={() => setMoodFilter('Anxious')} className="cursor-pointer">{t.badgeAnxiety}</Badge>
               </div>
             </div>
           </CardContent>
@@ -169,24 +192,24 @@ export default function DashboardPage() {
       </div>
 
       <div className="max-w-7xl mx-auto space-y-12">
-        {filteredSections.length < allSections.length && (
+        {moodFilter && (
           <div className="text-center">
             <Button onClick={handleResetFilter}>{t.resetFilter}</Button>
           </div>
         )}
         
-        {filteredSections.map(sectionInfo => (
+        {sectionsWithFilteredSessions.map(sectionInfo => (
             <MeditationSection 
               key={sectionInfo.id} 
               title={t.sections[sectionInfo.id as keyof typeof t.sections]} 
-              sessions={sessionsData[sectionInfo.id]} 
+              sessions={sectionInfo.sessions} 
             />
         ))}
 
-        {filteredSections.length === 0 && (
+        {sectionsWithFilteredSessions.length === 0 && (
           <Card className="text-center p-8">
             <CardContent>
-              <p>No hay sesiones para la categoría seleccionada.</p>
+              <p>{t.noResults}</p>
             </CardContent>
           </Card>
         )}
@@ -194,9 +217,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
-
-    
-
-    

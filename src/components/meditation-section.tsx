@@ -6,8 +6,6 @@ import {
   Carousel,
   CarouselContent,
   CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
 } from "@/components/ui/carousel";
 import { MeditationCard } from "./meditation-card";
 
@@ -32,6 +30,10 @@ interface MeditationSectionProps {
 
 export function MeditationSection({ title, sessions }: MeditationSectionProps) {
   const { language } = useLanguage();
+
+  if (sessions.length === 0) {
+    return null;
+  }
 
   return (
     <section className="space-y-4">
