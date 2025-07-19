@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -7,15 +8,21 @@ import { Calendar } from "@/components/ui/calendar";
 import { useLanguage } from "@/context/language-provider";
 import { format } from "date-fns";
 import { es } from 'date-fns/locale';
-import { Droplets, Footprints, Brain, BookOpen, CheckCircle2 } from "lucide-react";
+import { Droplets, Footprints, Brain, BookOpen, CheckCircle2, ListChecks } from "lucide-react";
+
+type HabitsByDate = {
+  [date: string]: Habit[];
+};
 
 const translations = {
   es: {
     title: "Seguimiento de Hábitos",
     description: "Construye una mejor versión de ti, un día a la vez.",
     calendarTitle: "Tu Historial de Hábitos",
-    calendarDescription: "Selecciona un día para ver tus hábitos.",
+    calendarDescription: "Selecciona un día para ver o agregar hábitos.",
     selectedDay: "Hábitos para el",
+    noHabitsTitle: "Sin Actividad",
+    noHabitsDescription: "No hay hábitos registrados para este día. ¡Empieza agregando uno!",
     initialHabits: {
       hydrate: "Hidratarse (8 vasos)",
       walk: "Caminata Matutina",
@@ -27,8 +34,10 @@ const translations = {
     title: "Habit Tracking",
     description: "Build a better you, one day at a time.",
     calendarTitle: "Your Habit History",
-    calendarDescription: "Select a day to view your habits.",
+    calendarDescription: "Select a day to view or add habits.",
     selectedDay: "Habits for",
+    noHabitsTitle: "No Activity",
+    noHabitsDescription: "No habits logged for this day. Get started by adding one!",
     initialHabits: {
       hydrate: "Hydrate (8 glasses)",
       walk: "Morning Walk",
@@ -38,55 +47,73 @@ const translations = {
   }
 };
 
+const initialHabitsData: Habit[] = [
+    { id: "hydrate", label: "Hidratarse (8 vasos)", icon: <Droplets className="h-5 w-5 text-primary" />, completed: false },
+    { id: "walk", label: "Caminata Matutina", icon: <Footprints className="h-5 w-5 text-primary" />, completed: false },
+    { id: "mindful", label: "Momento de Atención Plena", icon: <Brain className="h-5 w-5 text-primary" />, completed: false },
+    { id: "read", label: "Leer 10 páginas", icon: <BookOpen className="h-5 w-5 text-primary" />, completed: false },
+];
+
 export default function HabitsPage() {
   const { language } = useLanguage();
   const t = translations[language];
 
   const [date, setDate] = React.useState<Date | undefined>(new Date());
-  const [completedDays, setCompletedDays] = React.useState<Date[]>([]);
+  const [habitsByDate, setHabitsByDate] = React.useState<HabitsByDate>({});
+
+  const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
+  const completedDays = Object.keys(habitsByDate).map(key => new Date(key));
+
+  const getInitialHabitsForDay = (): Habit[] => {
+    const defaultHabits = [
+      { id: "hydrate", label: t.initialHabits.hydrate, icon: <Droplets className="h-5 w-5 text-primary" />, completed: false },
+      { id: "walk", label: t.initialHabits.walk, icon: <Footprints className="h-5 w-5 text-primary" />, completed: false },
+      { id: "mindful", label: t.initialHabits.mindful, icon: <Brain className="h-5 w-5 text-primary" />, completed: false },
+      { id: "read", label: t.initialHabits.read, icon: <BookOpen className="h-5 w-5 text-primary" />, completed: false },
+    ];
+    // For simplicity, we give every new day the same starting habits.
+    // In a real app, this might be based on a user's template.
+    return JSON.parse(JSON.stringify(defaultHabits)); // Deep copy
+  }
+
+  const handleSelectDate = (selectedDate: Date | undefined) => {
+    setDate(selectedDate);
+    if (selectedDate) {
+      const key = format(selectedDate, 'yyyy-MM-dd');
+      if (!habitsByDate[key]) {
+        // You can decide if you want to auto-populate habits for a new day
+        // For now, we'll leave it empty until a habit is added.
+      }
+    }
+  };
   
-  const initialHabits = React.useMemo<Habit[]>(() => [
-    { id: "hydrate", label: t.initialHabits.hydrate, icon: <Droplets className="h-5 w-5 text-primary" />, completed: false },
-    { id: "walk", label: t.initialHabits.walk, icon: <Footprints className="h-5 w-5 text-primary" />, completed: true },
-    { id: "mindful", label: t.initialHabits.mindful, icon: <Brain className="h-5 w-5 text-primary" />, completed: false },
-    { id: "read", label: t.initialHabits.read, icon: <BookOpen className="h-5 w-5 text-primary" />, completed: false },
-  ], [t]);
-
-  const [habits, setHabits] = React.useState<Habit[]>(initialHabits);
-
-  React.useEffect(() => {
-    // Here you would typically fetch habits for the selectedDate
-    // For now, we just reset to the initial list for demonstration
-    setHabits(initialHabits);
-  }, [date, initialHabits]);
-
   const handleAddHabit = (newHabitName: string) => {
-    if (newHabitName.trim() === "") return;
+    if (!dateKey || newHabitName.trim() === "") return;
+
     const newHabitObject: Habit = {
       id: `custom-${Date.now()}`,
       label: newHabitName,
       icon: <CheckCircle2 className="h-5 w-5 text-primary" />,
-      completed: true, // Mark as completed on creation
+      completed: true,
     };
-    setHabits([...habits, newHabitObject]);
 
-    // Mark the current day as completed
-    if (date) {
-      const isAlreadyCompleted = completedDays.some(
-        (d) => d.toDateString() === date.toDateString()
-      );
-      if (!isAlreadyCompleted) {
-        setCompletedDays([...completedDays, date]);
-      }
-    }
+    setHabitsByDate(prev => {
+      const currentHabits = prev[dateKey] ? [...prev[dateKey]] : getInitialHabitsForDay();
+      const updatedHabits = [...currentHabits, newHabitObject];
+      return { ...prev, [dateKey]: updatedHabits };
+    });
   };
 
   const handleToggleHabit = (id: string) => {
-    setHabits(
-      habits.map((habit) =>
+    if (!dateKey) return;
+
+    setHabitsByDate(prev => {
+      const dayHabits = prev[dateKey] || [];
+      const updatedHabits = dayHabits.map((habit) =>
         habit.id === id ? { ...habit, completed: !habit.completed } : habit
-      )
-    );
+      );
+      return { ...prev, [dateKey]: updatedHabits };
+    });
   };
   
   const formatDate = (date: Date) => {
@@ -96,6 +123,7 @@ export default function HabitsPage() {
     return format(date, "MMMM d, yyyy");
   };
 
+  const currentHabits = habitsByDate[dateKey] || [];
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -118,7 +146,7 @@ export default function HabitsPage() {
                     <Calendar
                         mode="single"
                         selected={date}
-                        onSelect={setDate}
+                        onSelect={handleSelectDate}
                         className="rounded-md border p-0"
                         modifiers={{ completed: completedDays }}
                         modifiersStyles={{
@@ -132,12 +160,31 @@ export default function HabitsPage() {
             </Card>
           </div>
           <div className="md:col-span-2">
-            <HabitTracker 
-              title={`${t.selectedDay} ${date ? formatDate(date) : ''}`} 
-              habits={habits}
-              onAddHabit={handleAddHabit}
-              onToggleHabit={handleToggleHabit}
-            />
+            {currentHabits.length > 0 ? (
+              <HabitTracker 
+                title={`${t.selectedDay} ${date ? formatDate(date) : ''}`} 
+                habits={currentHabits}
+                onAddHabit={handleAddHabit}
+                onToggleHabit={handleToggleHabit}
+              />
+            ) : (
+               <Card className="h-full flex flex-col items-center justify-center">
+                <CardHeader className="text-center">
+                    <ListChecks className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <CardTitle>{t.noHabitsTitle}</CardTitle>
+                    <CardDescription>{t.noHabitsDescription}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                   <HabitTracker 
+                    title={`${t.selectedDay} ${date ? formatDate(date) : ''}`} 
+                    habits={[]}
+                    onAddHabit={handleAddHabit}
+                    onToggleHabit={handleToggleHabit}
+                    showEmptyState={true}
+                  />
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>

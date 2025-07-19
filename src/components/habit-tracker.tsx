@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -43,9 +44,10 @@ interface HabitTrackerProps {
   habits: Habit[];
   onAddHabit: (newHabitName: string) => void;
   onToggleHabit: (id: string) => void;
+  showEmptyState?: boolean;
 }
 
-export function HabitTracker({ title, habits, onAddHabit, onToggleHabit }: HabitTrackerProps) {
+export function HabitTracker({ title, habits, onAddHabit, onToggleHabit, showEmptyState = false }: HabitTrackerProps) {
   const { language } = useLanguage();
   const t = translations[language];
 
@@ -55,6 +57,48 @@ export function HabitTracker({ title, habits, onAddHabit, onToggleHabit }: Habit
     onAddHabit(newHabit);
     setNewHabit(""); // Reset input after adding
   };
+  
+  if (showEmptyState) {
+     return (
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              {t.addHabit}
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{t.addNewHabit}</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="habit-name" className="text-right">
+                  {t.name}
+                </Label>
+                <Input
+                  id="habit-name"
+                  value={newHabit}
+                  onChange={(e) => setNewHabit(e.target.value)}
+                  className="col-span-3"
+                  placeholder={t.placeholder}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="secondary">
+                  {t.cancel}
+                </Button>
+              </DialogClose>
+              <DialogClose asChild>
+                 <Button type="submit" onClick={handleAddClick}>{t.add}</Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+     );
+  }
 
   return (
     <Card>
