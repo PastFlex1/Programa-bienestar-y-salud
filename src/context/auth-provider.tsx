@@ -29,30 +29,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return () => unsubscribe();
     }, []);
 
-    useEffect(() => {
-        if (loading) return;
-
-        const isAuthPage = pathname.startsWith('/auth');
-        const isDashboardPage = pathname.startsWith('/dashboard');
-
-        // If no user is logged in, and they are trying to access a protected page (dashboard), redirect to login.
-        if (!user && isDashboardPage) {
-            router.push('/auth/login');
-        } 
-        // If a user is logged in, and they are on an auth page or the root page, redirect to dashboard.
-        else if (user && (isAuthPage || pathname === '/')) {
-            router.push('/dashboard');
-        }
-
-    }, [user, loading, pathname, router]);
-
-    // While loading, or if a redirect is imminent, show a loading screen.
-    // This prevents rendering a page that will be immediately replaced, which can cause the loop.
-    const isAuthPage = pathname.startsWith('/auth');
-    const isDashboardPage = pathname.startsWith('/dashboard');
-
-    if (loading || (!user && isDashboardPage) || (user && (isAuthPage || pathname === '/'))) {
-         return (
+    // Show a full-page loading skeleton while we verify the user's auth state.
+    if (loading) {
+        return (
             <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
                 <div className="space-y-4 w-full max-w-sm">
                     <div className="flex justify-center">
@@ -68,6 +47,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 </div>
             </div>
         );
+    }
+    
+    const isAuthPage = pathname.startsWith('/auth');
+    const isDashboardPage = pathname.startsWith('/dashboard');
+
+    // If no user is logged in, and they are trying to access a protected page (dashboard), redirect to login.
+    if (!user && isDashboardPage) {
+        router.push('/auth/login');
+        return null; // Return null or a loading indicator to prevent rendering children during redirect
+    } 
+    // If a user is logged in, and they are on an auth page or the root page, redirect to dashboard.
+    else if (user && (isAuthPage || pathname === '/')) {
+        router.push('/dashboard');
+        return null; // Return null or a loading indicator to prevent rendering children during redirect
     }
 
     return (
