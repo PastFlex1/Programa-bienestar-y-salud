@@ -52,6 +52,7 @@ const translations = {
         successDescription: "Tu cuenta ha sido creada. Ahora puedes iniciar sesión.",
         successAction: "Continuar",
         registerError: "Error de Registro",
+        emailInUse: "Este correo electrónico ya está en uso. Por favor, intenta con otro o inicia sesión.",
     },
     en: {
         title: "Create an account",
@@ -71,6 +72,7 @@ const translations = {
         successDescription: "Your account has been created. You can now log in.",
         successAction: "Continue",
         registerError: "Registration Error",
+        emailInUse: "This email is already in use. Please try another or log in.",
     }
 }
 
@@ -100,10 +102,14 @@ export default function RegisterPage() {
     async function onSubmit(values: z.infer<typeof formSchema>) {
         const { user, error } = await signUp(values.email, values.password);
         if (error) {
+            let description = error;
+            if (error.includes("auth/email-already-in-use")) {
+                description = t.emailInUse;
+            }
             toast({
                 variant: "destructive",
                 title: t.registerError,
-                description: error,
+                description: description,
             })
         } else {
             // In a real app, you might want to update the user's profile with the username here.
