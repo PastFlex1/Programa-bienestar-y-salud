@@ -24,7 +24,6 @@ import {
     AlertDialog,
     AlertDialogAction,
     AlertDialogContent,
-    AlertDialogDescription,
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
@@ -48,8 +47,7 @@ const translations = {
         emailInvalid: "Por favor, ingresa un correo electrónico válido.",
         passwordRequired: "La contraseña es requerida.",
         passwordMin: "La contraseña debe tener al menos 6 caracteres.",
-        successTitle: "Registro Exitoso",
-        successDescription: "Tu cuenta ha sido creada. Ahora puedes iniciar sesión.",
+        successTitle: "Cuenta creada exitosamente",
         successAction: "Continuar",
         registerError: "Error de Registro",
         emailInUse: "Este correo electrónico ya está en uso. Por favor, intenta con otro o inicia sesión.",
@@ -68,8 +66,7 @@ const translations = {
         emailInvalid: "Please enter a valid email address.",
         passwordRequired: "Password is required.",
         passwordMin: "Password must be at least 6 characters long.",
-        successTitle: "Registration Successful",
-        successDescription: "Your account has been created. You can now log in.",
+        successTitle: "Account created successfully",
         successAction: "Continue",
         registerError: "Registration Error",
         emailInUse: "This email is already in use. Please try another or log in.",
@@ -181,13 +178,10 @@ export default function RegisterPage() {
             <AlertDialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                         <div className="flex justify-center items-center">
+                         <div className="flex justify-center items-center mb-4">
                             <CheckCircle className="h-16 w-16 text-green-500" />
                         </div>
                         <AlertDialogTitle className="text-center">{t.successTitle}</AlertDialogTitle>
-                        <AlertDialogDescription className="text-center">
-                            {t.successDescription}
-                        </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogAction onClick={() => router.push('/auth/login')} className="w-full">
