@@ -1,9 +1,11 @@
+
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from '@/context/theme-provider';
 import { LanguageProvider } from '@/context/language-provider';
 import { UserProvider } from '@/context/user-provider';
+import { AuthProvider } from '@/context/auth-provider';
 
 export const metadata: Metadata = {
   title: 'Zenith',
@@ -30,10 +32,12 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <LanguageProvider>
-            <UserProvider>
-              {children}
-              <Toaster />
-            </UserProvider>
+            <AuthProvider>
+              <UserProvider>
+                {children}
+                <Toaster />
+              </UserProvider>
+            </AuthProvider>
           </LanguageProvider>
         </ThemeProvider>
       </body>

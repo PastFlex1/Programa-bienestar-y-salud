@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react"
@@ -29,6 +30,8 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useLanguage } from "@/context/language-provider"
+import { signUp } from "@/lib/firebase/auth"
+import { useToast } from "@/hooks/use-toast"
 
 const translations = {
     es: {
@@ -47,7 +50,8 @@ const translations = {
         passwordMin: "La contraseña debe tener al menos 6 caracteres.",
         successTitle: "Registro Exitoso",
         successDescription: "Tu cuenta ha sido creada. Ahora puedes iniciar sesión.",
-        successAction: "Continuar"
+        successAction: "Continuar",
+        registerError: "Error de Registro",
     },
     en: {
         title: "Create an account",
@@ -65,7 +69,8 @@ const translations = {
         passwordMin: "Password must be at least 6 characters long.",
         successTitle: "Registration Successful",
         successDescription: "Your account has been created. You can now log in.",
-        successAction: "Continue"
+        successAction: "Continue",
+        registerError: "Registration Error",
     }
 }
 
@@ -73,6 +78,7 @@ export default function RegisterPage() {
     const { language } = useLanguage();
     const t = translations[language];
     const router = useRouter();
+    const { toast } = useToast();
 
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
@@ -91,11 +97,18 @@ export default function RegisterPage() {
         },
     })
 
-    function onSubmit(values: z.infer<typeof formSchema>) {
-        console.log(values)
-        // Here you would typically handle the registration logic,
-        // e.g., send the data to your backend API.
-        setShowSuccessDialog(true);
+    async function onSubmit(values: z.infer<typeof formSchema>) {
+        const { user, error } = await signUp(values.email, values.password);
+        if (error) {
+            toast({
+                variant: "destructive",
+                title: t.registerError,
+                description: error,
+            })
+        } else {
+            // In a real app, you might want to update the user's profile with the username here.
+            setShowSuccessDialog(true);
+        }
     }
 
     return (

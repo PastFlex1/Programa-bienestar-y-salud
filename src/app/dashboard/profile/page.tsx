@@ -1,14 +1,18 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/context/user-provider';
 import { useLanguage } from '@/context/language-provider';
+import { signOutUser } from '@/lib/firebase/auth';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/auth-provider';
 
 const translations = {
   es: {
@@ -18,6 +22,7 @@ const translations = {
     nameLabel: "Nombre",
     emailLabel: "Correo Electrónico",
     saveChanges: "Guardar Cambios",
+    signOut: "Cerrar Sesión",
     toastSuccessTitle: "Perfil Actualizado",
     toastSuccessDescription: "Tus cambios han sido guardados exitosamente.",
     toastFileTooLargeTitle: "Archivo muy grande",
@@ -32,6 +37,7 @@ const translations = {
     nameLabel: "Name",
     emailLabel: "Email",
     saveChanges: "Save Changes",
+    signOut: "Sign Out",
     toastSuccessTitle: "Profile Updated",
     toastSuccessDescription: "Your changes have been saved successfully.",
     toastFileTooLargeTitle: "File Too Large",
@@ -45,12 +51,13 @@ const translations = {
 export default function ProfilePage() {
   const { language } = useLanguage();
   const t = translations[language];
-
+  const router = useRouter();
+  const { user } = useAuth();
   const { toast } = useToast();
   const { userName, avatarUrl, updateUser } = useUser();
   
   const [name, setName] = useState(userName);
-  const [email, setEmail] = useState(t.emailPlaceholder); 
+  const [email, setEmail] = useState(user?.email || ''); 
   const [previewAvatarUrl, setPreviewAvatarUrl] = useState(avatarUrl);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -59,6 +66,12 @@ export default function ProfilePage() {
     setName(userName);
     setPreviewAvatarUrl(avatarUrl);
   }, [userName, avatarUrl]);
+
+  useEffect(() => {
+    if (user?.email) {
+      setEmail(user.email);
+    }
+  }, [user]);
 
 
   const handleSaveChanges = () => {
@@ -87,6 +100,11 @@ export default function ProfilePage() {
 
   const handleAvatarButtonClick = () => {
     fileInputRef.current?.click();
+  };
+
+  const handleSignOut = async () => {
+    await signOutUser();
+    router.push('/auth/login');
   };
 
 
@@ -127,11 +145,14 @@ export default function ProfilePage() {
                 id="email" 
                 type="email" 
                 value={email}
-                onChange={(e) => setEmail(e.target.value)} 
+                disabled
               />
             </div>
             <Button onClick={handleSaveChanges}>{t.saveChanges}</Button>
           </CardContent>
+          <CardFooter className="flex justify-end">
+             <Button variant="destructive" onClick={handleSignOut}>{t.signOut}</Button>
+          </CardFooter>
         </Card>
       </div>
     </div>

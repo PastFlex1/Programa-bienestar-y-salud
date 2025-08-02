@@ -1,56 +1,129 @@
+
 "use client";
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { BrainCircuit } from 'lucide-react';
 import { useLanguage } from '@/context/language-provider';
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { signIn } from '@/lib/firebase/auth';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
+
 
 const translations = {
   es: {
-    quote: '"La paz interior comienza en el momento en que eliges no permitir que otra persona o evento controle tus emociones."',
-    login: 'Iniciar sesión',
-    register: 'Registrarse',
-    guest: 'Continuar como invitado',
-    copyright: 'Zenith. Todos los derechos reservados.'
+    title: "Bienvenido de Nuevo",
+    description: "Inicia sesión para continuar tu viaje.",
+    emailLabel: "Correo Electrónico",
+    passwordLabel: "Contraseña",
+    loginButton: 'Iniciar Sesión',
+    registerPrompt: "¿No tienes una cuenta?",
+    registerLink: 'Regístrate',
+    emailRequired: "El correo electrónico es requerido.",
+    emailInvalid: "Por favor, ingresa un correo electrónico válido.",
+    passwordRequired: "La contraseña es requerida.",
+    loginError: "Error al iniciar sesión",
+    loginErrorDesc: "El correo electrónico o la contraseña son incorrectos."
   },
   en: {
-    quote: '"Inner peace begins the moment you choose not to allow another person or event to control your emotions."',
-    login: 'Log In',
-    register: 'Sign Up',
-    guest: 'Continue as Guest',
-    copyright: 'Zenith. All rights reserved.'
+    title: "Welcome Back",
+    description: "Log in to continue your journey.",
+    emailLabel: "Email",
+    passwordLabel: "Password",
+    loginButton: 'Log In',
+    registerPrompt: "Don't have an account?",
+    registerLink: 'Sign up',
+    emailRequired: "Email is required.",
+    emailInvalid: "Please enter a valid email address.",
+    passwordRequired: "Password is required.",
+    loginError: "Login Error",
+    loginErrorDesc: "The email or password you entered is incorrect."
   }
 }
 
 export default function LoginPage() {
   const { language } = useLanguage();
   const t = translations[language];
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const formSchema = z.object({
+    email: z.string().min(1, t.emailRequired).email(t.emailInvalid),
+    password: z.string().min(1, t.passwordRequired),
+  });
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    const { user, error } = await signIn(values.email, values.password);
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: t.loginError,
+        description: t.loginErrorDesc,
+      });
+    } else {
+      router.push('/dashboard');
+    }
+  }
 
   return (
-    <>
-      <div className="flex flex-col items-center justify-center flex-1">
-        <div className="relative mb-8">
-          <div className="absolute inset-0 bg-primary/30 rounded-full blur-2xl animate-pulse-slow"></div>
-          <BrainCircuit className="relative h-24 w-24 text-primary" />
+    <Card className="w-full max-w-md">
+      <CardHeader className="text-center">
+        <BrainCircuit className="mx-auto h-12 w-12 text-primary" />
+        <CardTitle className="font-headline">{t.title}</CardTitle>
+        <CardDescription>{t.description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t.emailLabel}</FormLabel>
+                  <FormControl>
+                    <Input type="email" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t.passwordLabel}</FormLabel>
+                  <FormControl>
+                    <Input type="password" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="submit" className="w-full">{t.loginButton}</Button>
+          </form>
+        </Form>
+        <div className="mt-6 text-center text-sm">
+          {t.registerPrompt}{" "}
+          <Link href="/auth/register" className="underline text-primary">
+            {t.registerLink}
+          </Link>
         </div>
-        <h1 className="text-5xl font-bold font-headline mb-2">Zenith</h1>
-        <p className="text-lg text-muted-foreground mb-12 max-w-md">
-          {t.quote}
-        </p>
-        <div className="space-y-4 w-full max-w-xs">
-          <Button asChild size="lg" className="w-full">
-            <Link href="/dashboard">{t.login}</Link>
-          </Button>
-          <Button asChild variant="secondary" size="lg" className="w-full">
-            <Link href="/auth/register">{t.register}</Link>
-          </Button>
-          <Button asChild variant="ghost" size="lg" className="w-full">
-            <Link href="/dashboard">{t.guest}</Link>
-          </Button>
-        </div>
-      </div>
-      <footer className="text-sm text-muted-foreground py-4">
-        <p>&copy; {new Date().getFullYear()} {t.copyright}</p>
-      </footer>
-    </>
+      </CardContent>
+    </Card>
   );
 }
