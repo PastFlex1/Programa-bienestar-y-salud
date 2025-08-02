@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             router.push('/dashboard');
         }
 
-    }, [user, loading, router, pathname]);
+    }, [user, loading, router]);
 
     if (loading) {
          return (
