@@ -66,7 +66,7 @@ export default function LoginPage() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    const { user, error } = await signIn(values.email, values.password);
+    const { error } = await signIn(values.email, values.password);
     if (error) {
       toast({
         variant: "destructive",

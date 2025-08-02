@@ -97,7 +97,7 @@ export default function RegisterPage() {
     })
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
-        const { user, error } = await signUp(values.email, values.password);
+        const { error } = await signUp(values.email, values.password);
         if (error) {
             let description = error;
             if (error.includes("auth/email-already-in-use")) {
