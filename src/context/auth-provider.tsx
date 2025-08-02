@@ -32,17 +32,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (loading) return;
 
         const isAuthPage = pathname.startsWith('/auth');
-        const isDashboardPage = pathname.startsWith('/dashboard');
 
+        // If no user is logged in and they are not on an auth page, redirect to login.
         if (!user && !isAuthPage) {
             router.push('/auth/login');
-        } else if (user && (isAuthPage || pathname === '/')) {
+        } 
+        // If a user is logged in and they are on an auth page or the root page, redirect to dashboard.
+        else if (user && (isAuthPage || pathname === '/')) {
             router.push('/dashboard');
         }
 
     }, [user, loading, router, pathname]);
 
-    if (loading || (!user && !pathname.startsWith('/auth')) || (user && pathname.startsWith('/auth'))) {
+    // Show a loading skeleton while checking auth status, or if a redirect is imminent.
+    // This prevents rendering a page that will be immediately replaced.
+    if (loading || (!user && !pathname.startsWith('/auth')) || (user && (pathname.startsWith('/auth') || pathname === '/'))) {
          return (
             <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
                 <div className="space-y-4 w-full max-w-sm">
