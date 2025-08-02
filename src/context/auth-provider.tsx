@@ -32,31 +32,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (loading) return;
 
         const isAuthPage = pathname.startsWith('/auth');
+        const isDashboardPage = pathname.startsWith('/dashboard');
 
         if (!user && !isAuthPage) {
             router.push('/auth/login');
-        } else if (user && isAuthPage) {
+        } else if (user && (isAuthPage || pathname === '/')) {
             router.push('/dashboard');
         }
 
-    }, [user, loading, router]);
+    }, [user, loading, router, pathname]);
 
-    if (loading) {
+    if (loading || (!user && !pathname.startsWith('/auth')) || (user && pathname.startsWith('/auth'))) {
          return (
             <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
-                <div className="space-y-4">
-                    <Skeleton className="h-24 w-24 rounded-full" />
-                    <Skeleton className="h-8 w-48" />
-                    <Skeleton className="h-6 w-72" />
+                <div className="space-y-4 w-full max-w-sm">
+                    <div className="flex justify-center">
+                        <Skeleton className="h-24 w-24 rounded-full" />
+                    </div>
+                    <Skeleton className="h-8 w-48 mx-auto" />
+                    <Skeleton className="h-6 w-72 mx-auto" />
                     <div className="space-y-2 pt-8">
-                        <Skeleton className="h-12 w-80" />
-                        <Skeleton className="h-12 w-80" />
-                        <Skeleton className="h-12 w-80" />
+                        <Skeleton className="h-12 w-full" />
+                        <Skeleton className="h-12 w-full" />
+                        <Skeleton className="h-12 w-full" />
                     </div>
                 </div>
             </div>
         );
     }
+
 
     return (
         <AuthContext.Provider value={{ user }}>
