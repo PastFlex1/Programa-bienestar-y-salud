@@ -31,37 +31,11 @@ const LoadingScreen = () => (
     </div>
 );
 
-const AuthGate = ({ children }: { children: ReactNode }) => {
-    const { user, loading } = useAuth();
-    const router = useRouter();
-    const pathname = usePathname();
-
-    useEffect(() => {
-        if (loading) return;
-
-        const isAuthPage = pathname.startsWith('/auth');
-        const isDashboardPage = pathname.startsWith('/dashboard');
-
-        if (!user && isDashboardPage) {
-            router.replace('/auth/login');
-        } else if (user && (isAuthPage || pathname === '/')) {
-            router.replace('/dashboard');
-        }
-    }, [user, loading, pathname, router]);
-
-    const isAuthPage = pathname.startsWith('/auth');
-    const isDashboardPage = pathname.startsWith('/dashboard');
-
-    if (loading || (!user && isDashboardPage) || (user && (isAuthPage || pathname === '/'))) {
-        return <LoadingScreen />;
-    }
-
-    return <>{children}</>;
-};
-
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
+    const router = useRouter();
+    const pathname = usePathname();
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged((user) => {
@@ -71,9 +45,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return () => unsubscribe();
     }, []);
 
+    useEffect(() => {
+        if (loading) return;
+
+        const isAuthPage = pathname.startsWith('/auth');
+        const isDashboardPage = pathname.startsWith('/dashboard');
+
+        if (!user && isDashboardPage) {
+            router.replace('/auth/login');
+        } else if (user && isAuthPage) {
+            router.replace('/dashboard');
+        }
+    }, [user, loading, pathname, router]);
+
+
+    if (loading) {
+        return <LoadingScreen />;
+    }
+
     return (
         <AuthContext.Provider value={{ user, loading }}>
-            <AuthGate>{children}</AuthGate>
+            {children}
         </AuthContext.Provider>
     );
 }
