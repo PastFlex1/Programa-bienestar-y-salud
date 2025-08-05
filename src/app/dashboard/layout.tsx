@@ -24,8 +24,7 @@ export default function DashboardLayout({
     }
   }, [user, loading, router]);
 
-  // While loading or if there's no user, show a loading state
-  // to prevent flicker or showing content to unauthenticated users.
+  // While loading or if there's no user (and redirecting), show a loading state
   if (loading || !user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
