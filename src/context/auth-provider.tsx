@@ -29,7 +29,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return () => unsubscribe();
     }, []);
 
-    // Show a full-page loading skeleton while we verify the user's auth state.
+    useEffect(() => {
+        if (loading) return;
+
+        const isAuthPage = pathname.startsWith('/auth');
+        const isDashboardPage = pathname.startsWith('/dashboard');
+
+        // If no user is logged in, and they are trying to access a protected page (dashboard), redirect to login.
+        if (!user && isDashboardPage) {
+            router.push('/auth/login');
+        } 
+        // If a user is logged in, and they are on an auth page or the root page, redirect to dashboard.
+        else if (user && (isAuthPage || pathname === '/')) {
+            router.push('/dashboard');
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user, loading, pathname, router]);
+
+
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
@@ -49,19 +66,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         );
     }
     
+    // To avoid flashing the page before redirect, we can check again.
+    // If we are still loading, or if a redirect is imminent, show loading.
     const isAuthPage = pathname.startsWith('/auth');
     const isDashboardPage = pathname.startsWith('/dashboard');
+    if (!user && isDashboardPage) return null; // Or skeleton
+    if (user && (isAuthPage || pathname === '/')) return null; // Or skeleton
 
-    // If no user is logged in, and they are trying to access a protected page (dashboard), redirect to login.
-    if (!user && isDashboardPage) {
-        router.push('/auth/login');
-        return null; // Return null or a loading indicator to prevent rendering children during redirect
-    } 
-    // If a user is logged in, and they are on an auth page or the root page, redirect to dashboard.
-    else if (user && (isAuthPage || pathname === '/')) {
-        router.push('/dashboard');
-        return null; // Return null or a loading indicator to prevent rendering children during redirect
-    }
 
     return (
         <AuthContext.Provider value={{ user }}>
