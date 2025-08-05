@@ -23,7 +23,7 @@ export default function DashboardLayout({
   }, [user, loading, router]);
 
   if (loading || !user) {
-    return null; // Don't render anything while loading or if no user (will be redirected)
+    return null; // Don't render dashboard if not logged in or during initial load.
   }
   
   return (

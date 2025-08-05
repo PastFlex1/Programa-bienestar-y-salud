@@ -20,7 +20,7 @@ export default function AuthLayout({
   }, [user, loading, router]);
 
   if (loading || user) {
-     return null; // Don't render anything while loading or if user exists (will be redirected)
+     return null; // Don't render auth pages if user is logged in or during initial load.
   }
 
   return (
