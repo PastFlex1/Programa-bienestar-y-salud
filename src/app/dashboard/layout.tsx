@@ -16,37 +16,37 @@ const LoadingScreen = () => (
     </div>
 );
 
+function AuthGuard({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace("/auth/login");
+    }
+  }, [user, loading, router]);
+
+  if (loading || !user) {
+    return <LoadingScreen />;
+  }
+
+  return <>{children}</>;
+}
+
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    // Si no está cargando y no hay usuario, redirigir al login.
-    // Esto se ejecutará solo después de que Firebase haya verificado el estado.
-    if (!loading && !user) {
-      console.log('Usuario no autenticado, redirigiendo a /auth/login. Estado: ', { loading, user });
-      router.replace("/auth/login");
-    }
-  }, [user, loading, router]);
-
-  // Mientras se verifica el estado del usuario, muestra una pantalla de carga.
-  // También se muestra si no hay usuario, para evitar un parpadeo antes de la redirección.
-  if (loading || !user) {
-    return <LoadingScreen />;
-  }
-  
-  // Si el usuario está autenticado, renderiza el layout del dashboard.
   return (
-    <div className="bg-background min-h-screen text-foreground font-body">
-      <AppHeader />
-      <main className="pb-24">{children}</main>
-      <BottomNav />
-      <MotivationalQuote />
-    </div>
+    <AuthGuard>
+      <div className="bg-background min-h-screen text-foreground font-body">
+        <AppHeader />
+        <main className="pb-24">{children}</main>
+        <BottomNav />
+        <MotivationalQuote />
+      </div>
+    </AuthGuard>
   );
 }

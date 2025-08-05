@@ -1,9 +1,10 @@
 
 "use client";
 
+// This page is no longer used due to the redirect in next.config.js,
+// but it's kept as a fallback.
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/auth-provider';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const LoadingScreen = () => (
@@ -19,20 +20,11 @@ const LoadingScreen = () => (
 );
 
 export default function Home() {
-    const { user, loading } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
-        if (!loading) {
-            // Una vez que sabemos el estado de autenticación, redirigimos.
-            if (user) {
-                router.replace('/dashboard');
-            } else {
-                router.replace('/auth/login');
-            }
-        }
-    }, [user, loading, router]);
+        router.replace('/dashboard');
+    }, [router]);
 
-    // Muestra una pantalla de carga mientras se determina el estado.
     return <LoadingScreen />;
 }

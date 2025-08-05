@@ -82,7 +82,7 @@ export default function LoginPage() {
         title: t.loginSuccess,
         description: t.loginSuccessDesc,
       });
-      router.push('/dashboard');
+      // No need to push here, the AuthGuard will handle redirection
     }
   }
 

@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -20,6 +21,15 @@ const nextConfig: NextConfig = {
   },
   devIndicators: {
     allowedDevOrigins: ['https://*.cloudworkstations.dev'],
+  },
+  async redirects() {
+    return [
+      {
+        source: '/',
+        destination: '/dashboard',
+        permanent: true,
+      },
+    ]
   },
 };
 
