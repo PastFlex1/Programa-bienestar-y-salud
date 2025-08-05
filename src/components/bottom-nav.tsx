@@ -1,8 +1,9 @@
+
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, ListTodo, BarChart3, User, Settings } from "lucide-react";
+import { Home, ListTodo, BarChart3, User, Settings, BookText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/language-provider";
 
@@ -13,6 +14,7 @@ const translations = {
     progress: "Progreso",
     profile: "Perfil",
     settings: "Ajustes",
+    journal: "Diario",
   },
   en: {
     meditation: "Meditation",
@@ -20,6 +22,7 @@ const translations = {
     progress: "Progress",
     profile: "Profile",
     settings: "Settings",
+    journal: "Journal",
   },
 };
 
@@ -30,10 +33,10 @@ export function BottomNav() {
 
   const navItems = [
     { href: "/dashboard", icon: Home, label: t.meditation },
+    { href: "/dashboard/journal", icon: BookText, label: t.journal },
     { href: "/dashboard/habits", icon: ListTodo, label: t.habits },
     { href: "/dashboard/progress", icon: BarChart3, label: t.progress },
     { href: "/dashboard/profile", icon: User, label: t.profile },
-    { href: "/dashboard/settings", icon: Settings, label: t.settings },
   ];
 
 

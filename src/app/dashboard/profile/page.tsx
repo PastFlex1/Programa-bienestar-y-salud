@@ -10,8 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/context/user-provider';
 import { useLanguage } from '@/context/language-provider';
-import { signOutUser } from '@/lib/firebase/auth';
-import { useRouter } from 'next/navigation';
+import { logoutAction } from '@/lib/firebase/auth';
 import { useAuth } from '@/context/auth-provider';
 
 const translations = {
@@ -51,7 +50,6 @@ const translations = {
 export default function ProfilePage() {
   const { language } = useLanguage();
   const t = translations[language];
-  const router = useRouter();
   const { user } = useAuth();
   const { toast } = useToast();
   const { userName, avatarUrl, updateUser } = useUser();
@@ -102,12 +100,6 @@ export default function ProfilePage() {
     fileInputRef.current?.click();
   };
 
-  const handleSignOut = async () => {
-    await signOutUser();
-    router.push('/auth/login');
-  };
-
-
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="max-w-2xl mx-auto space-y-8">
@@ -151,7 +143,9 @@ export default function ProfilePage() {
             <Button onClick={handleSaveChanges}>{t.saveChanges}</Button>
           </CardContent>
           <CardFooter className="flex justify-end">
-             <Button variant="destructive" onClick={handleSignOut}>{t.signOut}</Button>
+             <form action={logoutAction}>
+                <Button variant="destructive" type="submit">{t.signOut}</Button>
+             </form>
           </CardFooter>
         </Card>
       </div>

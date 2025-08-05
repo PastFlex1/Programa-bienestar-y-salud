@@ -1,19 +1,15 @@
 
 "use client";
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { BrainCircuit } from 'lucide-react';
-import { useLanguage } from '@/context/language-provider';
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { signIn } from '@/lib/firebase/auth';
-import { useRouter } from 'next/navigation';
-import { useToast } from '@/hooks/use-toast';
 
+import Link from 'next/link';
+import { useFormState, useFormStatus } from 'react-dom';
+import { BrainCircuit } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { loginAction } from '@/lib/firebase/auth';
+import { useLanguage } from '@/context/language-provider';
 
 const translations = {
   es: {
@@ -24,13 +20,8 @@ const translations = {
     loginButton: 'Iniciar Sesión',
     registerPrompt: "¿No tienes una cuenta?",
     registerLink: 'Regístrate',
-    emailRequired: "El correo electrónico es requerido.",
-    emailInvalid: "Por favor, ingresa un correo electrónico válido.",
-    passwordRequired: "La contraseña es requerida.",
-    loginError: "Error al iniciar sesión",
-    loginErrorDesc: "El correo electrónico o la contraseña son incorrectos.",
-    loginSuccess: "Inicio de sesión exitoso",
-    loginSuccessDesc: "Redirigiendo a tu panel...",
+    loginError: "Error de inicio de sesión",
+    loggingIn: "Iniciando sesión...",
   },
   en: {
     title: "Welcome Back",
@@ -40,51 +31,24 @@ const translations = {
     loginButton: 'Log In',
     registerPrompt: "Don't have an account?",
     registerLink: 'Sign up',
-    emailRequired: "Email is required.",
-    emailInvalid: "Please enter a valid email address.",
-    passwordRequired: "Password is required.",
     loginError: "Login Error",
-    loginErrorDesc: "The email or password you entered is incorrect.",
-    loginSuccess: "Login Successful",
-    loginSuccessDesc: "Redirecting to your dashboard...",
+    loggingIn: "Logging in...",
   }
+};
+
+function LoginButton({t}: {t: any}) {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" className="w-full" disabled={pending}>
+      {pending ? t.loggingIn : t.loginButton}
+    </Button>
+  );
 }
 
 export default function LoginPage() {
   const { language } = useLanguage();
   const t = translations[language];
-  const router = useRouter();
-  const { toast } = useToast();
-
-  const formSchema = z.object({
-    email: z.string().min(1, t.emailRequired).email(t.emailInvalid),
-    password: z.string().min(1, t.passwordRequired),
-  });
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  });
-
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    const { error } = await signIn(values.email, values.password);
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: t.loginError,
-        description: t.loginErrorDesc,
-      });
-    } else {
-      toast({
-        title: t.loginSuccess,
-        description: t.loginSuccessDesc,
-      });
-      // No need to push here, the AuthGuard will handle redirection
-    }
-  }
+  const [state, formAction] = useFormState(loginAction, null);
 
   return (
     <Card className="w-full max-w-md">
@@ -94,37 +58,22 @@ export default function LoginPage() {
         <CardDescription>{t.description}</CardDescription>
       </CardHeader>
       <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t.emailLabel}</FormLabel>
-                  <FormControl>
-                    <Input type="email" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t.passwordLabel}</FormLabel>
-                  <FormControl>
-                    <Input type="password" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full">{t.loginButton}</Button>
-          </form>
-        </Form>
+        <form action={formAction} className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="email">{t.emailLabel}</Label>
+            <Input id="email" name="email" type="email" required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">{t.passwordLabel}</Label>
+            <Input id="password" name="password" type="password" required />
+          </div>
+          {state?.message && (
+            <p className="text-sm text-destructive text-center bg-destructive/10 p-2 rounded-md">
+              {state.message}
+            </p>
+          )}
+          <LoginButton t={t} />
+        </form>
         <div className="mt-6 text-center text-sm">
           {t.registerPrompt}{" "}
           <Link href="/auth/register" className="underline text-primary">
