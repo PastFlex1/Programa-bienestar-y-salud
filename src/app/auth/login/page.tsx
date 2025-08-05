@@ -13,8 +13,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { signIn } from '@/lib/firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/context/auth-provider';
-import { useEffect } from 'react';
 
 
 const translations = {
