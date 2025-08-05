@@ -29,6 +29,7 @@ export default function DashboardLayout({
     // Si no está cargando y no hay usuario, redirigir al login.
     // Esto se ejecutará solo después de que Firebase haya verificado el estado.
     if (!loading && !user) {
+      console.log('Usuario no autenticado, redirigiendo a /auth/login. Estado: ', { loading, user });
       router.replace("/auth/login");
     }
   }, [user, loading, router]);
