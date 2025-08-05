@@ -9,9 +9,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 type AuthContextType = {
     user: User | null;
+    loading: boolean;
 };
 
-const AuthContext = createContext<AuthContextType>({ user: null });
+const AuthContext = createContext<AuthContextType>({ user: null, loading: true });
 
 const LoadingScreen = () => (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
@@ -30,22 +31,10 @@ const LoadingScreen = () => (
     </div>
 );
 
-
-export function AuthProvider({ children }: { children: ReactNode }) {
-    const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState(true);
+const AuthGate = ({ children }: { children: ReactNode }) => {
+    const { user, loading } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
-
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged((user) => {
-            setUser(user);
-            setLoading(false);
-        });
-
-        // Cleanup subscription on unmount
-        return () => unsubscribe();
-    }, []);
 
     useEffect(() => {
         if (loading) return;
@@ -54,28 +43,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const isDashboardPage = pathname.startsWith('/dashboard');
 
         if (!user && isDashboardPage) {
-            router.push('/auth/login');
-        } 
-        else if (user && (isAuthPage || pathname === '/')) {
-            router.push('/dashboard');
+            router.replace('/auth/login');
+        } else if (user && (isAuthPage || pathname === '/')) {
+            router.replace('/dashboard');
         }
     }, [user, loading, pathname, router]);
 
-
-    if (loading) {
-        return <LoadingScreen />;
-    }
-    
     const isAuthPage = pathname.startsWith('/auth');
     const isDashboardPage = pathname.startsWith('/dashboard');
 
-    if ((!user && isDashboardPage) || (user && (isAuthPage || pathname === '/'))) {
+    if (loading || (!user && isDashboardPage) || (user && (isAuthPage || pathname === '/'))) {
         return <LoadingScreen />;
     }
 
+    return <>{children}</>;
+};
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+    const [user, setUser] = useState<User | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged((user) => {
+            setUser(user);
+            setLoading(false);
+        });
+        return () => unsubscribe();
+    }, []);
+
     return (
-        <AuthContext.Provider value={{ user }}>
-            {children}
+        <AuthContext.Provider value={{ user, loading }}>
+            <AuthGate>{children}</AuthGate>
         </AuthContext.Provider>
     );
 }
