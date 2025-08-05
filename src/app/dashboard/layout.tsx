@@ -18,11 +18,14 @@ export default function DashboardLayout({
   const router = useRouter();
 
   useEffect(() => {
+    // If not loading and no user, redirect to login
     if (!loading && !user) {
       router.replace("/auth/login");
     }
   }, [user, loading, router]);
 
+  // While loading or if there's no user, show a loading state
+  // to prevent flicker or showing content to unauthenticated users.
   if (loading || !user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
@@ -32,6 +35,7 @@ export default function DashboardLayout({
     );
   }
   
+  // If user is authenticated, render the dashboard layout
   return (
     <div className="bg-background min-h-screen text-foreground font-body">
       <AppHeader />

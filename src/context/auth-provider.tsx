@@ -35,14 +35,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setLoading(false);
         });
         
+        // Cleanup subscription on unmount
         return () => unsubscribe();
     }, []);
 
     const value = { user, loading };
 
+    // While verifying user session, show a loading screen.
+    // The protection logic is now in the layouts.
+    if (loading) {
+        return <LoadingScreen />;
+    }
+
     return (
         <AuthContext.Provider value={value}>
-            {loading ? <LoadingScreen /> : children}
+            {children}
         </AuthContext.Provider>
     );
 }

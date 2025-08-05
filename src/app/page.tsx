@@ -18,7 +18,6 @@ const LoadingScreen = () => (
     </div>
 );
 
-
 export default function Home() {
     const { user, loading } = useAuth();
     const router = useRouter();
