@@ -24,6 +24,7 @@ export default function Home() {
 
     useEffect(() => {
         if (!loading) {
+            // Una vez que sabemos el estado de autenticación, redirigimos.
             if (user) {
                 router.replace('/dashboard');
             } else {
@@ -32,5 +33,6 @@ export default function Home() {
         }
     }, [user, loading, router]);
 
+    // Muestra una pantalla de carga mientras se determina el estado.
     return <LoadingScreen />;
 }
