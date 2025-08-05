@@ -82,7 +82,6 @@ export default function LoginPage() {
         title: t.loginSuccess,
         description: t.loginSuccessDesc,
       });
-      // Direct and explicit redirection after successful login
       router.push('/dashboard');
     }
   }
