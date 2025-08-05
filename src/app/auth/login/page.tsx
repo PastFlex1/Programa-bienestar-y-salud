@@ -53,14 +53,6 @@ export default function LoginPage() {
   const t = translations[language];
   const router = useRouter();
   const { toast } = useToast();
-  const { user } = useAuth();
-
-  useEffect(() => {
-    if (user) {
-      router.replace('/dashboard');
-    }
-  }, [user, router]);
-
 
   const formSchema = z.object({
     email: z.string().min(1, t.emailRequired).email(t.emailInvalid),
@@ -84,13 +76,8 @@ export default function LoginPage() {
         description: t.loginErrorDesc,
       });
     } else {
-      // The useEffect hook will handle the redirect
+      router.push('/dashboard');
     }
-  }
-  
-  // Don't render the form if the user is logged in, let the redirect happen
-  if (user) {
-    return null;
   }
 
   return (
