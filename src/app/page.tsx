@@ -2,36 +2,41 @@
 "use client";
 
 import { useEffect } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-provider';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const LoadingScreen = () => (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
+        <div className="space-y-4 w-full max-w-sm">
+            <div className="flex justify-center">
+                <Skeleton className="h-24 w-24 rounded-full" />
+            </div>
+            <Skeleton className="h-8 w-48 mx-auto" />
+            <Skeleton className="h-6 w-72 mx-auto" />
+            <div className="space-y-2 pt-8">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+            </div>
+        </div>
+    </div>
+);
+
 
 export default function Home() {
     const { user, loading } = useAuth();
     const router = useRouter();
-    const pathname = usePathname();
 
     useEffect(() => {
-        if (loading) {
-            return; // Wait until loading is finished
-        }
-
-        const isAuthPage = pathname.startsWith('/auth');
-
-        if (user) {
-            // If user is logged in and on an auth page, redirect to dashboard
-            if(isAuthPage) {
+        if (!loading) {
+            if (user) {
                 router.replace('/dashboard');
-            }
-        } else {
-            // If user is not logged in and not on an auth page, redirect to login
-            if (!isAuthPage) {
+            } else {
                 router.replace('/auth/login');
             }
         }
+    }, [user, loading, router]);
 
-    }, [user, loading, router, pathname]);
-
-    // This component will effectively be a loading/redirect handler.
-    // The actual content is handled by the layout and sub-pages.
-    return null;
+    return <LoadingScreen />;
 }

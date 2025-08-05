@@ -13,6 +13,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { signIn } from '@/lib/firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/auth-provider';
+import { useEffect } from 'react';
 
 
 const translations = {
@@ -51,6 +53,14 @@ export default function LoginPage() {
   const t = translations[language];
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      router.replace('/dashboard');
+    }
+  }, [user, router]);
+
 
   const formSchema = z.object({
     email: z.string().min(1, t.emailRequired).email(t.emailInvalid),
@@ -74,8 +84,13 @@ export default function LoginPage() {
         description: t.loginErrorDesc,
       });
     } else {
-      router.push('/dashboard');
+      // The useEffect hook will handle the redirect
     }
+  }
+  
+  // Don't render the form if the user is logged in, let the redirect happen
+  if (user) {
+    return null;
   }
 
   return (
