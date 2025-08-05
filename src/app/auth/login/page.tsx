@@ -30,7 +30,9 @@ const translations = {
     emailInvalid: "Por favor, ingresa un correo electrónico válido.",
     passwordRequired: "La contraseña es requerida.",
     loginError: "Error al iniciar sesión",
-    loginErrorDesc: "El correo electrónico o la contraseña son incorrectos."
+    loginErrorDesc: "El correo electrónico o la contraseña son incorrectos.",
+    loginSuccess: "Inicio de sesión exitoso",
+    loginSuccessDesc: "Redirigiendo a tu panel...",
   },
   en: {
     title: "Welcome Back",
@@ -44,7 +46,9 @@ const translations = {
     emailInvalid: "Please enter a valid email address.",
     passwordRequired: "Password is required.",
     loginError: "Login Error",
-    loginErrorDesc: "The email or password you entered is incorrect."
+    loginErrorDesc: "The email or password you entered is incorrect.",
+    loginSuccess: "Login Successful",
+    loginSuccessDesc: "Redirecting to your dashboard...",
   }
 }
 
@@ -76,6 +80,10 @@ export default function LoginPage() {
         description: t.loginErrorDesc,
       });
     } else {
+      toast({
+        title: t.loginSuccess,
+        description: t.loginSuccessDesc,
+      });
       router.push('/dashboard');
     }
   }
