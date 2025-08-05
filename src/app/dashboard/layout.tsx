@@ -24,7 +24,7 @@ export default function DashboardLayout({
   }, [user, loading, router]);
 
   if (loading || !user) {
-    // Show a loading skeleton or a blank screen while verifying auth
+    // Show a loading skeleton while verifying auth
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
         <Skeleton className="h-24 w-24 rounded-full" />
