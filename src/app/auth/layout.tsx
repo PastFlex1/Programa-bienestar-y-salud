@@ -4,6 +4,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-provider';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AuthLayout({
   children,
@@ -20,7 +21,12 @@ export default function AuthLayout({
   }, [user, loading, router]);
 
   if (loading || user) {
-     return null; // Don't render auth pages if user is logged in or during initial load.
+     return (
+        <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
+            <Skeleton className="h-24 w-24 rounded-full" />
+            <Skeleton className="h-8 w-48 mt-4" />
+        </div>
+     );
   }
 
   return (

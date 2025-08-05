@@ -7,6 +7,7 @@ import { useAuth } from "@/context/auth-provider";
 import { AppHeader } from "@/components/app-header";
 import { BottomNav } from "@/components/bottom-nav";
 import { MotivationalQuote } from "@/components/motivational-quote";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function DashboardLayout({
   children,
@@ -23,7 +24,13 @@ export default function DashboardLayout({
   }, [user, loading, router]);
 
   if (loading || !user) {
-    return null; // Don't render dashboard if not logged in or during initial load.
+    // Show a loading skeleton or a blank screen while verifying auth
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
+        <Skeleton className="h-24 w-24 rounded-full" />
+        <Skeleton className="h-8 w-48 mt-4" />
+      </div>
+    );
   }
   
   return (
