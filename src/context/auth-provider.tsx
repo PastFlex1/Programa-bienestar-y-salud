@@ -4,7 +4,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { onAuthStateChanged } from '@/lib/firebase/client';
 import type { User } from 'firebase/auth';
-import { usePathname, useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 
 type AuthContextType = {
@@ -34,8 +33,6 @@ const LoadingScreen = () => (
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
-    const router = useRouter();
-    const pathname = usePathname();
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged((user) => {
@@ -44,20 +41,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
         return () => unsubscribe();
     }, []);
-
-    useEffect(() => {
-        if (loading) return;
-
-        const isAuthPage = pathname.startsWith('/auth');
-        const isDashboardPage = pathname.startsWith('/dashboard');
-
-        if (!user && isDashboardPage) {
-            router.replace('/auth/login');
-        } else if (user && isAuthPage) {
-            router.replace('/dashboard');
-        }
-    }, [user, loading, pathname, router]);
-
 
     if (loading) {
         return <LoadingScreen />;
