@@ -1,24 +1,15 @@
 
 "use client"
 
-import { useState } from "react"
+import { useActionState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import * as z from "zod"
+import { useFormStatus } from "react-dom"
 import { CheckCircle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
     AlertDialog,
@@ -29,90 +20,60 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useLanguage } from "@/context/language-provider"
-import { signUp } from "@/lib/firebase/auth"
-import { useToast } from "@/hooks/use-toast"
+import { signUpAction } from "@/lib/firebase/auth"
 
 const translations = {
     es: {
         title: "Crear una cuenta",
         description: "Ingresa tus datos para comenzar tu viaje con Zenith.",
-        usernameLabel: "Nombre de usuario",
+        usernameLabel: "Nombre de usuario (opcional)",
         emailLabel: "Correo Electrónico",
         passwordLabel: "Contraseña",
         submitButton: "Registrarse",
+        signingUpButton: "Registrando...",
         loginPrompt: "¿Ya tienes una cuenta?",
         loginLink: "Inicia sesión",
-        usernameRequired: "El nombre de usuario es requerido.",
-        emailRequired: "El correo electrónico es requerido.",
-        emailInvalid: "Por favor, ingresa un correo electrónico válido.",
-        passwordRequired: "La contraseña es requerida.",
-        passwordMin: "La contraseña debe tener al menos 6 caracteres.",
-        successTitle: "Cuenta creada exitosamente",
-        successAction: "Continuar",
-        registerError: "Error de Registro",
-        emailInUse: "Este correo electrónico ya está en uso. Por favor, intenta con otro o inicia sesión.",
+        successTitle: "¡Cuenta creada exitosamente!",
+        successDescription: "Ya puedes iniciar sesión con tus credenciales.",
+        successAction: "Ir a Iniciar Sesión",
     },
     en: {
         title: "Create an account",
         description: "Enter your details to start your journey with Zenith.",
-        usernameLabel: "Username",
+        usernameLabel: "Username (optional)",
         emailLabel: "Email",
         passwordLabel: "Password",
         submitButton: "Sign Up",
+        signingUpButton: "Signing up...",
         loginPrompt: "Already have an account?",
         loginLink: "Log in",
-        usernameRequired: "Username is required.",
-        emailRequired: "Email is required.",
-        emailInvalid: "Please enter a valid email address.",
-        passwordRequired: "Password is required.",
-        passwordMin: "Password must be at least 6 characters long.",
-        successTitle: "Account created successfully",
-        successAction: "Continue",
-        registerError: "Registration Error",
-        emailInUse: "This email is already in use. Please try another or log in.",
+        successTitle: "Account created successfully!",
+        successDescription: "You can now log in with your credentials.",
+        successAction: "Go to Log In",
     }
 }
+
+function SignUpButton({t}: {t: any}) {
+    const { pending } = useFormStatus();
+    return (
+        <Button type="submit" className="w-full" disabled={pending}>
+            {pending ? t.signingUpButton : t.submitButton}
+        </Button>
+    );
+}
+
 
 export default function RegisterPage() {
     const { language } = useLanguage();
     const t = translations[language];
     const router = useRouter();
-    const { toast } = useToast();
+    const [state, formAction] = useActionState(signUpAction, null);
 
-    const [showSuccessDialog, setShowSuccessDialog] = useState(false);
-
-    const formSchema = z.object({
-        username: z.string().min(1, t.usernameRequired),
-        email: z.string().min(1, t.emailRequired).email(t.emailInvalid),
-        password: z.string().min(6, t.passwordMin),
-    });
-
-    const form = useForm<z.infer<typeof formSchema>>({
-        resolver: zodResolver(formSchema),
-        defaultValues: {
-            username: "",
-            email: "",
-            password: "",
-        },
-    })
-
-    async function onSubmit(values: z.infer<typeof formSchema>) {
-        const { error } = await signUp(values.email, values.password);
-        if (error) {
-            let description = error;
-            if (error.includes("auth/email-already-in-use")) {
-                description = t.emailInUse;
-            }
-            toast({
-                variant: "destructive",
-                title: t.registerError,
-                description: description,
-            })
-        } else {
-            // In a real app, you might want to update the user's profile with the username here.
-            setShowSuccessDialog(true);
+    useEffect(() => {
+        if (state?.success) {
+            // Optional: Show a success message before redirecting
         }
-    }
+    }, [state, router]);
 
     return (
         <>
@@ -122,50 +83,28 @@ export default function RegisterPage() {
                     <CardDescription>{t.description}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                            <FormField
-                                control={form.control}
-                                name="username"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t.usernameLabel}</FormLabel>
-                                        <FormControl>
-                                            <Input {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="email"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t.emailLabel}</FormLabel>
-                                        <FormControl>
-                                            <Input type="email" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="password"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t.passwordLabel}</FormLabel>
-                                        <FormControl>
-                                            <Input type="password" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <Button type="submit" className="w-full">{t.submitButton}</Button>
-                        </form>
-                    </Form>
+                    <form action={formAction} className="space-y-6">
+                         <div className="space-y-2">
+                            <Label htmlFor="username">{t.usernameLabel}</Label>
+                            <Input id="username" name="username" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="email">{t.emailLabel}</Label>
+                            <Input id="email" name="email" type="email" required />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="password">{t.passwordLabel}</Label>
+                            <Input id="password" name="password" type="password" required />
+                        </div>
+                        
+                        {state?.message && !state?.success && (
+                            <p className="text-sm text-destructive text-center bg-destructive/10 p-2 rounded-md">
+                                {state.message}
+                            </p>
+                        )}
+
+                        <SignUpButton t={t} />
+                    </form>
                     <div className="mt-6 text-center text-sm">
                         {t.loginPrompt}{" "}
                         <Link href="/auth/login" className="underline text-primary">
@@ -175,13 +114,14 @@ export default function RegisterPage() {
                 </CardContent>
             </Card>
 
-            <AlertDialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+            <AlertDialog open={state?.success}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                          <div className="flex justify-center items-center mb-4">
                             <CheckCircle className="h-16 w-16 text-green-500" />
                         </div>
                         <AlertDialogTitle className="text-center">{t.successTitle}</AlertDialogTitle>
+                        <p className="text-center text-sm text-muted-foreground">{t.successDescription}</p>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogAction onClick={() => router.push('/auth/login')} className="w-full">
