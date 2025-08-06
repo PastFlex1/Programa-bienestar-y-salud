@@ -55,7 +55,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (state?.success) {
-      router.push('/dashboard/journal');
+      router.push('/dashboard');
     }
   }, [state, router]);
 
