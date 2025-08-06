@@ -2,7 +2,8 @@
 "use client";
 
 import Link from 'next/link';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { BrainCircuit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,7 +49,7 @@ function LoginButton({t}: {t: any}) {
 export default function LoginPage() {
   const { language } = useLanguage();
   const t = translations[language];
-  const [state, formAction] = useFormState(loginAction, null);
+  const [state, formAction] = useActionState(loginAction, null);
 
   return (
     <Card className="w-full max-w-md">
