@@ -19,7 +19,7 @@ export async function loginAction(previousState: any, formData: FormData) {
     const password = formData.get('password') as string;
 
     if (!email || !password) {
-        return { message: 'Please enter both email and password.' };
+        return { success: false, message: 'Please enter both email and password.' };
     }
 
     try {
@@ -50,16 +50,15 @@ export async function loginAction(previousState: any, formData: FormData) {
             path: '/',
         });
 
+        return { success: true, message: 'Login successful!' };
+
     } catch (error: any) {
         if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
-            return { message: 'Invalid email or password.' };
+            return { success: false, message: 'Invalid email or password.' };
         }
         console.error("Authentication Error:", error);
-        return { message: 'An unexpected error occurred. Please try again.' };
+        return { success: false, message: 'An unexpected error occurred. Please try again.' };
     }
-
-    // Step 4: Redirect to a protected route on success
-    redirect('/dashboard/journal');
 }
 
 export async function logoutAction() {
