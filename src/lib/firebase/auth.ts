@@ -56,8 +56,7 @@ export async function loginAction(previousState: any, formData: FormData) {
         return { success: false, message: 'An unexpected error occurred. Please try again.' };
     }
     
-    // No longer redirecting from here
-    return { success: true, message: 'Login successful' };
+    redirect('/dashboard');
 }
 
 export async function signUpAction(previousState: any, formData: FormData) {
