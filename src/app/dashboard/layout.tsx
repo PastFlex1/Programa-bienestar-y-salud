@@ -1,15 +1,21 @@
 
-"use client";
-
+import { redirect } from 'next/navigation';
 import { AppHeader } from "@/components/app-header";
 import { BottomNav } from "@/components/bottom-nav";
 import { MotivationalQuote } from "@/components/motivational-quote";
+import { getSession } from '@/lib/firebase/auth';
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await getSession();
+
+  if (!session?.isLoggedIn) {
+    redirect('/auth/login');
+  }
+
   return (
       <div className="bg-background min-h-screen text-foreground font-body">
         <AppHeader />
