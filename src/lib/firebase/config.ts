@@ -15,4 +15,6 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 
+export const SECRET_KEY = new TextEncoder().encode(process.env.JOSE_SECRET_KEY || 'your-super-secret-key-that-is-at-least-32-bytes-long');
+
 export { app, auth };

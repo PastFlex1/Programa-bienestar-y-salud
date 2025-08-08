@@ -2,12 +2,10 @@
 "use server";
 
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from './config';
+import { auth, SECRET_KEY } from './config';
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-
-const SECRET_KEY = process.env.JOSE_SECRET_KEY || new TextEncoder().encode('your-super-secret-key-that-is-at-least-32-bytes-long');
 
 // This is a dummy user database. In a real app, you'd fetch this from a database.
 const DUMMY_USERS: { [email: string]: { name: string } } = {
@@ -63,6 +61,7 @@ export async function loginAction(previousState: any, formData: FormData) {
 export async function signUpAction(previousState: any, formData: FormData) {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
+    const username = formData.get('username') as string || 'New User';
 
     if (!email || !password) {
         return { success: false, message: 'Please provide all required fields.' };
@@ -72,9 +71,9 @@ export async function signUpAction(previousState: any, formData: FormData) {
     }
 
     try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        await createUserWithEmailAndPassword(auth, email, password);
         // You could add the new user to your dummy database here if needed
-        // DUMMY_USERS[email] = { name: formData.get('username') as string || 'New User' };
+        DUMMY_USERS[email] = { name: username };
         
         return { success: true, message: 'Account created successfully! You can now log in.' };
 

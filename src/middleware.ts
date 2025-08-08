@@ -1,8 +1,7 @@
 
 import { NextResponse, type NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
-
-const SECRET_KEY = process.env.JOSE_SECRET_KEY || new TextEncoder().encode('your-super-secret-key-that-is-at-least-32-bytes-long');
+import { SECRET_KEY } from '@/lib/firebase/config';
 
 export async function middleware(request: NextRequest) {
   const sessionCookie = request.cookies.get('session')?.value;
