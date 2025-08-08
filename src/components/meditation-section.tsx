@@ -21,6 +21,7 @@ export type MeditationSession = {
   type: LocalizedString;
   imageUrl: string;
   imageHint: string;
+  audioUrl: string;
 };
 
 interface MeditationSectionProps {
@@ -56,6 +57,7 @@ export function MeditationSection({ title, sessions }: MeditationSectionProps) {
                   type={session.type[language]}
                   imageUrl={session.imageUrl}
                   imageHint={session.imageHint}
+                  audioUrl={session.audioUrl}
                 />
               </div>
             </CarouselItem>

@@ -28,9 +28,10 @@ interface MeditationCardProps {
   imageUrl: string;
   imageHint: string;
   isRecommended?: boolean;
+  audioUrl: string;
 }
 
-export function MeditationCard({ title, description, lengthMinutes, type, imageUrl, imageHint, isRecommended = false }: MeditationCardProps) {
+export function MeditationCard({ title, description, lengthMinutes, type, imageUrl, imageHint, isRecommended = false, audioUrl }: MeditationCardProps) {
   const { language } = useLanguage();
   const t = translations[language];
 
@@ -79,7 +80,7 @@ export function MeditationCard({ title, description, lengthMinutes, type, imageU
         </CardContent>
       </Card>
       <DialogContent className="max-w-md">
-         <MeditationPlayer title={title} lengthMinutes={lengthMinutes} />
+         <MeditationPlayer title={title} lengthMinutes={lengthMinutes} audioUrl={audioUrl} />
       </DialogContent>
     </Dialog>
   );
