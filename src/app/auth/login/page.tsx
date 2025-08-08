@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { useActionState } from 'react';
+import { useActionState, useEffect } from 'react';
 import { useFormStatus } from 'react-dom';
 import { BrainCircuit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { loginAction } from '@/lib/firebase/auth';
 import { useLanguage } from '@/context/language-provider';
+import { useRouter } from 'next/navigation';
 
 const translations = {
   es: {
@@ -50,6 +51,13 @@ export default function LoginPage() {
   const { language } = useLanguage();
   const t = translations[language];
   const [state, formAction] = useActionState(loginAction, null);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (state?.success) {
+      router.push('/dashboard');
+    }
+  }, [state, router]);
 
   return (
     <Card className="w-full max-w-md">

@@ -56,7 +56,8 @@ export async function loginAction(previousState: any, formData: FormData) {
         return { success: false, message: 'An unexpected error occurred. Please try again.' };
     }
     
-    redirect('/dashboard');
+    // No longer redirecting from here
+    return { success: true, message: 'Login successful' };
 }
 
 export async function signUpAction(previousState: any, formData: FormData) {
@@ -75,7 +76,6 @@ export async function signUpAction(previousState: any, formData: FormData) {
         await createUserWithEmailAndPassword(auth, email, password);
         DUMMY_USERS[email] = { name: username };
         await createSession(email);
-
     } catch (error: any) {
         if (error.code === 'auth/email-already-in-use') {
             return { success: false, message: 'This email is already in use. Please log in.' };
