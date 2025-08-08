@@ -2,10 +2,11 @@
 "use server";
 
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-import { auth, SECRET_KEY } from './config';
+import { auth } from './config';
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { SECRET_KEY } from "./config";
 
 // This is a dummy user database. In a real app, you'd fetch this from a database.
 const DUMMY_USERS: { [email: string]: { name: string } } = {
@@ -72,10 +73,8 @@ export async function signUpAction(previousState: any, formData: FormData) {
 
     try {
         await createUserWithEmailAndPassword(auth, email, password);
-        // You could add the new user to your dummy database here if needed
         DUMMY_USERS[email] = { name: username };
-        
-        return { success: true, message: 'Account created successfully! You can now log in.' };
+        await createSession(email);
 
     } catch (error: any) {
         if (error.code === 'auth/email-already-in-use') {
@@ -84,6 +83,8 @@ export async function signUpAction(previousState: any, formData: FormData) {
         console.error("Registration Error:", error);
         return { success: false, message: 'An unexpected error occurred during registration.' };
     }
+
+    redirect('/dashboard');
 }
 
 
