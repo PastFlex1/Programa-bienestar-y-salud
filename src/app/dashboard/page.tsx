@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -80,7 +81,7 @@ const sessionsData: { [key: string]: MeditationSession[] } = {
   ],
   anxietyReduction: [
     { title: { es: "Paz Interior", en: "Inner Peace" }, description: { es: "Encuentra la calma en 10 minutos.", en: "Find calm in 10 minutes." }, lengthMinutes: 10, type: { es: "Ansiedad", en: "Anxiety" }, imageUrl: "/ansiedad/ansiedad1.jpg", imageHint: "zen garden", audioUrl: "/audio/meditacion.mp3" },
-    { title: { es: "Anclaje en el Presente", en: "Anchor in the Present" }, description: { es: "15 minutos para conectar con el ahora.", en: "15 minutes to connect with the now." }, lengthMinutes: 15, type: { es: "Ansiedad", en: "Anxiety" }, imageUrl: "/ansiedad/ansiedad2.png", imageHint: "person sitting", audioUrl: "/audio/meditacion.mp3" },
+    { title: { es: "Anclaje en el Presente", en: "Anchor in the Present" }, description: { es: "15 minutos para conectar con el ahora.", en: "15 minutes to connect with the now." }, lengthMinutes: 15, type: { es: "Ansiedad", en: "Anxiety" }, imageUrl: "/ansiedad/ansiedad2.png", imageHint: "person sitting", audioUrl: "/audio/Relajacion.mp4" },
     { title: { es: "Suelta la Preocupación", en: "Let Go of Worry" }, description: { es: "Una sesión de 20 minutos para liberarte.", en: "A 20-minute session to free yourself." }, lengthMinutes: 20, type: { es: "Ansiedad", en: "Anxiety" }, imageUrl: "/ansiedad/ansiedad3.png", imageHint: "dandelion seeds", audioUrl: "/audio/meditacion.mp3" },
   ],
    morningStart: [
