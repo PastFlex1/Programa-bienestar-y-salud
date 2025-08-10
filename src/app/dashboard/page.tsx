@@ -85,7 +85,7 @@ const sessionsData: { [key: string]: MeditationSession[] } = {
     { title: { es: "Suelta la Preocupación", en: "Let Go of Worry" }, description: { es: "Una sesión de 20 minutos para liberarte.", en: "A 20-minute session to free yourself." }, lengthMinutes: 20, type: { es: "Ansiedad", en: "Anxiety" }, imageUrl: "/ansiedad/ansiedad3.png", imageHint: "dandelion seeds", audioUrl: "/audio/Meditar3.m4a" },
   ],
    morningStart: [
-    { title: { es: "Despertar Matutino", en: "Morning Awakening" }, description: { es: "Comienza tu día con claridad y enfoque.", en: "Start your day with clarity and focus." }, lengthMinutes: 10, type: { es: "Mindfulness", en: "Mindfulness" }, imageUrl: "/cocentracion/concentracion1.jpg", imageHint: "sunrise yoga", audioUrl: "/audio/armonia.m4a" },
+    { title: { es: "Despertar Matutino", en: "Morning Awakening" }, description: { es: "Comienza tu día con claridad y enfoque.", en: "Start your day with clarity and focus." }, lengthMinutes: 12, type: { es: "Mindfulness", en: "Mindfulness" }, imageUrl: "/cocentracion/concentracion1.jpg", imageHint: "sunrise yoga", audioUrl: "/audio/armonia.m4a" },
     { title: { es: "Energía Positiva", en: "Positive Energy" }, description: { es: "Una sesión de 5 minutos para un gran día.", en: "A 5-minute session for a great day." }, lengthMinutes: 5, type: { es: "Energía", en: "Energy" }, imageUrl: "/cocentracion/concentracion2.jpg", imageHint: "sunflower field", audioUrl: "/audio/armonia2.m4a" },
   ],
   unwindEvening: [
