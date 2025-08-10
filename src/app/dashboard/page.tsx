@@ -65,7 +65,7 @@ const translations = {
 
 const sessionsData: { [key: string]: MeditationSession[] } = {
   stressRelief: [
-    { title: { es: "Calma Rápida", en: "Quick Calm" }, description: { es: "5 minutos para liberar tensión.", en: "5 minutes to release tension." }, lengthMinutes: 10, type: { es: "Estrés", en: "Stress" }, imageUrl: "/alivioestres/estres1.png", imageHint: "serene lake", audioUrl: "/audio/Meditar.m4a" },
+    { title: { es: "Calma Rápida", en: "Quick Calm" }, description: { es: "10 minutos para liberar tensión.", en: "10 minutes to release tension." }, lengthMinutes: 10, type: { es: "Estrés", en: "Stress" }, imageUrl: "/alivioestres/estres1.png", imageHint: "serene lake", audioUrl: "/audio/Meditar.m4a" },
     { title: { es: "Respiración Consciente", en: "Mindful Breathing" }, description: { es: "10 minutos de respiración para el estrés.", en: "10 minutes of breathing for stress." }, lengthMinutes: 10, type: { es: "Estrés", en: "Stress" }, imageUrl: "/alivioestres/estres2.png", imageHint: "person meditating", audioUrl: "/audio/Meditar2.m4a" },
     { title: { es: "Pausa Relajante", en: "Relaxing Pause" }, description: { es: "Una pausa de 15 minutos en tu día.", en: "A 15-minute break in your day." }, lengthMinutes: 15, type: { es: "Estrés", en: "Stress" }, imageUrl: "/alivioestres/estres3.jpg", imageHint: "calm waves", audioUrl: "/audio/Meditar3.m4a" },
   ],
