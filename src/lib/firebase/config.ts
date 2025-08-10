@@ -1,6 +1,7 @@
 
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
     projectId: "zenith-mobile-fvkph",
@@ -14,7 +15,8 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
+const db = getFirestore(app);
 
 export const SECRET_KEY = new TextEncoder().encode(process.env.JOSE_SECRET_KEY || 'your-super-secret-key-that-is-at-least-32-bytes-long');
 
-export { app, auth };
+export { app, auth, db };
