@@ -3,7 +3,7 @@ import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Clock, Play, Headphones, Sparkles } from "lucide-react";
+import { Play, Headphones, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/language-provider";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
@@ -62,10 +62,6 @@ export function MeditationCard({ title, description, lengthMinutes, type, imageU
               <div className="flex items-center gap-1">
                 <Headphones className="h-4 w-4" />
                 <span>{type}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4" />
-                <span>{lengthMinutes} min</span>
               </div>
             </div>
             <h3 className="text-lg font-bold font-headline mb-2 leading-tight">{title}</h3>
