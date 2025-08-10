@@ -105,8 +105,8 @@ const sessionsData: { [key: string]: MeditationSession[] } = {
     { title: { es: "Calma y Concentración", en: "Calm and Concentration" }, description: { es: "El equilibrio perfecto para tu mente.", en: "The perfect balance for your mind." }, lengthMinutes: 20, type: { es: "Foco/Relax", en: "Focus/Relax" }, imageUrl: "/cocentracion/concentracion8.jpg", imageHint: "stack of stones", audioUrl: "/audio/meditacion.mp3" },
   ],
   stressAndSleep: [
-    { title: { es: "Adiós Estrés, Hola Sueño", en: "Goodbye Stress, Hello Sleep" }, description: { es: "Prepara tu mente para un sueño reparador.", en: "Prepare your mind for a restful sleep." }, lengthMinutes: 18, type: { es: "Estrés/Sueño", en: "Stress/Sleep" }, imageUrl: "/sueño/sueño6.png", imageHint: "calm clouds", audioUrl: "/audio/Sueño1.mp3" },
-    { title: { es: "Liberación Nocturna", en: "Nightly Release" }, description: { es: "Suelta las preocupaciones del día.", en: "Let go of the day's worries." }, lengthMinutes: 12, type: { es: "Estrés/Sueño", en: "Stress/Sleep" }, imageUrl: "/sueño/sueño7.png", imageHint: "dream catcher", audioUrl: "/audio/Sueño2.mp3" },
+    { title: { es: "Adiós Estrés, Hola Sueño", en: "Goodbye Stress, Hello Sleep" }, description: { es: "Prepara tu mente para un sueño reparador.", en: "Prepare your mind for a restful sleep." }, lengthMinutes: 18, type: { es: "Estrés/Sueño", en: "Stress/Sleep" }, imageUrl: "/sueño/sueño6.png", imageHint: "calm clouds", audioUrl: "/audio/Sueño1.mp4" },
+    { title: { es: "Liberación Nocturna", en: "Nightly Release" }, description: { es: "Suelta las preocupaciones del día.", en: "Let go of the day's worries." }, lengthMinutes: 12, type: { es: "Estrés/Sueño", en: "Stress/Sleep" }, imageUrl: "/sueño/sueño7.png", imageHint: "dream catcher", audioUrl: "/audio/Sueño2.mp4" },
   ],
 };
 
