@@ -12,6 +12,7 @@ import type { JournalAnalysis } from '@/ai/flows/journal-analysis-flow';
 import { JournalResponse } from '@/components/journal-response';
 import { Sparkles } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { saveJournalEntry } from '@/lib/firebase/journal';
 
 const translations = {
     es: {
@@ -19,9 +20,10 @@ const translations = {
         todayIs: "Hoy es",
         reflect: "Tómate un momento para reflexionar.",
         placeholder: "¿Qué tienes en mente?",
-        analyzeButton: "Analizar con IA",
-        analyzingButton: "Analizando...",
+        analyzeButton: "Guardar y Analizar",
+        analyzingButton: "Guardando y Analizando...",
         error: "Hubo un error al analizar la entrada.",
+        saveError: "Hubo un error al guardar tu entrada.",
         noContent: "Por favor, escribe algo antes de analizar."
     },
     en: {
@@ -29,9 +31,10 @@ const translations = {
         todayIs: "Today is",
         reflect: "Take a moment to reflect.",
         placeholder: "What's on your mind?",
-        analyzeButton: "Analyze with AI",
-        analyzingButton: "Analyzing...",
+        analyzeButton: "Save & Analyze",
+        analyzingButton: "Saving & Analyzing...",
         error: "There was an error analyzing the entry.",
+        saveError: "There was an error saving your entry.",
         noContent: "Please write something before analyzing."
     }
 };
@@ -46,7 +49,8 @@ export default function JournalPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const today = new Date().toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', {
+    const today = new Date();
+    const todayFormatted = today.toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
@@ -64,11 +68,28 @@ export default function JournalPage() {
         setAnalysis(null);
 
         try {
+            // First, save the entry
+            const dateKey = today.toISOString();
+            await saveJournalEntry({
+                date: dateKey,
+                entry: entry,
+            });
+
+            // Then, analyze it
             const result = await analyzeJournalEntry({ journalEntry: entry });
             setAnalysis(result);
-        } catch (e) {
+            
+            // Optionally, save the analysis back to the entry in firestore.
+            // This would require another function in journal.ts
+            
+        } catch (e: any) {
             console.error(e);
-            setError(t.error);
+            // Distinguish between saving and analysis error if possible
+            if (e.message.includes("save")) {
+                setError(t.saveError);
+            } else {
+                setError(t.error);
+            }
         } finally {
             setIsLoading(false);
         }
@@ -81,7 +102,7 @@ export default function JournalPage() {
                     <CardHeader>
                         <CardTitle>{t.welcome}, {userName || 'User'}</CardTitle>
                         <CardDescription>
-                            {t.todayIs} {today}. {t.reflect}
+                            {t.todayIs} {todayFormatted}. {t.reflect}
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
