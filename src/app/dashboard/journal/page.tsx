@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { useLanguage } from '@/context/language-provider';
 import { useUser } from '@/context/user-provider';
 import { useAuth } from '@/context/auth-provider';
@@ -83,15 +83,14 @@ export default function JournalPage() {
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
     useEffect(() => {
-        if (!user && !authLoading) {
-            setIsLoadingHistory(false);
-            return;
-        }
         if (user) {
             setIsLoadingHistory(true);
             getJournalEntries(user.uid)
                 .then(setEntries)
+                .catch(() => setError("Failed to load entries."))
                 .finally(() => setIsLoadingHistory(false));
+        } else if (!authLoading) {
+            setIsLoadingHistory(false);
         }
     }, [user, authLoading]);
 
@@ -139,9 +138,9 @@ export default function JournalPage() {
     };
 
     const formatEntryDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', {
-            year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
-        });
+        const date = new Date(dateString);
+        const locale = language === 'es' ? es : undefined;
+        return format(date, 'PPP p', { locale });
     }
 
     return (
@@ -166,6 +165,7 @@ export default function JournalPage() {
                                     selected={selectedDate}
                                     onSelect={(date) => date && setSelectedDate(date)}
                                     initialFocus
+                                    disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
                                 />
                                 </PopoverContent>
                             </Popover>
@@ -179,10 +179,13 @@ export default function JournalPage() {
                             value={entry}
                             onChange={(e) => setEntry(e.target.value)}
                         />
+                        {error && <p className="text-sm text-destructive">{error}</p>}
+                    </CardContent>
+                    <CardFooter>
                         <Button onClick={handleSaveEntry} disabled={isSaving || !entry.trim() || authLoading}>
                             {isSaving ? (
                                 <>
-                                    <Save className="mr-2 h-4 w-4 animate-pulse" />
+                                    <Save className="mr-2 h-4 w-4 animate-spin" />
                                     {t.savingButton}
                                 </>
                             ) : (
@@ -192,8 +195,7 @@ export default function JournalPage() {
                                 </>
                             )}
                         </Button>
-                         {error && <p className="text-sm text-destructive">{error}</p>}
-                    </CardContent>
+                    </CardFooter>
                 </Card>
 
                 <div className="space-y-4">
@@ -233,7 +235,7 @@ export default function JournalPage() {
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
                                           <AlertDialogCancel>{t.cancel}</AlertDialogCancel>
-                                          <AlertDialogAction onClick={() => handleDeleteEntry(item)} className={buttonVariants({ variant: "destructive" })}>
+                                          <AlertDialogAction onClick={() => handleDeleteEntry(item)} className={cn(buttonVariants({ variant: "destructive" }))}>
                                             {t.delete}
                                           </AlertDialogAction>
                                         </AlertDialogFooter>

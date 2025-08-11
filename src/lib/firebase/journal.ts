@@ -8,11 +8,6 @@ import { revalidatePath } from "next/cache";
 export interface JournalEntry {
     date: string;
     entry: string;
-    analysis?: {
-        summary: string;
-        analysis: string;
-        advice: string;
-    };
 }
 
 // Firestore collection reference
@@ -28,18 +23,13 @@ export async function saveJournalEntry(entry: JournalEntry, userId: string) {
     try {
         const docSnap = await getDoc(userJournalDocRef);
 
-        const newEntryWithDate = {
-            ...entry,
-            date: entry.date || new Date().toISOString(),
-        };
-
         if (docSnap.exists()) {
             await updateDoc(userJournalDocRef, {
-                entries: arrayUnion(newEntryWithDate)
+                entries: arrayUnion(entry)
             });
         } else {
             await setDoc(userJournalDocRef, {
-                entries: [newEntryWithDate]
+                entries: [entry]
             });
         }
     } catch (error) {
