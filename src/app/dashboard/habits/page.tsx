@@ -13,7 +13,7 @@ import type { Habit as HabitDB } from "@/lib/firebase/habits";
 import { useAuth } from "@/context/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { HabitTracker, type Habit as HabitUI } from "@/components/habit-tracker";
@@ -41,6 +41,7 @@ const translations = {
     toastHabitAdded: "Hábito agregado exitosamente.",
     addHabit: "Agregar Hábito",
     addNewHabit: "Agregar Nuevo Hábito",
+    addNewHabitDescription: "Ingresa el nombre del nuevo hábito que quieres registrar.",
     habitName: "Nombre",
     habitNamePlaceholder: "Ej: Meditar por 5 minutos",
     cancel: "Cancelar",
@@ -67,6 +68,7 @@ const translations = {
     toastHabitAdded: "Habit added successfully.",
     addHabit: "Add Habit",
     addNewHabit: "Add New Habit",
+    addNewHabitDescription: "Enter the name of the new habit you want to track.",
     habitName: "Name",
     habitNamePlaceholder: "E.g.: Meditate for 5 minutes",
     cancel: "Cancel",
@@ -243,6 +245,7 @@ export default function HabitsPage() {
                                     <DialogContent>
                                         <DialogHeader>
                                             <DialogTitle>{t.addNewHabit}</DialogTitle>
+                                            <DialogDescription>{t.addNewHabitDescription}</DialogDescription>
                                         </DialogHeader>
                                         <div className="grid gap-4 py-4">
                                             <div className="grid grid-cols-4 items-center gap-4">
@@ -300,6 +303,3 @@ export default function HabitsPage() {
         </div>
     );
 }
-
-
-    
