@@ -77,15 +77,15 @@ export default function HabitsPage() {
   const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
 
   React.useEffect(() => {
-    if (authLoading || !user) {
-      setIsLoading(true);
+    if (authLoading) {
       return; 
     }
     
+    let isMounted = true;
     setIsLoading(true);
 
     const fetchAndInitializeHabits = async () => {
-      if (!user || !dateKey) {
+      if (!user || !dateKey || !isMounted) {
         setHabits([]);
         setIsLoading(false);
         return;
@@ -96,16 +96,26 @@ export default function HabitsPage() {
         await initializeHabitsForDay(initialHabits, dateKey, user.uid);
         
         const fetchedHabits = await getHabitsForDate(dateKey, user.uid);
-        setHabits(fetchedHabits.length > 0 ? fetchedHabits : initialHabits);
+        if (isMounted) {
+          setHabits(fetchedHabits.length > 0 ? fetchedHabits : initialHabits);
+        }
       } catch (error) {
         console.error("Error fetching habits:", error);
-        setHabits(getInitialHabitsForDay(t));
+        if (isMounted) {
+          setHabits(getInitialHabitsForDay(t));
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchAndInitializeHabits();
+
+    return () => {
+      isMounted = false;
+    };
 
   }, [dateKey, user, authLoading, t]);
   
@@ -123,15 +133,18 @@ export default function HabitsPage() {
       completed: false,
     };
     
+    // Optimistically update UI
+    setHabits(prev => [...prev, newHabitObject]);
+    
     try {
       await addHabit(newHabitObject, dateKey, user.uid);
-      // Optimistically update UI
-      setHabits(prev => [...prev, newHabitObject]);
       toast({
           title: t.toastSuccess,
       });
     } catch(e) {
       console.error("Failed to add habit:", e);
+      // Revert optimistic update on failure
+      setHabits(prev => prev.filter(h => h.id !== newHabitObject.id));
       // Optional: Add error toast
     }
   };
@@ -139,18 +152,26 @@ export default function HabitsPage() {
   const handleToggleHabit = async (id: string) => {
     if (!dateKey || !user) return;
     
-    const habitToToggle = habits.find(h => h.id === id);
+    const originalHabits = [...habits];
+    const habitToToggle = originalHabits.find(h => h.id === id);
     if (!habitToToggle) return;
 
     const newCompletedStatus = !habitToToggle.completed;
     
+    // Optimistic update
     setHabits(prev => 
       prev.map(habit =>
         habit.id === id ? { ...habit, completed: newCompletedStatus } : habit
       )
     );
     
-    await toggleHabit(id, newCompletedStatus, dateKey, user.uid);
+    try {
+        await toggleHabit(id, newCompletedStatus, dateKey, user.uid);
+    } catch (e) {
+        console.error("Failed to toggle habit:", e);
+        // Revert on failure
+        setHabits(originalHabits);
+    }
   };
   
   const formatDate = (date: Date) => {

@@ -1,23 +1,27 @@
 
 "use server";
 
-import { collection, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { collection, doc, getDoc, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import { db } from "./config";
 import type { Habit } from "@/components/habit-tracker";
 import { revalidatePath } from "next/cache";
 
-// Firestore collection reference
-const habitsCollection = collection(db, "habits");
+// Firestore collection reference for user data
+const usersCollection = collection(db, "users");
 
-// Gets habits for a user on a specific date
+// Gets a reference to the user's document
+const getUserDocRef = (userId: string) => doc(usersCollection, userId);
+
+// Gets habits for a user on a specific date from a subcollection
 export async function getHabitsForDate(dateKey: string, userId: string) {
     if (!userId) {
-        throw new Error("User not authenticated");
+        console.warn("getHabitsForDate called without userId.");
+        return [];
     }
 
     try {
-        const docRef = doc(habitsCollection, userId, "dates", dateKey);
-        const docSnap = await getDoc(docRef);
+        const dateDocRef = doc(getUserDocRef(userId), "habitDates", dateKey);
+        const docSnap = await getDoc(dateDocRef);
 
         if (docSnap.exists()) {
             return docSnap.data().habits as Habit[];
@@ -36,15 +40,15 @@ export async function toggleHabit(habitId: string, completed: boolean, dateKey: 
         throw new Error("User not authenticated");
     }
     
-    const docRef = doc(habitsCollection, userId, "dates", dateKey);
-    const docSnap = await getDoc(docRef);
+    const dateDocRef = doc(getUserDocRef(userId), "habitDates", dateKey);
+    const docSnap = await getDoc(dateDocRef);
 
     if (docSnap.exists()) {
         const habits = docSnap.data().habits as Habit[];
         const updatedHabits = habits.map(h => 
             h.id === habitId ? { ...h, completed } : h
         );
-        await updateDoc(docRef, { habits: updatedHabits });
+        await updateDoc(dateDocRef, { habits: updatedHabits });
     }
     
     revalidatePath("/dashboard/habits");
@@ -56,20 +60,19 @@ export async function addHabit(newHabit: Habit, dateKey: string, userId: string)
         throw new Error("User not authenticated");
     }
 
-    const docRef = doc(habitsCollection, userId, "dates", dateKey);
+    const dateDocRef = doc(getUserDocRef(userId), "habitDates", dateKey);
     
     try {
-        const docSnap = await getDoc(docRef);
+        const docSnap = await getDoc(dateDocRef);
 
         if (docSnap.exists()) {
-            const existingHabits = docSnap.data().habits as Habit[] || [];
-            const updatedHabits = [...existingHabits, newHabit];
-            await updateDoc(docRef, {
-                habits: updatedHabits
+            // If the document for the date already exists, add the new habit to the array
+            await updateDoc(dateDocRef, {
+                habits: arrayUnion(newHabit)
             });
         } else {
-            // This case might be handled by initializeHabitsForDay, but as a fallback:
-            await setDoc(docRef, {
+            // If no document exists for this date, create it with the new habit
+             await setDoc(dateDocRef, {
                 habits: [newHabit]
             });
         }
@@ -88,11 +91,18 @@ export async function initializeHabitsForDay(initialHabits: Habit[], dateKey: st
         throw new Error("User not authenticated");
     }
 
-    const docRef = doc(habitsCollection, userId, "dates", dateKey);
-    const docSnap = await getDoc(docRef);
+    const dateDocRef = doc(getUserDocRef(userId), "habitDates", dateKey);
+    const docSnap = await getDoc(dateDocRef);
 
     if (!docSnap.exists()) {
-        await setDoc(docRef, { habits: initialHabits });
+        // We only set the initial habits if NO document exists for that day.
+        // We also ensure the parent user document exists.
+        const userDocRef = getUserDocRef(userId);
+        const userDocSnap = await getDoc(userDocRef);
+        if (!userDocSnap.exists()) {
+            await setDoc(userDocRef, { createdAt: new Date() });
+        }
+        await setDoc(dateDocRef, { habits: initialHabits });
     }
     revalidatePath("/dashboard/habits");
 }
