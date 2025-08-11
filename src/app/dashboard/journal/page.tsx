@@ -159,7 +159,7 @@ export default function JournalPage() {
                                 </PopoverContent>
                             </Popover>
                         </div>
-                        <Button onClick={handleSaveEntry} disabled={isSaving}>
+                        <Button onClick={handleSaveEntry} disabled={isSaving || !entry.trim()}>
                             {isSaving ? (
                                 <>
                                     <Save className="mr-2 h-4 w-4 animate-pulse" />
