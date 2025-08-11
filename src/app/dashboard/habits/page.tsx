@@ -34,6 +34,7 @@ const translations = {
     toastSuccessDescription: "Tus hábitos se han guardado correctamente.",
     toastErrorTitle: "Error",
     toastErrorDescription: "No se pudieron guardar los cambios. Inténtalo de nuevo.",
+    toastHabitAdded: "Hábito agregado exitosamente.",
   },
   en: {
     title: "Habit Tracking",
@@ -52,6 +53,7 @@ const translations = {
     toastSuccessDescription: "Your habits have been saved successfully.",
     toastErrorTitle: "Error",
     toastErrorDescription: "Could not save changes. Please try again.",
+    toastHabitAdded: "Habit added successfully.",
   }
 };
 
@@ -108,8 +110,7 @@ export default function HabitsPage() {
   const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
 
   React.useEffect(() => {
-    if (authLoading || !user || !dateKey) {
-      setIsLoading(true);
+    if (!user || !dateKey) {
       return;
     }
     
@@ -130,11 +131,6 @@ export default function HabitsPage() {
         }
       } catch (error) {
         console.error("Error fetching habits:", error);
-        toast({
-          variant: "destructive",
-          title: t.toastErrorTitle,
-          description: t.toastErrorDescription,
-        });
         if (isMounted) setHabits(getInitialHabitsForDay(t));
       } finally {
         if (isMounted) setIsLoading(false);
@@ -147,7 +143,7 @@ export default function HabitsPage() {
       isMounted = false;
     };
 
-  }, [dateKey, user, authLoading, t, toast]);
+  }, [dateKey, user, t]);
   
   const handleSelectDate = (selectedDate: Date | undefined) => {
     setDate(selectedDate);
@@ -156,7 +152,6 @@ export default function HabitsPage() {
   const handleUpdateHabits = async (updatedHabits: HabitDB[]) => {
       if (!dateKey || !user) return;
       
-      // Update state locally first for instant feedback
       setHabits(updatedHabits);
 
       try {
@@ -167,20 +162,19 @@ export default function HabitsPage() {
           });
       } catch (e) {
           console.error("Failed to update habits:", e);
-          // Revert on failure
           toast({
               variant: "destructive",
               title: t.toastErrorTitle,
               description: t.toastErrorDescription,
           });
-          // Optional: Re-fetch from DB to ensure consistency
+          // Revert on failure
           const fetchedHabits = await getHabitsForDate(dateKey, user.uid);
           setHabits(fetchedHabits);
       }
   };
   
-  const handleAddHabit = (newHabitName: string) => {
-    if (newHabitName.trim() === "") return;
+  const handleAddHabit = async (newHabitName: string) => {
+    if (newHabitName.trim() === "" || !user || !dateKey) return;
 
     const newHabit: HabitDB = {
       id: `custom-${Date.now()}`,
@@ -189,7 +183,27 @@ export default function HabitsPage() {
     };
     
     const newHabitsList = [...habits, newHabit];
-    handleUpdateHabits(newHabitsList);
+    
+    // Set state locally for instant UI update
+    setHabits(newHabitsList);
+    
+    // Then, persist the changes to Firestore
+    try {
+        await updateHabitsForDate(newHabitsList, dateKey, user.uid);
+        toast({
+            title: t.toastSuccessTitle,
+            description: t.toastHabitAdded,
+        });
+    } catch(e) {
+        console.error("Failed to add habit:", e);
+        // If the update fails, revert the local state
+        setHabits(habits);
+        toast({
+            variant: "destructive",
+            title: t.toastErrorTitle,
+            description: t.toastErrorDescription,
+        });
+    }
   };
 
   const handleToggleHabit = (id: string) => {
