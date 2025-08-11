@@ -5,6 +5,7 @@ import * as React from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ListChecks } from "lucide-react";
 import { useLanguage } from "@/context/language-provider";
+import { Skeleton } from "./ui/skeleton";
 
 const translations = {
   es: {
@@ -27,11 +28,29 @@ export interface Habit {
 interface HabitTrackerProps {
   habits: Habit[];
   onToggleHabit: (id: string) => void;
+  isLoading: boolean;
 }
 
-export function HabitTracker({ habits, onToggleHabit }: HabitTrackerProps) {
+const HabitListSkeleton = () => (
+    <div className="space-y-4">
+        {[...Array(4)].map((_, i) => (
+            <div key={i} className="flex items-center space-x-3 p-3">
+                <Skeleton className="h-5 w-5 rounded-sm" />
+                <Skeleton className="h-5 w-5 rounded-full" />
+                <Skeleton className="h-5 flex-1" />
+            </div>
+        ))}
+    </div>
+);
+
+
+export function HabitTracker({ habits, onToggleHabit, isLoading }: HabitTrackerProps) {
   const { language } = useLanguage();
   const t = translations[language];
+
+  if (isLoading) {
+    return <HabitListSkeleton />;
+  }
 
   if (habits.length === 0) {
     return (

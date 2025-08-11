@@ -13,7 +13,6 @@ import { Droplets, Footprints, Brain, BookOpen, CheckCircle2, Plus } from "lucid
 import { getHabitsForDate, updateHabitsForDate } from "@/lib/firebase/habits";
 import type { Habit as HabitDB } from "@/lib/firebase/habits";
 import { useAuth } from "@/context/auth-provider";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
@@ -94,28 +93,10 @@ const mapHabitsForUI = (dbHabits: HabitDB[]): HabitUI[] => {
     }));
 };
 
-const HabitTrackerSkeleton = () => (
-    <Card>
-        <CardHeader>
-            <Skeleton className="h-8 w-1/2" />
-            <Skeleton className="h-4 w-3/4" />
-        </CardHeader>
-        <CardContent className="space-y-4">
-            {[...Array(4)].map((_, i) => (
-                <div key={i} className="flex items-center space-x-3 p-3">
-                    <Skeleton className="h-5 w-5 rounded-sm" />
-                    <Skeleton className="h-5 w-5 rounded-full" />
-                    <Skeleton className="h-5 flex-1" />
-                </div>
-            ))}
-        </CardContent>
-    </Card>
-);
-
 export default function HabitsPage() {
     const { language } = useLanguage();
     const t = translations[language];
-    const { user, loading: authLoading } = useAuth();
+    const { user } = useAuth();
     const { toast } = useToast();
 
     const [date, setDate] = React.useState<Date | undefined>(new Date());
@@ -128,7 +109,7 @@ export default function HabitsPage() {
 
     React.useEffect(() => {
         if (!user) {
-            setIsLoading(true);
+            setIsLoading(true); // Keep loading if no user
             return;
         }
 
@@ -139,14 +120,20 @@ export default function HabitsPage() {
                 const fetchedHabits = await getHabitsForDate(dateKey, user.uid);
                 if (isMounted) {
                     if (fetchedHabits.length === 0) {
-                        setHabits(getInitialHabitsForDay(t));
+                        // Don't set initial habits if some exist, even if empty
+                        const initialHabits = await getHabitsForDate(dateKey, user.uid);
+                        if (initialHabits.length === 0) {
+                           setHabits(getInitialHabitsForDay(t));
+                        } else {
+                           setHabits(initialHabits);
+                        }
                     } else {
                         setHabits(fetchedHabits);
                     }
                 }
             } catch (error) {
                 console.error("Error fetching habits:", error);
-                if (isMounted) setHabits(getInitialHabitsForDay(t));
+                if (isMounted) setHabits(getInitialHabitsForDay(t)); // Fallback
             } finally {
                 if (isMounted) setIsLoading(false);
             }
@@ -157,6 +144,7 @@ export default function HabitsPage() {
         return () => { isMounted = false; };
     }, [dateKey, user, t]);
 
+
     const handleAddHabit = async () => {
         if (newHabitName.trim() === "" || !user || !dateKey) return;
 
@@ -165,14 +153,17 @@ export default function HabitsPage() {
             label: newHabitName,
             completed: false,
         };
-        
+
+        // Optimistic UI update
         const newHabitsList = [...habits, newHabit];
-        
         setHabits(newHabitsList);
+        
+        // Close modal
         setNewHabitName("");
         setIsAddDialogOpen(false);
 
         try {
+            // Update database in the background
             await updateHabitsForDate(newHabitsList, dateKey, user.uid);
             toast({
                 title: t.toastSuccessTitle,
@@ -180,6 +171,7 @@ export default function HabitsPage() {
             });
         } catch (e) {
             console.error("Failed to update habits:", e);
+            // Revert UI on error
             setHabits(habits); 
             toast({
                 variant: "destructive",
@@ -188,6 +180,7 @@ export default function HabitsPage() {
             });
         }
     };
+
 
     const handleToggleHabit = async (id: string) => {
         if (!user || !dateKey) return;
@@ -215,8 +208,6 @@ export default function HabitsPage() {
         ? format(d, "d 'de' MMMM 'de' yyyy", { locale: es })
         : format(d, "MMMM d, yyyy");
     
-    const pageLoading = isLoading || authLoading;
-
     return (
         <div className="p-4 sm:p-6 lg:p-8">
             <div className="max-w-4xl mx-auto">
@@ -245,57 +236,54 @@ export default function HabitsPage() {
                         </Card>
                     </div>
                     <div className="md:col-span-2">
-                        {pageLoading ? (
-                            <HabitTrackerSkeleton />
-                        ) : (
-                            <Card>
-                                <CardHeader className="flex flex-row items-center justify-between">
-                                    <div>
-                                        <CardTitle className="font-headline">{`${t.selectedDay} ${date ? formatDate(date) : ''}`}</CardTitle>
-                                    </div>
-                                    <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                                        <DialogTrigger asChild>
-                                            <Button size="icon" variant="outline">
-                                                <Plus className="h-4 w-4" />
-                                                <span className="sr-only">{t.addHabit}</span>
-                                            </Button>
-                                        </DialogTrigger>
-                                        <DialogContent>
-                                            <DialogHeader>
-                                                <DialogTitle>{t.addNewHabit}</DialogTitle>
-                                            </DialogHeader>
-                                            <div className="grid gap-4 py-4">
-                                                <div className="grid grid-cols-4 items-center gap-4">
-                                                    <Label htmlFor="habit-name" className="text-right">
-                                                        {t.habitName}
-                                                    </Label>
-                                                    <Input
-                                                        id="habit-name"
-                                                        value={newHabitName}
-                                                        onChange={(e) => setNewHabitName(e.target.value)}
-                                                        className="col-span-3"
-                                                        placeholder={t.habitNamePlaceholder}
-                                                        onKeyDown={(e) => e.key === 'Enter' && handleAddHabit()}
-                                                    />
-                                                </div>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between">
+                                <div>
+                                    <CardTitle className="font-headline">{`${t.selectedDay} ${date ? formatDate(date) : ''}`}</CardTitle>
+                                </div>
+                                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button size="icon" variant="outline">
+                                            <Plus className="h-4 w-4" />
+                                            <span className="sr-only">{t.addHabit}</span>
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle>{t.addNewHabit}</DialogTitle>
+                                        </DialogHeader>
+                                        <div className="grid gap-4 py-4">
+                                            <div className="grid grid-cols-4 items-center gap-4">
+                                                <Label htmlFor="habit-name" className="text-right">
+                                                    {t.habitName}
+                                                </Label>
+                                                <Input
+                                                    id="habit-name"
+                                                    value={newHabitName}
+                                                    onChange={(e) => setNewHabitName(e.target.value)}
+                                                    className="col-span-3"
+                                                    placeholder={t.habitNamePlaceholder}
+                                                    onKeyDown={(e) => e.key === 'Enter' && handleAddHabit()}
+                                                />
                                             </div>
-                                            <DialogFooter>
-                                                <DialogClose asChild>
-                                                    <Button type="button" variant="secondary">{t.cancel}</Button>
-                                                </DialogClose>
-                                                <Button onClick={handleAddHabit} disabled={!newHabitName.trim()}>{t.add}</Button>
-                                            </DialogFooter>
-                                        </DialogContent>
-                                    </Dialog>
-                                </CardHeader>
-                                <CardContent>
-                                    <HabitTracker
-                                        habits={mapHabitsForUI(habits)}
-                                        onToggleHabit={handleToggleHabit}
-                                    />
-                                </CardContent>
-                            </Card>
-                        )}
+                                        </div>
+                                        <DialogFooter>
+                                            <DialogClose asChild>
+                                                <Button type="button" variant="secondary">{t.cancel}</Button>
+                                            </DialogClose>
+                                            <Button onClick={handleAddHabit} disabled={!newHabitName.trim()}>{t.add}</Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
+                            </CardHeader>
+                            <CardContent>
+                                <HabitTracker
+                                    habits={mapHabitsForUI(habits)}
+                                    onToggleHabit={handleToggleHabit}
+                                    isLoading={isLoading}
+                                />
+                            </CardContent>
+                        </Card>
                     </div>
                 </div>
             </div>
