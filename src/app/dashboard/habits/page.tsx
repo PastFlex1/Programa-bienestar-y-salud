@@ -12,6 +12,7 @@ import { Droplets, Footprints, Brain, BookOpen, CheckCircle2, ListChecks } from 
 import { getHabitsForDate, toggleHabit, addHabit, initializeHabitsForDay } from "@/lib/firebase/habits";
 import { useAuth } from "@/context/auth-provider";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
 
 type HabitsByDate = {
   [date: string]: Habit[];
@@ -32,7 +33,8 @@ const translations = {
       walk: "Caminata Matutina",
       mindful: "Momento de Atención Plena",
       read: "Leer 10 páginas",
-    }
+    },
+    toastSuccess: "Hábito agregado exitosamente",
   },
   en: {
     title: "Habit Tracking",
@@ -48,7 +50,8 @@ const translations = {
       walk: "Morning Walk",
       mindful: "Mindful Moment",
       read: "Read 10 pages",
-    }
+    },
+    toastSuccess: "Habit added successfully",
   }
 };
 
@@ -65,6 +68,7 @@ export default function HabitsPage() {
   const { language } = useLanguage();
   const t = translations[language];
   const { user, loading: authLoading } = useAuth();
+  const { toast } = useToast();
   
   const [date, setDate] = React.useState<Date | undefined>(new Date());
   const [habits, setHabits] = React.useState<Habit[]>([]);
@@ -73,13 +77,19 @@ export default function HabitsPage() {
   const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
 
   React.useEffect(() => {
+    if (authLoading) {
+      return; 
+    }
+    
+    setIsLoading(true);
+
     const fetchAndInitializeHabits = async () => {
       if (!user || !dateKey) {
+        setHabits([]);
         setIsLoading(false);
         return;
       }
       
-      setIsLoading(true);
       try {
         const initialHabits = getInitialHabitsForDay(t);
         await initializeHabitsForDay(initialHabits, dateKey, user.uid);
@@ -88,15 +98,14 @@ export default function HabitsPage() {
         setHabits(fetchedHabits.length > 0 ? fetchedHabits : initialHabits);
       } catch (error) {
         console.error("Error fetching habits:", error);
-        setHabits(getInitialHabitsForDay(t)); // Fallback to initial habits on error
+        setHabits(getInitialHabitsForDay(t));
       } finally {
         setIsLoading(false);
       }
     };
 
-    if (!authLoading) {
-      fetchAndInitializeHabits();
-    }
+    fetchAndInitializeHabits();
+
   }, [dateKey, user, authLoading, t]);
   
   const handleSelectDate = (selectedDate: Date | undefined) => {
@@ -110,11 +119,18 @@ export default function HabitsPage() {
       id: `custom-${Date.now()}`,
       label: newHabitName,
       icon: <CheckCircle2 className="h-5 w-5 text-primary" />,
-      completed: false, // Start as not completed
+      completed: false,
     };
     
-    await addHabit(newHabitObject, dateKey, user.uid);
-    setHabits(prev => [...prev, newHabitObject]);
+    try {
+      await addHabit(newHabitObject, dateKey, user.uid);
+      setHabits(prev => [...prev, newHabitObject]);
+      toast({
+          title: t.toastSuccess,
+      });
+    } catch(e) {
+      console.error("Failed to add habit:", e);
+    }
   };
 
   const handleToggleHabit = async (id: string) => {
@@ -191,30 +207,14 @@ export default function HabitsPage() {
           <div className="md:col-span-2">
             {pageLoading ? (
               <HabitTrackerSkeleton />
-            ) : habits.length > 0 ? (
+            ) : (
               <HabitTracker 
                 title={`${t.selectedDay} ${date ? formatDate(date) : ''}`} 
                 habits={habits}
                 onAddHabit={handleAddHabit}
                 onToggleHabit={handleToggleHabit}
+                showEmptyState={habits.length === 0}
               />
-            ) : (
-               <Card className="h-full flex flex-col items-center justify-center">
-                <CardHeader className="text-center">
-                    <ListChecks className="mx-auto h-12 w-12 text-muted-foreground" />
-                    <CardTitle>{t.noHabitsTitle}</CardTitle>
-                    <CardDescription>{t.noHabitsDescription}</CardDescription>
-                </CardHeader>
-                 <CardContent>
-                   <HabitTracker 
-                    title={`${t.selectedDay} ${date ? formatDate(date) : ''}`} 
-                    habits={[]}
-                    onAddHabit={handleAddHabit}
-                    onToggleHabit={handleToggleHabit}
-                    showEmptyState={true}
-                  />
-                </CardContent>
-              </Card>
             )}
           </div>
         </div>
@@ -222,5 +222,3 @@ export default function HabitsPage() {
     </div>
   );
 }
-
-    
