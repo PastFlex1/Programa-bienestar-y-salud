@@ -114,16 +114,24 @@ export default function HabitsPage() {
     const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
 
     React.useEffect(() => {
-        // Wait for auth to finish loading and for user to be available
-        if (authLoading || !user || !dateKey) {
-            if (!authLoading) { // If auth is done but there's no user, stop loading
-                setIsLoading(false);
-            }
+        if (authLoading) {
+            console.log("[useEffect] Auth is loading. Waiting...");
+            setIsLoading(true);
             return;
         }
 
+        if (!user) {
+            console.log("[useEffect] No user found after auth check. Displaying empty state.");
+            setIsLoading(false);
+            setHabits([]); // Clear habits if user logs out
+            return;
+        }
+        
+        if (!dateKey) return;
+
         let isMounted = true;
         setIsLoading(true);
+        console.log(`[useEffect] Auth loaded and user found (${user.uid}). Fetching habits for date: ${dateKey}`);
 
         getHabitsForDate(dateKey, user.uid)
             .then(fetchedHabits => {
@@ -132,7 +140,7 @@ export default function HabitsPage() {
                 }
             })
             .catch(error => {
-                console.error("useEffect: Error fetching habits:", error);
+                console.error("[useEffect] Error fetching habits:", error);
                 if (isMounted) setHabits(getInitialHabitsForDay(t));
             })
             .finally(() => {
@@ -148,13 +156,15 @@ export default function HabitsPage() {
 
 
     const handleAddHabit = async () => {
-        if (newHabitName.trim() === "" || !user || !dateKey) {
-            // This toast is for user feedback if they somehow click with an empty name
-             toast({
-                variant: "destructive",
-                title: "Error",
-                description: "El nombre del hábito no puede estar vacío.",
-            });
+        console.log(`[handleAddHabit] Attempting to add habit. Name: "${newHabitName}". Date: ${dateKey}. User:`, user ? user.uid : 'undefined');
+        if (!user || !dateKey) {
+            console.error("[handleAddHabit] Cannot add habit. User or dateKey is missing.", { user, dateKey });
+            toast({ variant: "destructive", title: t.toastErrorTitle, description: "Usuario no autenticado." });
+            return;
+        }
+
+        if (newHabitName.trim() === "") {
+             toast({ variant: "destructive", title: "Error", description: "El nombre del hábito no puede estar vacío." });
             return;
         }
 
@@ -169,20 +179,14 @@ export default function HabitsPage() {
         
         try {
             await updateHabitsForDate(newHabitsList, dateKey, user.uid);
+            console.log("[handleAddHabit] Habit saved successfully to DB.");
             setHabits(newHabitsList);
-            toast({
-                title: t.toastSuccessTitle,
-                description: t.toastHabitAdded,
-            });
+            toast({ title: t.toastSuccessTitle, description: t.toastHabitAdded });
             setNewHabitName(""); 
             setIsAddDialogOpen(false);
         } catch (e) {
-            console.error("handleAddHabit: Failed to update habits:", e);
-            toast({
-                variant: "destructive",
-                title: t.toastErrorTitle,
-                description: t.toastErrorDescription,
-            });
+            console.error("[handleAddHabit] Failed to update habits:", e);
+            toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastErrorDescription });
         } finally {
             setIsSaving(false);
         }
@@ -190,7 +194,9 @@ export default function HabitsPage() {
 
 
     const handleToggleHabit = async (id: string) => {
+        console.log(`[handleToggleHabit] Toggling habit: ${id}`);
         if (!user || !dateKey) {
+            console.error("[handleToggleHabit] User or date key is missing.");
             return;
         }
         
@@ -202,15 +208,11 @@ export default function HabitsPage() {
         
         try {
             await updateHabitsForDate(toggledHabits, dateKey, user.uid);
+            console.log(`[handleToggleHabit] Habit ${id} status saved to DB.`);
         } catch(e) {
-             console.error("handleToggleHabit: Failed to update habits, reverting UI.", e);
-             toast({
-                variant: "destructive",
-                title: t.toastErrorTitle,
-                description: t.toastErrorDescription,
-            });
-            // Revert UI change on failure
-            setHabits(habits);
+             console.error("[handleToggleHabit] Failed to update habits, reverting UI.", e);
+             toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastErrorDescription });
+             setHabits(habits); // Revert UI change on failure
         }
     };
 
@@ -254,7 +256,7 @@ export default function HabitsPage() {
                                 </div>
                                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                                     <DialogTrigger asChild>
-                                        <Button size="icon" variant="outline" disabled={!user}>
+                                        <Button size="icon" variant="outline">
                                             <Plus className="h-4 w-4" />
                                             <span className="sr-only">{t.addHabit}</span>
                                         </Button>
@@ -297,7 +299,7 @@ export default function HabitsPage() {
                                 </Dialog>
                             </CardHeader>
                             <CardContent>
-                               {isLoading || authLoading ? (
+                               {isLoading ? (
                                     <div className="space-y-4">
                                         {[...Array(4)].map((_, i) => (
                                             <div key={i} className="flex items-center space-x-3 p-3">
@@ -323,6 +325,5 @@ export default function HabitsPage() {
             </div>
         </div>
     );
-}
 
     
