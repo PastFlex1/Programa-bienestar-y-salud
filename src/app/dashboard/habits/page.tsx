@@ -158,7 +158,6 @@ export default function HabitsPage() {
 
     const handleAddHabit = async () => {
         if (!user || !dateKey) {
-            console.error("[handleAddHabit] Cannot add habit. User or dateKey is missing.", { user, dateKey });
             toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastAuthError });
             return;
         }
@@ -253,7 +252,7 @@ export default function HabitsPage() {
                                 </div>
                                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                                     <DialogTrigger asChild>
-                                        <Button size="icon" variant="outline">
+                                        <Button size="icon" variant="outline" disabled={!user}>
                                             <Plus className="h-4 w-4" />
                                             <span className="sr-only">{t.addHabit}</span>
                                         </Button>

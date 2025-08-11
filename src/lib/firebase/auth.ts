@@ -6,23 +6,11 @@ import { auth } from './config';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-// This is a dummy user database. In a real app, you'd fetch this from a database.
-const DUMMY_USERS: { [email: string]: { name: string } } = {
-    'user@example.com': { name: 'Zenith User' }
-};
-
-async function createSession(email: string) {
-    const user = DUMMY_USERS[email] || { name: 'Zenith User' };
-
-    const session = {
-        isLoggedIn: true,
-        email,
-        name: user.name,
-    };
-
+async function createSession(uid: string) {
     const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    const session = { uid, isLoggedIn: true, expires: expires.toISOString() };
     
-    // The `cookies()` function returns a promise that resolves to the cookie jar.
+    // Encrypt the session and set it in a cookie
     await cookies().set('session', JSON.stringify(session), {
         expires,
         httpOnly: true,
@@ -40,13 +28,12 @@ export async function loginAction(previousState: any, formData: FormData) {
     }
 
     try {
-        await signInWithEmailAndPassword(auth, email, password);
-        await createSession(email);
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        await createSession(userCredential.user.uid);
     } catch (error: any) {
         if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
             return { success: false, message: 'Invalid email or password.' };
         }
-        console.error("Authentication Error:", error);
         return { success: false, message: 'An unexpected error occurred. Please try again.' };
     }
     
@@ -56,7 +43,6 @@ export async function loginAction(previousState: any, formData: FormData) {
 export async function signUpAction(previousState: any, formData: FormData) {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
-    const username = formData.get('username') as string || 'New User';
 
     if (!email || !password) {
         return { success: false, message: 'Please provide all required fields.' };
@@ -66,14 +52,12 @@ export async function signUpAction(previousState: any, formData: FormData) {
     }
 
     try {
-        await createUserWithEmailAndPassword(auth, email, password);
-        DUMMY_USERS[email] = { name: username };
-        await createSession(email);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        await createSession(userCredential.user.uid);
     } catch (error: any) {
         if (error.code === 'auth/email-already-in-use') {
             return { success: false, message: 'This email is already in use. Please log in.' };
         }
-        console.error("Registration Error:", error);
         return { success: false, message: 'An unexpected error occurred during registration.' };
     }
 
@@ -82,21 +66,22 @@ export async function signUpAction(previousState: any, formData: FormData) {
 
 
 export async function logoutAction() {
-    // The `cookies()` function returns a promise that resolves to the cookie jar.
     await cookies().delete('session');
     redirect('/auth/login');
 }
 
 export async function getSession() {
-    // The `cookies()` function returns a promise that resolves to the cookie jar.
-    const sessionCookie = await cookies().get('session')?.value;
+    const sessionCookie = cookies().get('session')?.value;
     if (!sessionCookie) {
         return null;
     }
     try {
-        return JSON.parse(sessionCookie);
+        const parsed = JSON.parse(sessionCookie);
+        if (new Date(parsed.expires) > new Date()) {
+            return parsed;
+        }
+        return null; // Session expired
     } catch (error) {
-        console.error('Failed to parse session:', error);
         return null;
     }
 }
