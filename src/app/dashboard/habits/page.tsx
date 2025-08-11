@@ -39,6 +39,7 @@ const translations = {
     toastErrorTitle: "Error",
     toastErrorDescription: "No se pudieron guardar los cambios. Inténtalo de nuevo.",
     toastHabitAdded: "Hábito agregado exitosamente.",
+    toastAuthError: "Usuario no autenticado. Por favor, inicia sesión de nuevo.",
     addHabit: "Agregar Hábito",
     addNewHabit: "Agregar Nuevo Hábito",
     addNewHabitDescription: "Ingresa el nombre del nuevo hábito que quieres registrar.",
@@ -47,6 +48,7 @@ const translations = {
     cancel: "Cancelar",
     add: "Agregar",
     adding: "Agregando...",
+    loginPrompt: "Por favor, inicia sesión para ver tus hábitos."
   },
   en: {
     title: "Habit Tracking",
@@ -66,6 +68,7 @@ const translations = {
     toastErrorTitle: "Error",
     toastErrorDescription: "Could not save changes. Please try again.",
     toastHabitAdded: "Habit added successfully.",
+    toastAuthError: "User not authenticated. Please log in again.",
     addHabit: "Add Habit",
     addNewHabit: "Add New Habit",
     addNewHabitDescription: "Enter the name of the new habit you want to track.",
@@ -74,6 +77,7 @@ const translations = {
     cancel: "Cancel",
     add: "Add",
     adding: "Adding...",
+    loginPrompt: "Please, log in to see your habits."
   }
 };
 
@@ -101,7 +105,7 @@ const mapHabitsForUI = (dbHabits: HabitDB[]): HabitUI[] => {
 export default function HabitsPage() {
     const { language } = useLanguage();
     const t = translations[language];
-    const { user, loading: authLoading } = useAuth(); // Use the loading state from auth
+    const { user, loading: authLoading } = useAuth();
     const { toast } = useToast();
 
     const [date, setDate] = React.useState<Date | undefined>(new Date());
@@ -115,15 +119,13 @@ export default function HabitsPage() {
 
     React.useEffect(() => {
         if (authLoading) {
-            console.log("[useEffect] Auth is loading. Waiting...");
             setIsLoading(true);
             return;
         }
 
         if (!user) {
-            console.log("[useEffect] No user found after auth check. Displaying empty state.");
             setIsLoading(false);
-            setHabits([]); // Clear habits if user logs out
+            setHabits([]);
             return;
         }
         
@@ -131,8 +133,7 @@ export default function HabitsPage() {
 
         let isMounted = true;
         setIsLoading(true);
-        console.log(`[useEffect] Auth loaded and user found (${user.uid}). Fetching habits for date: ${dateKey}`);
-
+        
         getHabitsForDate(dateKey, user.uid)
             .then(fetchedHabits => {
                 if (isMounted) {
@@ -156,10 +157,9 @@ export default function HabitsPage() {
 
 
     const handleAddHabit = async () => {
-        console.log(`[handleAddHabit] Attempting to add habit. Name: "${newHabitName}". Date: ${dateKey}. User:`, user ? user.uid : 'undefined');
         if (!user || !dateKey) {
             console.error("[handleAddHabit] Cannot add habit. User or dateKey is missing.", { user, dateKey });
-            toast({ variant: "destructive", title: t.toastErrorTitle, description: "Usuario no autenticado." });
+            toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastAuthError });
             return;
         }
 
@@ -179,7 +179,6 @@ export default function HabitsPage() {
         
         try {
             await updateHabitsForDate(newHabitsList, dateKey, user.uid);
-            console.log("[handleAddHabit] Habit saved successfully to DB.");
             setHabits(newHabitsList);
             toast({ title: t.toastSuccessTitle, description: t.toastHabitAdded });
             setNewHabitName(""); 
@@ -194,9 +193,8 @@ export default function HabitsPage() {
 
 
     const handleToggleHabit = async (id: string) => {
-        console.log(`[handleToggleHabit] Toggling habit: ${id}`);
         if (!user || !dateKey) {
-            console.error("[handleToggleHabit] User or date key is missing.");
+            toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastAuthError });
             return;
         }
         
@@ -208,7 +206,6 @@ export default function HabitsPage() {
         
         try {
             await updateHabitsForDate(toggledHabits, dateKey, user.uid);
-            console.log(`[handleToggleHabit] Habit ${id} status saved to DB.`);
         } catch(e) {
              console.error("[handleToggleHabit] Failed to update habits, reverting UI.", e);
              toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastErrorDescription });
@@ -243,7 +240,7 @@ export default function HabitsPage() {
                                     selected={date}
                                     onSelect={setDate}
                                     className="rounded-md border p-0"
-                                    disabled={isSaving}
+                                    disabled={isSaving || authLoading}
                                 />
                             </CardContent>
                         </Card>
@@ -299,7 +296,7 @@ export default function HabitsPage() {
                                 </Dialog>
                             </CardHeader>
                             <CardContent>
-                               {isLoading ? (
+                               {authLoading || isLoading ? (
                                     <div className="space-y-4">
                                         {[...Array(4)].map((_, i) => (
                                             <div key={i} className="flex items-center space-x-3 p-3">
@@ -310,7 +307,7 @@ export default function HabitsPage() {
                                     </div>
                                 ) : !user ? (
                                      <div className="text-center py-10">
-                                        <p className="text-muted-foreground">Por favor, inicia sesión para ver tus hábitos.</p>
+                                        <p className="text-muted-foreground">{t.loginPrompt}</p>
                                      </div>
                                 ) : (
                                     <HabitTracker
