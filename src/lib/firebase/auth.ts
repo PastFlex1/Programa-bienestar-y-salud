@@ -3,10 +3,8 @@
 
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from './config';
-import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { SECRET_KEY } from "./config";
 
 // This is a dummy user database. In a real app, you'd fetch this from a database.
 const DUMMY_USERS: { [email: string]: { name: string } } = {
@@ -23,13 +21,8 @@ async function createSession(email: string) {
     };
 
     const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-    const sessionToken = await new SignJWT(session)
-        .setProtectedHeader({ alg: 'HS256' })
-        .setIssuedAt()
-        .setExpirationTime(expires)
-        .sign(SECRET_KEY);
-
-    cookies().set('session', sessionToken, {
+    
+    cookies().set('session', JSON.stringify(session), {
         expires,
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -98,12 +91,9 @@ export async function getSession() {
         return null;
     }
     try {
-        const { payload } = await jwtVerify(sessionCookie, SECRET_KEY, {
-            algorithms: ['HS256'],
-        });
-        return payload;
+        return JSON.parse(sessionCookie);
     } catch (error) {
-        console.error('Failed to verify session:', error);
+        console.error('Failed to parse session:', error);
         return null;
     }
 }
