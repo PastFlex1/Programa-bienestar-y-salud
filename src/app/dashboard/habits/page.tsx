@@ -127,12 +127,8 @@ export default function HabitsPage() {
     const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
 
     React.useEffect(() => {
-        if (authLoading) {
+        if (!user) {
             setIsLoading(true);
-            return;
-        }
-        if (!user || !dateKey) {
-            setIsLoading(false);
             return;
         }
 
@@ -143,9 +139,7 @@ export default function HabitsPage() {
                 const fetchedHabits = await getHabitsForDate(dateKey, user.uid);
                 if (isMounted) {
                     if (fetchedHabits.length === 0) {
-                        const initialHabits = getInitialHabitsForDay(t);
-                        // Do not auto-add habits, let the user decide
-                        setHabits(initialHabits);
+                        setHabits(getInitialHabitsForDay(t));
                     } else {
                         setHabits(fetchedHabits);
                     }
@@ -161,7 +155,7 @@ export default function HabitsPage() {
         fetchHabits();
 
         return () => { isMounted = false; };
-    }, [dateKey, user, t, authLoading]);
+    }, [dateKey, user, t]);
 
     const handleAddHabit = async () => {
         if (newHabitName.trim() === "" || !user || !dateKey) return;
@@ -174,17 +168,19 @@ export default function HabitsPage() {
         
         const newHabitsList = [...habits, newHabit];
         
+        setHabits(newHabitsList);
+        setNewHabitName("");
+        setIsAddDialogOpen(false);
+
         try {
             await updateHabitsForDate(newHabitsList, dateKey, user.uid);
-            setHabits(newHabitsList);
-            setNewHabitName("");
-            setIsAddDialogOpen(false);
             toast({
                 title: t.toastSuccessTitle,
                 description: t.toastHabitAdded,
             });
         } catch (e) {
             console.error("Failed to update habits:", e);
+            setHabits(habits); 
             toast({
                 variant: "destructive",
                 title: t.toastErrorTitle,
@@ -200,15 +196,18 @@ export default function HabitsPage() {
             habit.id === id ? { ...habit, completed: !habit.completed } : habit
         );
         
+        setHabits(toggledHabits);
+        
         try {
             await updateHabitsForDate(toggledHabits, dateKey, user.uid);
-            setHabits(toggledHabits);
         } catch(e) {
              toast({
                 variant: "destructive",
                 title: t.toastErrorTitle,
                 description: t.toastErrorDescription,
             });
+            // Revert on error
+            setHabits(habits);
         }
     };
 
@@ -216,7 +215,7 @@ export default function HabitsPage() {
         ? format(d, "d 'de' MMMM 'de' yyyy", { locale: es })
         : format(d, "MMMM d, yyyy");
     
-    const pageLoading = authLoading || isLoading;
+    const pageLoading = isLoading || authLoading;
 
     return (
         <div className="p-4 sm:p-6 lg:p-8">
@@ -303,4 +302,3 @@ export default function HabitsPage() {
         </div>
     );
 }
-
