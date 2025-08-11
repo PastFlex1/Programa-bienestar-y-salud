@@ -78,18 +78,23 @@ export default function HabitsPage() {
 
   React.useEffect(() => {
     if (authLoading) {
+      setIsLoading(true);
       return; 
+    }
+    if (!user) {
+      setIsLoading(false);
+      setHabits([]);
+      return;
     }
     
     let isMounted = true;
-    setIsLoading(true);
-
+    
     const fetchAndInitializeHabits = async () => {
-      if (!user || !dateKey || !isMounted) {
-        setHabits([]);
-        setIsLoading(false);
+      if (!dateKey) {
         return;
       }
+      
+      setIsLoading(true);
       
       try {
         const initialHabits = getInitialHabitsForDay(t);
