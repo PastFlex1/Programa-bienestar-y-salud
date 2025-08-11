@@ -48,3 +48,27 @@ export async function saveJournalEntry(entry: JournalEntry) {
     
     revalidatePath("/dashboard/journal");
 }
+
+export async function getJournalEntries(): Promise<JournalEntry[]> {
+    const session = await getSession();
+    if (!session?.email) {
+        console.warn("User not authenticated, returning empty entries.");
+        return [];
+    }
+
+    const userJournalDocRef = doc(journalCollection, session.email);
+
+    try {
+        const docSnap = await getDoc(userJournalDocRef);
+        if (docSnap.exists() && docSnap.data().entries) {
+            // Firestore returns entries, which might not be sorted. Sort them by date descending.
+            const entries = docSnap.data().entries as JournalEntry[];
+            return entries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        } else {
+            return [];
+        }
+    } catch (error) {
+        console.error("Error fetching journal entries:", error);
+        return []; // Return empty array on error
+    }
+}

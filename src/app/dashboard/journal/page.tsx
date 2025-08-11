@@ -1,18 +1,20 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from '@/context/language-provider';
 import { useUser } from '@/context/user-provider';
 import { analyzeJournalEntry } from '@/ai/flows/journal-analysis-flow';
-import type { JournalAnalysis } from '@/ai/flows/journal-analysis-flow';
+import type { JournalAnalysis, JournalEntry } from '@/ai/flows/journal-analysis-flow';
 import { JournalResponse } from '@/components/journal-response';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, History } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { saveJournalEntry } from '@/lib/firebase/journal';
+import { saveJournalEntry, getJournalEntries } from '@/lib/firebase/journal';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+
 
 const translations = {
     es: {
@@ -24,7 +26,10 @@ const translations = {
         analyzingButton: "Guardando y Analizando...",
         error: "Hubo un error al analizar la entrada.",
         saveError: "Hubo un error al guardar tu entrada.",
-        noContent: "Por favor, escribe algo antes de analizar."
+        noContent: "Por favor, escribe algo antes de analizar.",
+        history: "Historial de Entradas",
+        noHistory: "Aún no tienes entradas en tu diario.",
+        loadingHistory: "Cargando historial..."
     },
     en: {
         welcome: "Welcome to your Journal",
@@ -35,7 +40,10 @@ const translations = {
         analyzingButton: "Saving & Analyzing...",
         error: "There was an error analyzing the entry.",
         saveError: "There was an error saving your entry.",
-        noContent: "Please write something before analyzing."
+        noContent: "Please write something before analyzing.",
+        history: "Entry History",
+        noHistory: "You don't have any journal entries yet.",
+        loadingHistory: "Loading history..."
     }
 };
 
@@ -45,8 +53,10 @@ export default function JournalPage() {
     const { userName } = useUser();
 
     const [entry, setEntry] = useState("");
+    const [entries, setEntries] = useState<JournalEntry[]>([]);
     const [analysis, setAnalysis] = useState<JournalAnalysis | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     const today = new Date();
@@ -56,6 +66,16 @@ export default function JournalPage() {
         month: 'long',
         day: 'numeric',
     });
+    
+    useEffect(() => {
+        const fetchEntries = async () => {
+            setIsLoadingHistory(true);
+            const fetchedEntries = await getJournalEntries();
+            setEntries(fetchedEntries);
+            setIsLoadingHistory(false);
+        };
+        fetchEntries();
+    }, []);
 
     const handleAnalyze = async () => {
         if (!entry.trim()) {
@@ -66,25 +86,26 @@ export default function JournalPage() {
         setIsLoading(true);
         setError(null);
         setAnalysis(null);
+        
+        const newEntryData: JournalEntry = {
+            date: today.toISOString(),
+            entry: entry,
+        };
 
         try {
             // First, save the entry
-            const dateKey = today.toISOString();
-            await saveJournalEntry({
-                date: dateKey,
-                entry: entry,
-            });
+            await saveJournalEntry(newEntryData);
 
             // Then, analyze it
             const result = await analyzeJournalEntry({ journalEntry: entry });
             setAnalysis(result);
             
-            // Optionally, save the analysis back to the entry in firestore.
-            // This would require another function in journal.ts
-            
+            // Add new entry to the top of the list locally
+            setEntries(prev => [newEntryData, ...prev]);
+            setEntry(""); // Clear textarea
+
         } catch (e: any) {
             console.error(e);
-            // Distinguish between saving and analysis error if possible
             if (e.message.includes("save")) {
                 setError(t.saveError);
             } else {
@@ -94,6 +115,12 @@ export default function JournalPage() {
             setIsLoading(false);
         }
     };
+    
+    const formatEntryDate = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', {
+            year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+    }
 
     return (
         <div className="p-4 sm:p-6 lg:p-8">
@@ -145,9 +172,40 @@ export default function JournalPage() {
                     </Card>
                 )}
 
-                {analysis && (
+                {analysis && !isLoading && (
                     <JournalResponse analysis={analysis} />
                 )}
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                           <History className="h-6 w-6" />
+                           {t.history}
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {isLoadingHistory ? (
+                            <div className="space-y-2">
+                                <Skeleton className="h-8 w-full" />
+                                <Skeleton className="h-8 w-full" />
+                                <Skeleton className="h-8 w-full" />
+                            </div>
+                        ) : entries.length > 0 ? (
+                            <Accordion type="single" collapsible className="w-full">
+                                {entries.map((item) => (
+                                    <AccordionItem value={item.date} key={item.date}>
+                                        <AccordionTrigger>{formatEntryDate(item.date)}</AccordionTrigger>
+                                        <AccordionContent className="whitespace-pre-wrap text-muted-foreground">
+                                            {item.entry}
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                ))}
+                            </Accordion>
+                        ) : (
+                            <p className="text-muted-foreground">{t.noHistory}</p>
+                        )}
+                    </CardContent>
+                </Card>
             </div>
         </div>
     );
