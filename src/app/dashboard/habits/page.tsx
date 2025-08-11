@@ -9,14 +9,11 @@ import { useLanguage } from "@/context/language-provider";
 import { format } from "date-fns";
 import { es } from 'date-fns/locale';
 import { Droplets, Footprints, Brain, BookOpen, CheckCircle2, ListChecks } from "lucide-react";
-import { getHabitsForDate, toggleHabit, addHabit, initializeHabitsForDay } from "@/lib/firebase/habits";
+import { getHabitsForDate, updateHabitsForDate } from "@/lib/firebase/habits";
 import { useAuth } from "@/context/auth-provider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-
-type HabitsByDate = {
-  [date: string]: Habit[];
-};
+import type { Habit as HabitDB } from "@/lib/firebase/habits";
 
 const translations = {
   es: {
@@ -57,13 +54,13 @@ const translations = {
   }
 };
 
-const getInitialHabitsForDay = (t: any): Habit[] => {
+const getInitialHabitsForDay = (t: any): HabitDB[] => {
     return [
-      { id: "hydrate", label: t.initialHabits.hydrate, icon: <Droplets className="h-5 w-5 text-primary" />, completed: false },
-      { id: "walk", label: t.initialHabits.walk, icon: <Footprints className="h-5 w-5 text-primary" />, completed: false },
-      { id: "mindful", label: t.initialHabits.mindful, icon: <Brain className="h-5 w-5 text-primary" />, completed: false },
-      { id: "read", label: t.initialHabits.read, icon: <BookOpen className="h-5 w-5 text-primary" />, completed: false },
-    ].map(habit => ({ ...habit })); // Deep copy
+      { id: "hydrate", label: t.initialHabits.hydrate, completed: false },
+      { id: "walk", label: t.initialHabits.walk, completed: false },
+      { id: "mindful", label: t.initialHabits.mindful, completed: false },
+      { id: "read", label: t.initialHabits.read, completed: false },
+    ];
 };
 
 export default function HabitsPage() {
@@ -73,7 +70,7 @@ export default function HabitsPage() {
   const { toast } = useToast();
   
   const [date, setDate] = React.useState<Date | undefined>(new Date());
-  const [habits, setHabits] = React.useState<Habit[]>([]);
+  const [habits, setHabits] = React.useState<HabitDB[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   
   const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
@@ -91,34 +88,30 @@ export default function HabitsPage() {
     
     let isMounted = true;
     
-    const fetchAndInitializeHabits = async () => {
-      if (!dateKey) {
-        return;
-      }
-      
+    const fetchHabits = async () => {
+      if (!dateKey) return;
       setIsLoading(true);
-      
       try {
-        const initialHabits = getInitialHabitsForDay(t);
-        await initializeHabitsForDay(initialHabits, dateKey, user.uid);
-        
-        const fetchedHabits = await getHabitsForDate(dateKey, user.uid);
+        let fetchedHabits = await getHabitsForDate(dateKey, user.uid);
         if (isMounted) {
-          setHabits(fetchedHabits.length > 0 ? fetchedHabits : initialHabits);
+            if (fetchedHabits.length === 0) {
+                // If no habits exist for the day, initialize them
+                const initialHabits = getInitialHabitsForDay(t);
+                await updateHabitsForDate(initialHabits, dateKey, user.uid);
+                setHabits(initialHabits);
+            } else {
+                setHabits(fetchedHabits);
+            }
         }
       } catch (error) {
         console.error("Error fetching habits:", error);
-        if (isMounted) {
-          setHabits(getInitialHabitsForDay(t));
-        }
+        if (isMounted) setHabits(getInitialHabitsForDay(t));
       } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        if (isMounted) setIsLoading(false);
       }
     };
 
-    fetchAndInitializeHabits();
+    fetchHabits();
 
     return () => {
       isMounted = false;
@@ -133,21 +126,26 @@ export default function HabitsPage() {
   const handleAddHabit = async (newHabitName: string) => {
     if (!dateKey || newHabitName.trim() === "" || !user) return;
 
-    const newHabitObject: Omit<Habit, 'icon'> = {
+    const newHabit: HabitDB = {
       id: `custom-${Date.now()}`,
       label: newHabitName,
       completed: false,
     };
     
+    // Optimistic update inspired by user example
+    const newHabitsList = [...habits, newHabit];
+    setHabits(newHabitsList);
+
     try {
-      const updatedHabits = await addHabit(newHabitObject, dateKey, user.uid);
-      setHabits(updatedHabits);
+      await updateHabitsForDate(newHabitsList, dateKey, user.uid);
       toast({
           title: t.toastSuccess,
       });
     } catch(e) {
       console.error("Failed to add habit:", e);
-       toast({
+      // Revert on failure
+      setHabits(habits);
+      toast({
           title: t.toastError,
           variant: "destructive"
       });
@@ -157,25 +155,19 @@ export default function HabitsPage() {
   const handleToggleHabit = async (id: string) => {
     if (!dateKey || !user) return;
     
-    const originalHabits = [...habits];
-    const habitToToggle = originalHabits.find(h => h.id === id);
-    if (!habitToToggle) return;
-
-    const newCompletedStatus = !habitToToggle.completed;
-    
-    // Optimistic update
-    setHabits(prev => 
-      prev.map(habit =>
-        habit.id === id ? { ...habit, completed: newCompletedStatus } : habit
-      )
+    const newHabitsList = habits.map(habit =>
+        habit.id === id ? { ...habit, completed: !habit.completed } : habit
     );
     
+    // Optimistic update
+    setHabits(newHabitsList);
+    
     try {
-        await toggleHabit(id, newCompletedStatus, dateKey, user.uid);
+        await updateHabitsForDate(newHabitsList, dateKey, user.uid);
     } catch (e) {
         console.error("Failed to toggle habit:", e);
         // Revert on failure
-        setHabits(originalHabits);
+        setHabits(habits);
     }
   };
   
@@ -186,7 +178,7 @@ export default function HabitsPage() {
     return format(date, "MMMM d, yyyy");
   };
   
-  const mapHabitsForUI = (dbHabits: Habit[]): (Habit & {icon: React.ReactNode})[] => {
+  const mapHabitsForUI = (dbHabits: HabitDB[]): Habit[] => {
     const iconMapping: {[key: string]: React.ReactNode} = {
         hydrate: <Droplets className="h-5 w-5 text-primary" />,
         walk: <Footprints className="h-5 w-5 text-primary" />,
