@@ -2,18 +2,19 @@
 "use client";
 
 import * as React from "react";
-import { Habit, HabitTracker } from "@/components/habit-tracker";
+import { HabitTracker } from "@/components/habit-tracker";
+import type { Habit as HabitUI } from "@/components/habit-tracker";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { useLanguage } from "@/context/language-provider";
 import { format } from "date-fns";
 import { es } from 'date-fns/locale';
-import { Droplets, Footprints, Brain, BookOpen, CheckCircle2, ListChecks } from "lucide-react";
+import { Droplets, Footprints, Brain, BookOpen, CheckCircle2 } from "lucide-react";
 import { getHabitsForDate, updateHabitsForDate } from "@/lib/firebase/habits";
+import type { Habit as HabitDB } from "@/lib/firebase/habits";
 import { useAuth } from "@/context/auth-provider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import type { Habit as HabitDB } from "@/lib/firebase/habits";
 
 const translations = {
   es: {
@@ -22,8 +23,6 @@ const translations = {
     calendarTitle: "Tu Historial de Hábitos",
     calendarDescription: "Selecciona un día para ver o agregar hábitos.",
     selectedDay: "Hábitos para el",
-    noHabitsTitle: "Sin Actividad",
-    noHabitsDescription: "No hay hábitos registrados para este día. ¡Empieza agregando uno!",
     loading: "Cargando hábitos...",
     initialHabits: {
       hydrate: "Hidratarse (8 vasos)",
@@ -31,8 +30,10 @@ const translations = {
       mindful: "Momento de Atención Plena",
       read: "Leer 10 páginas",
     },
-    toastSuccess: "Hábito agregado exitosamente",
-    toastError: "Error al agregar el hábito"
+    toastSuccessTitle: "Éxito",
+    toastSuccessDescription: "Tus hábitos se han guardado correctamente.",
+    toastErrorTitle: "Error",
+    toastErrorDescription: "No se pudieron guardar los cambios. Inténtalo de nuevo.",
   },
   en: {
     title: "Habit Tracking",
@@ -40,8 +41,6 @@ const translations = {
     calendarTitle: "Your Habit History",
     calendarDescription: "Select a day to view or add habits.",
     selectedDay: "Habits for",
-    noHabitsTitle: "No Activity",
-    noHabitsDescription: "No habits logged for this day. Get started by adding one!",
     loading: "Loading habits...",
     initialHabits: {
       hydrate: "Hydrate (8 glasses)",
@@ -49,149 +48,36 @@ const translations = {
       mindful: "Mindful Moment",
       read: "Read 10 pages",
     },
-    toastSuccess: "Habit added successfully",
-    toastError: "Error adding habit"
+    toastSuccessTitle: "Success",
+    toastSuccessDescription: "Your habits have been saved successfully.",
+    toastErrorTitle: "Error",
+    toastErrorDescription: "Could not save changes. Please try again.",
   }
 };
 
 const getInitialHabitsForDay = (t: any): HabitDB[] => {
-    return [
-      { id: "hydrate", label: t.initialHabits.hydrate, completed: false },
-      { id: "walk", label: t.initialHabits.walk, completed: false },
-      { id: "mindful", label: t.initialHabits.mindful, completed: false },
-      { id: "read", label: t.initialHabits.read, completed: false },
-    ];
+  return [
+    { id: "hydrate", label: t.initialHabits.hydrate, completed: false },
+    { id: "walk", label: t.initialHabits.walk, completed: false },
+    { id: "mindful", label: t.initialHabits.mindful, completed: false },
+    { id: "read", label: t.initialHabits.read, completed: false },
+  ];
 };
 
-export default function HabitsPage() {
-  const { language } = useLanguage();
-  const t = translations[language];
-  const { user, loading: authLoading } = useAuth();
-  const { toast } = useToast();
-  
-  const [date, setDate] = React.useState<Date | undefined>(new Date());
-  const [habits, setHabits] = React.useState<HabitDB[]>([]);
-  const [isLoading, setIsLoading] = React.useState(true);
-  
-  const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
-
-  React.useEffect(() => {
-    if (authLoading) {
-      setIsLoading(true);
-      return; 
-    }
-    if (!user) {
-      setIsLoading(false);
-      setHabits([]);
-      return;
-    }
-    
-    let isMounted = true;
-    
-    const fetchHabits = async () => {
-      if (!dateKey) return;
-      setIsLoading(true);
-      try {
-        let fetchedHabits = await getHabitsForDate(dateKey, user.uid);
-        if (isMounted) {
-            if (fetchedHabits.length === 0) {
-                // If no habits exist for the day, initialize them
-                const initialHabits = getInitialHabitsForDay(t);
-                await updateHabitsForDate(initialHabits, dateKey, user.uid);
-                setHabits(initialHabits);
-            } else {
-                setHabits(fetchedHabits);
-            }
-        }
-      } catch (error) {
-        console.error("Error fetching habits:", error);
-        if (isMounted) setHabits(getInitialHabitsForDay(t));
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    };
-
-    fetchHabits();
-
-    return () => {
-      isMounted = false;
-    };
-
-  }, [dateKey, user, authLoading, t]);
-  
-  const handleSelectDate = (selectedDate: Date | undefined) => {
-    setDate(selectedDate);
+const mapHabitsForUI = (dbHabits: HabitDB[]): HabitUI[] => {
+  const iconMapping: {[key: string]: React.ReactNode} = {
+      hydrate: <Droplets className="h-5 w-5 text-primary" />,
+      walk: <Footprints className="h-5 w-5 text-primary" />,
+      mindful: <Brain className="h-5 w-5 text-primary" />,
+      read: <BookOpen className="h-5 w-5 text-primary" />
   };
-  
-  const handleAddHabit = async (newHabitName: string) => {
-    if (!dateKey || newHabitName.trim() === "" || !user) return;
+  return dbHabits.map(h => ({
+      ...h,
+      icon: iconMapping[h.id] || <CheckCircle2 className="h-5 w-5 text-primary" />
+  }));
+};
 
-    const newHabit: HabitDB = {
-      id: `custom-${Date.now()}`,
-      label: newHabitName,
-      completed: false,
-    };
-    
-    // Optimistic update inspired by user example
-    const newHabitsList = [...habits, newHabit];
-    setHabits(newHabitsList);
-
-    try {
-      await updateHabitsForDate(newHabitsList, dateKey, user.uid);
-      toast({
-          title: t.toastSuccess,
-      });
-    } catch(e) {
-      console.error("Failed to add habit:", e);
-      // Revert on failure
-      setHabits(habits);
-      toast({
-          title: t.toastError,
-          variant: "destructive"
-      });
-    }
-  };
-
-  const handleToggleHabit = async (id: string) => {
-    if (!dateKey || !user) return;
-    
-    const newHabitsList = habits.map(habit =>
-        habit.id === id ? { ...habit, completed: !habit.completed } : habit
-    );
-    
-    // Optimistic update
-    setHabits(newHabitsList);
-    
-    try {
-        await updateHabitsForDate(newHabitsList, dateKey, user.uid);
-    } catch (e) {
-        console.error("Failed to toggle habit:", e);
-        // Revert on failure
-        setHabits(habits);
-    }
-  };
-  
-  const formatDate = (date: Date) => {
-    if (language === 'es') {
-      return format(date, "d 'de' MMMM 'de' yyyy", { locale: es });
-    }
-    return format(date, "MMMM d, yyyy");
-  };
-  
-  const mapHabitsForUI = (dbHabits: HabitDB[]): Habit[] => {
-    const iconMapping: {[key: string]: React.ReactNode} = {
-        hydrate: <Droplets className="h-5 w-5 text-primary" />,
-        walk: <Footprints className="h-5 w-5 text-primary" />,
-        mindful: <Brain className="h-5 w-5 text-primary" />,
-        read: <BookOpen className="h-5 w-5 text-primary" />
-    };
-    return dbHabits.map(h => ({
-        ...h,
-        icon: iconMapping[h.id] || <CheckCircle2 className="h-5 w-5 text-primary" />
-    }));
-  };
-
-  const HabitTrackerSkeleton = () => (
+const HabitTrackerSkeleton = () => (
     <Card>
       <CardHeader>
         <Skeleton className="h-8 w-1/2" />
@@ -207,7 +93,118 @@ export default function HabitsPage() {
         ))}
       </CardContent>
     </Card>
-  );
+);
+
+export default function HabitsPage() {
+  const { language } = useLanguage();
+  const t = translations[language];
+  const { user, loading: authLoading } = useAuth();
+  const { toast } = useToast();
+  
+  const [date, setDate] = React.useState<Date | undefined>(new Date());
+  const [habits, setHabits] = React.useState<HabitDB[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+  
+  const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
+
+  React.useEffect(() => {
+    if (authLoading || !user || !dateKey) {
+      setIsLoading(true);
+      return;
+    }
+    
+    let isMounted = true;
+    
+    const fetchHabits = async () => {
+      setIsLoading(true);
+      try {
+        const fetchedHabits = await getHabitsForDate(dateKey, user.uid);
+        if (isMounted) {
+            if (fetchedHabits.length === 0) {
+                const initialHabits = getInitialHabitsForDay(t);
+                await updateHabitsForDate(initialHabits, dateKey, user.uid);
+                setHabits(initialHabits);
+            } else {
+                setHabits(fetchedHabits);
+            }
+        }
+      } catch (error) {
+        console.error("Error fetching habits:", error);
+        toast({
+          variant: "destructive",
+          title: t.toastErrorTitle,
+          description: t.toastErrorDescription,
+        });
+        if (isMounted) setHabits(getInitialHabitsForDay(t));
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    fetchHabits();
+
+    return () => {
+      isMounted = false;
+    };
+
+  }, [dateKey, user, authLoading, t, toast]);
+  
+  const handleSelectDate = (selectedDate: Date | undefined) => {
+    setDate(selectedDate);
+  };
+
+  const handleUpdateHabits = async (updatedHabits: HabitDB[]) => {
+      if (!dateKey || !user) return;
+      
+      // Update state locally first for instant feedback
+      setHabits(updatedHabits);
+
+      try {
+          await updateHabitsForDate(updatedHabits, dateKey, user.uid);
+          toast({
+              title: t.toastSuccessTitle,
+              description: t.toastSuccessDescription
+          });
+      } catch (e) {
+          console.error("Failed to update habits:", e);
+          // Revert on failure
+          toast({
+              variant: "destructive",
+              title: t.toastErrorTitle,
+              description: t.toastErrorDescription,
+          });
+          // Optional: Re-fetch from DB to ensure consistency
+          const fetchedHabits = await getHabitsForDate(dateKey, user.uid);
+          setHabits(fetchedHabits);
+      }
+  };
+  
+  const handleAddHabit = (newHabitName: string) => {
+    if (newHabitName.trim() === "") return;
+
+    const newHabit: HabitDB = {
+      id: `custom-${Date.now()}`,
+      label: newHabitName,
+      completed: false,
+    };
+    
+    const newHabitsList = [...habits, newHabit];
+    handleUpdateHabits(newHabitsList);
+  };
+
+  const handleToggleHabit = (id: string) => {
+    const newHabitsList = habits.map(habit =>
+        habit.id === id ? { ...habit, completed: !habit.completed } : habit
+    );
+    handleUpdateHabits(newHabitsList);
+  };
+  
+  const formatDate = (date: Date) => {
+    if (language === 'es') {
+      return format(date, "d 'de' MMMM 'de' yyyy", { locale: es });
+    }
+    return format(date, "MMMM d, yyyy");
+  };
 
   const pageLoading = authLoading || isLoading;
 
