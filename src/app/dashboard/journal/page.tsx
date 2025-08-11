@@ -114,18 +114,12 @@ export default function JournalPage() {
         setIsSaving(true);
         setError(null);
         
-        const newEntryData: JournalEntry = {
-            id: `entry-${Date.now()}`,
-            date: selectedDate.toISOString(),
-            entry: entry,
-        };
-
         try {
-            await saveJournalEntry(newEntryData, user.uid);
-            // Re-fetch entries to ensure consistency
+            await saveJournalEntry(user.uid, entry, selectedDate);
+            setEntry(""); // Clear textarea
+            // Re-fetch entries to show the new one
             const updatedEntries = await getJournalEntries(user.uid);
             setEntries(updatedEntries);
-            setEntry(""); 
         } catch (e) {
             console.error("Detailed client-side error:", e);
             setError(t.saveError);
@@ -134,15 +128,15 @@ export default function JournalPage() {
         }
     };
     
-    const handleDeleteEntry = async (entryToDelete: JournalEntry) => {
+    const handleDeleteEntry = async (entryId: string) => {
         if (!user) {
             setError(t.deleteError);
             return;
         }
         
         try {
-            await deleteJournalEntry(entryToDelete, user.uid);
-            setEntries(prev => prev.filter(e => e.id !== entryToDelete.id));
+            await deleteJournalEntry(user.uid, entryId);
+            setEntries(prev => prev.filter(e => e.id !== entryId));
         } catch (e) {
             setError(t.deleteError);
         }
@@ -251,7 +245,7 @@ export default function JournalPage() {
                                                        </AlertDialogHeader>
                                                        <AlertDialogFooter>
                                                          <AlertDialogCancel>{t.cancel}</AlertDialogCancel>
-                                                         <AlertDialogAction onClick={() => handleDeleteEntry(item)} className={cn(buttonVariants({ variant: "destructive" }))}>
+                                                         <AlertDialogAction onClick={() => handleDeleteEntry(item.id)} className={cn(buttonVariants({ variant: "destructive" }))}>
                                                            {t.delete}
                                                          </AlertDialogAction>
                                                        </AlertDialogFooter>
@@ -272,3 +266,5 @@ export default function JournalPage() {
         </div>
     );
 }
+
+    

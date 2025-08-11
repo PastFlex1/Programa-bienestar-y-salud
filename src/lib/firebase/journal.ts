@@ -1,38 +1,43 @@
 
 "use server";
 
-import { collection, doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
+import { collection, doc, addDoc, getDocs, deleteDoc, query, orderBy, Timestamp } from "firebase/firestore";
 import { db } from "./config";
 import { revalidatePath } from "next/cache";
 
 export interface JournalEntry {
-    id: string; // Unique ID for each entry
-    date: string; // ISO string
+    id: string;      // Document ID from Firestore
+    date: string;    // ISO string format
     entry: string;
 }
 
-// Firestore collection reference for all user journals
-const journalCollection = collection(db, "journal");
+// Helper function to get the subcollection for a user's journal entries
+const getJournalEntriesCollection = (userId: string) => {
+    return collection(db, 'users', userId, 'journalEntries');
+}
 
-// Gets all journal entries for a user
+// Gets all journal entries for a user, ordered by date
 export async function getJournalEntries(userId: string): Promise<JournalEntry[]> {
     if (!userId) {
         console.warn("User not authenticated, returning empty entries.");
         return [];
     }
-
-    const userJournalDocRef = doc(journalCollection, userId);
+    
+    const entriesCollection = getJournalEntriesCollection(userId);
+    const q = query(entriesCollection, orderBy("date", "desc"));
 
     try {
-        const docSnap = await getDoc(userJournalDocRef);
-        if (docSnap.exists() && Array.isArray(docSnap.data().entries)) {
-            const entries = docSnap.data().entries as JournalEntry[];
-            // Sort by date descending (most recent first)
-            return entries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        } else {
-            // No document or no entries field yet
-            return [];
-        }
+        const querySnapshot = await getDocs(q);
+        const entries: JournalEntry[] = [];
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            entries.push({
+                id: doc.id,
+                date: (data.date as Timestamp).toDate().toISOString(),
+                entry: data.entry
+            });
+        });
+        return entries;
     } catch (error) {
         console.error("Error fetching journal entries:", error);
         throw new Error("Could not fetch journal entries.");
@@ -40,27 +45,18 @@ export async function getJournalEntries(userId: string): Promise<JournalEntry[]>
 }
 
 // Saves a new journal entry for a user
-export async function saveJournalEntry(newEntry: JournalEntry, userId: string) {
+export async function saveJournalEntry(userId: string, entryText: string, date: Date) {
     if (!userId) {
         throw new Error("User not authenticated");
     }
 
-    const userJournalDocRef = doc(journalCollection, userId);
-
+    const entriesCollection = getJournalEntriesCollection(userId);
+    
     try {
-        // 1. Get existing entries
-        const docSnap = await getDoc(userJournalDocRef);
-        let existingEntries: JournalEntry[] = [];
-        if (docSnap.exists() && Array.isArray(docSnap.data().entries)) {
-            existingEntries = docSnap.data().entries;
-        }
-
-        // 2. Modify: Add the new entry
-        const updatedEntries = [...existingEntries, newEntry];
-        
-        // 3. Set: Overwrite the document with the updated entries array
-        await setDoc(userJournalDocRef, { entries: updatedEntries }, { merge: true });
-
+        await addDoc(entriesCollection, {
+            entry: entryText,
+            date: Timestamp.fromDate(date) // Store as Firestore Timestamp for proper ordering
+        });
     } catch (error) {
         console.error("Detailed Firestore Error on save:", error);
         throw new Error("Could not save journal entry.");
@@ -70,31 +66,16 @@ export async function saveJournalEntry(newEntry: JournalEntry, userId: string) {
     revalidatePath("/dashboard/journal");
 }
 
-
-// Deletes a specific journal entry for a user
-export async function deleteJournalEntry(entryToDelete: JournalEntry, userId:string) {
+// Deletes a specific journal entry for a user by its document ID
+export async function deleteJournalEntry(userId: string, entryId: string) {
     if (!userId) {
         throw new Error("User not authenticated");
     }
 
-    const userJournalDocRef = doc(journalCollection, userId);
+    const entryDocRef = doc(db, 'users', userId, 'journalEntries', entryId);
     
     try {
-        // 1. Get existing entries
-        const docSnap = await getDoc(userJournalDocRef);
-        if (!docSnap.exists()) {
-             throw new Error("Journal document not found.");
-        }
-        
-        const existingEntries = docSnap.data().entries as JournalEntry[] || [];
-
-        // 2. Modify: Filter out the entry to delete
-        // We use the unique 'id' for reliable deletion
-        const updatedEntries = existingEntries.filter(e => e.id !== entryToDelete.id);
-        
-        // 3. Update: Overwrite the entries array with the filtered list
-        await updateDoc(userJournalDocRef, { entries: updatedEntries });
-        
+        await deleteDoc(entryDocRef);
     } catch (error) {
         console.error("Error deleting journal entry:", error);
         throw new Error("Could not delete journal entry.");
@@ -103,3 +84,5 @@ export async function deleteJournalEntry(entryToDelete: JournalEntry, userId:str
     // Revalidate the path to update the UI
     revalidatePath("/dashboard/journal");
 }
+
+    
