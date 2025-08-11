@@ -141,6 +141,7 @@ export default function HabitsPage() {
 
 
     const handleAddHabit = async () => {
+        console.log("Add button clicked. State:", { newHabitName, dateKey, user: user?.uid });
         if (newHabitName.trim() === "" || !user || !dateKey) return;
 
         setIsSaving(true);
@@ -160,8 +161,8 @@ export default function HabitsPage() {
                 title: t.toastSuccessTitle,
                 description: t.toastHabitAdded,
             });
-            setNewHabitName(""); // Reset input field
-            setIsAddDialogOpen(false); // Close modal
+            setNewHabitName(""); 
+            setIsAddDialogOpen(false);
         } catch (e) {
             console.error("Failed to update habits:", e);
             toast({
@@ -303,3 +304,5 @@ export default function HabitsPage() {
         </div>
     );
 }
+
+    
