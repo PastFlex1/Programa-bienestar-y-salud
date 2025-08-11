@@ -74,27 +74,27 @@ export default function HabitsPage() {
 
   React.useEffect(() => {
     const fetchAndInitializeHabits = async () => {
-        if (!dateKey || !user) {
-            if (!authLoading) setIsLoading(false);
-            return;
-        }
+      if (!user || !dateKey) {
+        setIsLoading(false);
+        return;
+      }
+      
+      setIsLoading(true);
+      try {
+        const initialHabits = getInitialHabitsForDay(t);
+        await initializeHabitsForDay(initialHabits, dateKey, user.uid);
         
-        setIsLoading(true);
-        try {
-            const initialHabits = getInitialHabitsForDay(t);
-            await initializeHabitsForDay(initialHabits, dateKey, user.uid);
-            
-            const fetchedHabits = await getHabitsForDate(dateKey, user.uid);
-            setHabits(fetchedHabits.length > 0 ? fetchedHabits : initialHabits);
-        } catch (error) {
-            console.error("Error fetching habits:", error);
-            // Optionally set an error state here
-        } finally {
-            setIsLoading(false);
-        }
+        const fetchedHabits = await getHabitsForDate(dateKey, user.uid);
+        setHabits(fetchedHabits.length > 0 ? fetchedHabits : initialHabits);
+      } catch (error) {
+        console.error("Error fetching habits:", error);
+        setHabits(getInitialHabitsForDay(t)); // Fallback to initial habits on error
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    if (user) {
+    if (!authLoading) {
       fetchAndInitializeHabits();
     }
   }, [dateKey, user, authLoading, t]);
@@ -222,3 +222,5 @@ export default function HabitsPage() {
     </div>
   );
 }
+
+    
