@@ -8,18 +8,23 @@ import { Button } from "@/components/ui/button";
 import { useLanguage } from '@/context/language-provider';
 import { useUser } from '@/context/user-provider';
 import { analyzeJournalEntry } from '@/ai/flows/journal-analysis-flow';
-import type { JournalAnalysis, JournalEntry } from '@/ai/flows/journal-analysis-flow';
+import type { JournalAnalysis } from '@/ai/flows/journal-analysis-flow';
 import { JournalResponse } from '@/components/journal-response';
-import { Sparkles, History } from 'lucide-react';
+import { Sparkles, History, Calendar as CalendarIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { saveJournalEntry, getJournalEntries } from '@/lib/firebase/journal';
+import { saveJournalEntry, getJournalEntries, JournalEntry } from '@/lib/firebase/journal';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 
 const translations = {
     es: {
         welcome: "Bienvenido a tu Diario",
-        todayIs: "Hoy es",
+        selectedDate: "Entrada para el",
         reflect: "Tómate un momento para reflexionar.",
         placeholder: "¿Qué tienes en mente?",
         analyzeButton: "Guardar y Analizar",
@@ -29,11 +34,12 @@ const translations = {
         noContent: "Por favor, escribe algo antes de analizar.",
         history: "Historial de Entradas",
         noHistory: "Aún no tienes entradas en tu diario.",
-        loadingHistory: "Cargando historial..."
+        loadingHistory: "Cargando historial...",
+        selectDate: "Selecciona una fecha"
     },
     en: {
         welcome: "Welcome to your Journal",
-        todayIs: "Today is",
+        selectedDate: "Entry for",
         reflect: "Take a moment to reflect.",
         placeholder: "What's on your mind?",
         analyzeButton: "Save & Analyze",
@@ -43,7 +49,8 @@ const translations = {
         noContent: "Please write something before analyzing.",
         history: "Entry History",
         noHistory: "You don't have any journal entries yet.",
-        loadingHistory: "Loading history..."
+        loadingHistory: "Loading history...",
+        selectDate: "Select a date"
     }
 };
 
@@ -58,9 +65,9 @@ export default function JournalPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [isLoadingHistory, setIsLoadingHistory] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
-    const today = new Date();
-    const todayFormatted = today.toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', {
+    const selectedDateFormatted = selectedDate.toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
@@ -88,7 +95,7 @@ export default function JournalPage() {
         setAnalysis(null);
         
         const newEntryData: JournalEntry = {
-            date: today.toISOString(),
+            date: selectedDate.toISOString(),
             entry: entry,
         };
 
@@ -101,7 +108,7 @@ export default function JournalPage() {
             setAnalysis(result);
             
             // Add new entry to the top of the list locally
-            setEntries(prev => [newEntryData, ...prev]);
+            setEntries(prev => [newEntryData, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
             setEntry(""); // Clear textarea
 
         } catch (e: any) {
@@ -129,17 +136,45 @@ export default function JournalPage() {
                     <CardHeader>
                         <CardTitle>{t.welcome}, {userName || 'User'}</CardTitle>
                         <CardDescription>
-                            {t.todayIs} {todayFormatted}. {t.reflect}
+                             {t.selectedDate} {selectedDateFormatted}. {t.reflect}
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <Textarea 
-                            placeholder={t.placeholder}
-                            rows={10}
-                            className="resize-none"
-                            value={entry}
-                            onChange={(e) => setEntry(e.target.value)}
-                        />
+                        <div className="flex flex-col sm:flex-row gap-4">
+                            <Textarea 
+                                placeholder={t.placeholder}
+                                rows={10}
+                                className="resize-none flex-1"
+                                value={entry}
+                                onChange={(e) => setEntry(e.target.value)}
+                            />
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                    "w-full sm:w-[280px] justify-start text-left font-normal",
+                                    !selectedDate && "text-muted-foreground"
+                                    )}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {selectedDate ? (
+                                        format(selectedDate, 'PPP', { locale: language === 'es' ? es : undefined })
+                                    ) : (
+                                        <span>{t.selectDate}</span>
+                                    )}
+                                </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                    mode="single"
+                                    selected={selectedDate}
+                                    onSelect={(date) => date && setSelectedDate(date)}
+                                    initialFocus
+                                />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
                         <Button onClick={handleAnalyze} disabled={isLoading}>
                             {isLoading ? (
                                 <>
