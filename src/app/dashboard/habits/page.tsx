@@ -73,17 +73,25 @@ export default function HabitsPage() {
   const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
 
   React.useEffect(() => {
-    if (!dateKey || !user) return;
-    
-    setIsLoading(true);
-
     const fetchAndInitializeHabits = async () => {
-        const initialHabits = getInitialHabitsForDay(t);
-        await initializeHabitsForDay(initialHabits, dateKey);
+        if (!dateKey || !user) {
+            setIsLoading(false);
+            return;
+        }
         
-        const fetchedHabits = await getHabitsForDate(dateKey);
-        setHabits(fetchedHabits.length > 0 ? fetchedHabits : initialHabits);
-        setIsLoading(false);
+        setIsLoading(true);
+        try {
+            const initialHabits = getInitialHabitsForDay(t);
+            await initializeHabitsForDay(initialHabits, dateKey);
+            
+            const fetchedHabits = await getHabitsForDate(dateKey);
+            setHabits(fetchedHabits.length > 0 ? fetchedHabits : initialHabits);
+        } catch (error) {
+            console.error("Error fetching habits:", error);
+            // Optionally set an error state here
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     fetchAndInitializeHabits();
