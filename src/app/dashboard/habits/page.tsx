@@ -147,10 +147,10 @@ export default function HabitsPage() {
         };
         
         const newHabitsList = [...habits, newHabit];
+        setHabits(newHabitsList); 
         
         try {
             await updateHabitsForDate(newHabitsList, dateKey, user.uid);
-            setHabits(newHabitsList); 
             toast({
                 title: t.toastSuccessTitle,
                 description: t.toastHabitAdded,
@@ -164,6 +164,8 @@ export default function HabitsPage() {
                 title: t.toastErrorTitle,
                 description: t.toastErrorDescription,
             });
+            // Revert optimistic update
+            setHabits(habits);
         } finally {
             setIsSaving(false);
         }
@@ -251,7 +253,7 @@ export default function HabitsPage() {
                                                     className="col-span-3"
                                                     placeholder={t.habitNamePlaceholder}
                                                     onKeyDown={(e) => {
-                                                        if (e.key === 'Enter' && !isSaving) {
+                                                        if (e.key === 'Enter' && !isSaving && newHabitName.trim()) {
                                                             e.preventDefault();
                                                             handleAddHabit();
                                                         }
@@ -283,4 +285,5 @@ export default function HabitsPage() {
             </div>
         </div>
     );
-}
+
+    
