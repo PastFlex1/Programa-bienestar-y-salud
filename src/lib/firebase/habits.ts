@@ -3,8 +3,16 @@
 
 import { collection, doc, getDoc, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import { db } from "./config";
-import type { Habit } from "@/components/habit-tracker";
+import type { Habit as HabitUI } from "@/components/habit-tracker";
 import { revalidatePath } from "next/cache";
+
+// Type for storing in Firestore (without ReactNode icon)
+export type Habit = {
+  id: string;
+  label: string;
+  completed: boolean;
+};
+
 
 // Firestore collection reference for user data
 const usersCollection = collection(db, "users");
@@ -13,7 +21,7 @@ const usersCollection = collection(db, "users");
 const getUserDocRef = (userId: string) => doc(usersCollection, userId);
 
 // Gets habits for a user on a specific date from a subcollection
-export async function getHabitsForDate(dateKey: string, userId: string) {
+export async function getHabitsForDate(dateKey: string, userId: string): Promise<Habit[]> {
     if (!userId) {
         console.warn("getHabitsForDate called without userId.");
         return [];
@@ -24,6 +32,7 @@ export async function getHabitsForDate(dateKey: string, userId: string) {
         const docSnap = await getDoc(dateDocRef);
 
         if (docSnap.exists()) {
+            // Firestore data is already in the correct `Habit` format
             return docSnap.data().habits as Habit[];
         } else {
             return []; // No habits for this date yet
@@ -35,7 +44,7 @@ export async function getHabitsForDate(dateKey: string, userId: string) {
 }
 
 // Toggles the completion status of a habit
-export async function toggleHabit(habitId: string, completed: boolean, dateKey: string, userId: string) {
+export async function toggleHabit(habitId: string, completed: boolean, dateKey: string, userId:string) {
     if (!userId) {
         throw new Error("User not authenticated");
     }
@@ -54,8 +63,8 @@ export async function toggleHabit(habitId: string, completed: boolean, dateKey: 
     revalidatePath("/dashboard/habits");
 }
 
-// Adds a new custom habit for a user on a specific date
-export async function addHabit(newHabit: Habit, dateKey: string, userId: string) {
+// Adds a new custom habit for a user on a specific date and returns the updated list
+export async function addHabit(newHabit: Omit<Habit, 'icon'>, dateKey: string, userId: string): Promise<Habit[]> {
     if (!userId) {
         throw new Error("User not authenticated");
     }
@@ -71,17 +80,23 @@ export async function addHabit(newHabit: Habit, dateKey: string, userId: string)
                 habits: arrayUnion(newHabit)
             });
         } else {
-            // If no document exists for this date, create it with the new habit
-             await setDoc(dateDocRef, {
+            // This case should ideally be handled by initializeHabitsForDay, but as a fallback:
+            await setDoc(dateDocRef, {
                 habits: [newHabit]
             });
         }
+        
+        // After updating, fetch and return the new list
+        const updatedDoc = await getDoc(dateDocRef);
+        const updatedHabits = updatedDoc.data()?.habits as Habit[] || [];
+        
+        revalidatePath("/dashboard/habits");
+        return updatedHabits;
+
     } catch (error) {
         console.error("Error adding habit:", error);
         throw new Error("Could not add habit.");
     }
-    
-    revalidatePath("/dashboard/habits");
 }
 
 
@@ -95,14 +110,14 @@ export async function initializeHabitsForDay(initialHabits: Habit[], dateKey: st
     const docSnap = await getDoc(dateDocRef);
 
     if (!docSnap.exists()) {
-        // We only set the initial habits if NO document exists for that day.
-        // We also ensure the parent user document exists.
         const userDocRef = getUserDocRef(userId);
         const userDocSnap = await getDoc(userDocRef);
         if (!userDocSnap.exists()) {
             await setDoc(userDocRef, { createdAt: new Date() });
         }
-        await setDoc(dateDocRef, { habits: initialHabits });
+        // Firestore expects plain objects, so we ensure no ReactNodes are passed
+        const habitsToStore = initialHabits.map(({ icon, ...rest }) => rest);
+        await setDoc(dateDocRef, { habits: habitsToStore });
     }
     revalidatePath("/dashboard/habits");
 }

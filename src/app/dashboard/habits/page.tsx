@@ -35,6 +35,7 @@ const translations = {
       read: "Leer 10 páginas",
     },
     toastSuccess: "Hábito agregado exitosamente",
+    toastError: "Error al agregar el hábito"
   },
   en: {
     title: "Habit Tracking",
@@ -52,6 +53,7 @@ const translations = {
       read: "Read 10 pages",
     },
     toastSuccess: "Habit added successfully",
+    toastError: "Error adding habit"
   }
 };
 
@@ -131,26 +133,24 @@ export default function HabitsPage() {
   const handleAddHabit = async (newHabitName: string) => {
     if (!dateKey || newHabitName.trim() === "" || !user) return;
 
-    const newHabitObject: Habit = {
+    const newHabitObject: Omit<Habit, 'icon'> = {
       id: `custom-${Date.now()}`,
       label: newHabitName,
-      icon: <CheckCircle2 className="h-5 w-5 text-primary" />,
       completed: false,
     };
     
-    // Optimistically update UI
-    setHabits(prev => [...prev, newHabitObject]);
-    
     try {
-      await addHabit(newHabitObject, dateKey, user.uid);
+      const updatedHabits = await addHabit(newHabitObject, dateKey, user.uid);
+      setHabits(updatedHabits);
       toast({
           title: t.toastSuccess,
       });
     } catch(e) {
       console.error("Failed to add habit:", e);
-      // Revert optimistic update on failure
-      setHabits(prev => prev.filter(h => h.id !== newHabitObject.id));
-      // Optional: Add error toast
+       toast({
+          title: t.toastError,
+          variant: "destructive"
+      });
     }
   };
 
@@ -184,6 +184,19 @@ export default function HabitsPage() {
       return format(date, "d 'de' MMMM 'de' yyyy", { locale: es });
     }
     return format(date, "MMMM d, yyyy");
+  };
+  
+  const mapHabitsForUI = (dbHabits: Habit[]): (Habit & {icon: React.ReactNode})[] => {
+    const iconMapping: {[key: string]: React.ReactNode} = {
+        hydrate: <Droplets className="h-5 w-5 text-primary" />,
+        walk: <Footprints className="h-5 w-5 text-primary" />,
+        mindful: <Brain className="h-5 w-5 text-primary" />,
+        read: <BookOpen className="h-5 w-5 text-primary" />
+    };
+    return dbHabits.map(h => ({
+        ...h,
+        icon: iconMapping[h.id] || <CheckCircle2 className="h-5 w-5 text-primary" />
+    }));
   };
 
   const HabitTrackerSkeleton = () => (
@@ -239,7 +252,7 @@ export default function HabitsPage() {
             ) : (
               <HabitTracker 
                 title={`${t.selectedDay} ${date ? formatDate(date) : ''}`} 
-                habits={habits}
+                habits={mapHabitsForUI(habits)}
                 onAddHabit={handleAddHabit}
                 onToggleHabit={handleToggleHabit}
                 showEmptyState={habits.length === 0}

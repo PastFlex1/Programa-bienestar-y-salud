@@ -36,6 +36,7 @@ const translations = {
   }
 };
 
+// This is the type for the props of this component, which includes the ReactNode icon.
 export interface Habit {
   id: string;
   label: string;
@@ -95,13 +96,16 @@ export function HabitTracker({ title, habits, onAddHabit, onToggleHabit, showEmp
                   onChange={(e) => setNewHabit(e.target.value)}
                   className="col-span-3"
                   placeholder={t.placeholder}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddClick()}
                 />
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="secondary" onClick={() => setIsDialogOpen(false)}>
-                {t.cancel}
-              </Button>
+               <DialogClose asChild>
+                <Button type="button" variant="secondary">
+                  {t.cancel}
+                </Button>
+              </DialogClose>
               <Button type="submit" onClick={handleAddClick} disabled={!newHabit.trim()}>{t.add}</Button>
             </DialogFooter>
           </DialogContent>
