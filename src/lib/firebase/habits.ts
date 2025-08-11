@@ -1,7 +1,7 @@
 
 "use server";
 
-import { collection, doc, getDoc, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
+import { collection, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "./config";
 import type { Habit } from "@/components/habit-tracker";
 import { revalidatePath } from "next/cache";
@@ -57,22 +57,30 @@ export async function addHabit(newHabit: Habit, dateKey: string, userId: string)
     }
 
     const docRef = doc(habitsCollection, userId, "dates", dateKey);
-    const docSnap = await getDoc(docRef);
+    
+    try {
+        const docSnap = await getDoc(docRef);
 
-    if (docSnap.exists()) {
-        // Add to existing array
-        await updateDoc(docRef, {
-            habits: arrayUnion(newHabit)
-        });
-    } else {
-        // Create a new document for the date
-        await setDoc(docRef, {
-            habits: [newHabit]
-        });
+        if (docSnap.exists()) {
+            const existingHabits = docSnap.data().habits as Habit[] || [];
+            const updatedHabits = [...existingHabits, newHabit];
+            await updateDoc(docRef, {
+                habits: updatedHabits
+            });
+        } else {
+            // This case might be handled by initializeHabitsForDay, but as a fallback:
+            await setDoc(docRef, {
+                habits: [newHabit]
+            });
+        }
+    } catch (error) {
+        console.error("Error adding habit:", error);
+        throw new Error("Could not add habit.");
     }
     
     revalidatePath("/dashboard/habits");
 }
+
 
 // Initializes habits for a new day if they don't exist
 export async function initializeHabitsForDay(initialHabits: Habit[], dateKey: string, userId: string) {

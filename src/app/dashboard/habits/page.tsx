@@ -77,7 +77,8 @@ export default function HabitsPage() {
   const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
 
   React.useEffect(() => {
-    if (authLoading) {
+    if (authLoading || !user) {
+      setIsLoading(true);
       return; 
     }
     
@@ -124,12 +125,14 @@ export default function HabitsPage() {
     
     try {
       await addHabit(newHabitObject, dateKey, user.uid);
+      // Optimistically update UI
       setHabits(prev => [...prev, newHabitObject]);
       toast({
           title: t.toastSuccess,
       });
     } catch(e) {
       console.error("Failed to add habit:", e);
+      // Optional: Add error toast
     }
   };
 
