@@ -9,12 +9,16 @@ import { Calendar } from "@/components/ui/calendar";
 import { useLanguage } from "@/context/language-provider";
 import { format } from "date-fns";
 import { es } from 'date-fns/locale';
-import { Droplets, Footprints, Brain, BookOpen, CheckCircle2 } from "lucide-react";
+import { Droplets, Footprints, Brain, BookOpen, CheckCircle2, Plus } from "lucide-react";
 import { getHabitsForDate, updateHabitsForDate } from "@/lib/firebase/habits";
 import type { Habit as HabitDB } from "@/lib/firebase/habits";
 import { useAuth } from "@/context/auth-provider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const translations = {
   es: {
@@ -35,6 +39,12 @@ const translations = {
     toastErrorTitle: "Error",
     toastErrorDescription: "No se pudieron guardar los cambios. Inténtalo de nuevo.",
     toastHabitAdded: "Hábito agregado exitosamente.",
+    addHabit: "Agregar Hábito",
+    addNewHabit: "Agregar Nuevo Hábito",
+    habitName: "Nombre",
+    habitNamePlaceholder: "Ej: Meditar por 5 minutos",
+    cancel: "Cancelar",
+    add: "Agregar",
   },
   en: {
     title: "Habit Tracking",
@@ -54,217 +64,240 @@ const translations = {
     toastErrorTitle: "Error",
     toastErrorDescription: "Could not save changes. Please try again.",
     toastHabitAdded: "Habit added successfully.",
+    addHabit: "Add Habit",
+    addNewHabit: "Add New Habit",
+    habitName: "Name",
+    habitNamePlaceholder: "E.g.: Meditate for 5 minutes",
+    cancel: "Cancel",
+    add: "Add",
   }
 };
 
-const getInitialHabitsForDay = (t: any): HabitDB[] => {
-  return [
+
+const getInitialHabitsForDay = (t: any): HabitDB[] => [
     { id: "hydrate", label: t.initialHabits.hydrate, completed: false },
     { id: "walk", label: t.initialHabits.walk, completed: false },
     { id: "mindful", label: t.initialHabits.mindful, completed: false },
     { id: "read", label: t.initialHabits.read, completed: false },
-  ];
-};
+];
 
 const mapHabitsForUI = (dbHabits: HabitDB[]): HabitUI[] => {
-  const iconMapping: {[key: string]: React.ReactNode} = {
-      hydrate: <Droplets className="h-5 w-5 text-primary" />,
-      walk: <Footprints className="h-5 w-5 text-primary" />,
-      mindful: <Brain className="h-5 w-5 text-primary" />,
-      read: <BookOpen className="h-5 w-5 text-primary" />
-  };
-  return dbHabits.map(h => ({
-      ...h,
-      icon: iconMapping[h.id] || <CheckCircle2 className="h-5 w-5 text-primary" />
-  }));
+    const iconMapping: { [key: string]: React.ReactNode } = {
+        hydrate: <Droplets className="h-5 w-5 text-primary" />,
+        walk: <Footprints className="h-5 w-5 text-primary" />,
+        mindful: <Brain className="h-5 w-5 text-primary" />,
+        read: <BookOpen className="h-5 w-5 text-primary" />
+    };
+    return dbHabits.map(h => ({
+        ...h,
+        icon: iconMapping[h.id] || <CheckCircle2 className="h-5 w-5 text-primary" />
+    }));
 };
 
 const HabitTrackerSkeleton = () => (
     <Card>
-      <CardHeader>
-        <Skeleton className="h-8 w-1/2" />
-        <Skeleton className="h-4 w-3/4" />
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="flex items-center space-x-3 p-3">
-            <Skeleton className="h-5 w-5 rounded-sm" />
-            <Skeleton className="h-5 w-5 rounded-full" />
-            <Skeleton className="h-5 flex-1" />
-          </div>
-        ))}
-      </CardContent>
+        <CardHeader>
+            <Skeleton className="h-8 w-1/2" />
+            <Skeleton className="h-4 w-3/4" />
+        </CardHeader>
+        <CardContent className="space-y-4">
+            {[...Array(4)].map((_, i) => (
+                <div key={i} className="flex items-center space-x-3 p-3">
+                    <Skeleton className="h-5 w-5 rounded-sm" />
+                    <Skeleton className="h-5 w-5 rounded-full" />
+                    <Skeleton className="h-5 flex-1" />
+                </div>
+            ))}
+        </CardContent>
     </Card>
 );
 
 export default function HabitsPage() {
-  const { language } = useLanguage();
-  const t = translations[language];
-  const { user } = useAuth();
-  const { toast } = useToast();
-  
-  const [date, setDate] = React.useState<Date | undefined>(new Date());
-  const [habits, setHabits] = React.useState<HabitDB[]>([]);
-  const [isLoading, setIsLoading] = React.useState(true);
-  
-  const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
+    const { language } = useLanguage();
+    const t = translations[language];
+    const { user } = useAuth();
+    const { toast } = useToast();
 
-  React.useEffect(() => {
-    // Do not fetch if there is no user or no selected date.
-    if (!user || !dateKey) {
-      setIsLoading(false);
-      return;
-    }
-    
-    let isMounted = true;
-    
-    const fetchHabits = async () => {
-      setIsLoading(true);
-      try {
-        const fetchedHabits = await getHabitsForDate(dateKey, user.uid);
-        if (isMounted) {
-            if (fetchedHabits.length === 0) {
-                const initialHabits = getInitialHabitsForDay(t);
-                // Pre-fill habits for the day if none exist
-                await updateHabitsForDate(initialHabits, dateKey, user.uid);
-                setHabits(initialHabits);
-            } else {
-                setHabits(fetchedHabits);
-            }
+    const [date, setDate] = React.useState<Date | undefined>(new Date());
+    const [habits, setHabits] = React.useState<HabitDB[]>([]);
+    const [isLoading, setIsLoading] = React.useState(true);
+    const [newHabitName, setNewHabitName] = React.useState("");
+    const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
+
+    const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
+
+    React.useEffect(() => {
+        if (!user || !dateKey) {
+            setIsLoading(false);
+            return;
         }
-      } catch (error) {
-        console.error("Error fetching habits:", error);
-        toast({
-            variant: "destructive",
-            title: t.toastErrorTitle,
-            description: "Could not fetch habits.",
-        });
-        if (isMounted) setHabits(getInitialHabitsForDay(t));
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
+
+        let isMounted = true;
+        const fetchHabits = async () => {
+            setIsLoading(true);
+            try {
+                const fetchedHabits = await getHabitsForDate(dateKey, user.uid);
+                if (isMounted) {
+                    if (fetchedHabits.length === 0) {
+                        const initialHabits = getInitialHabitsForDay(t);
+                        await updateHabitsForDate(initialHabits, dateKey, user.uid);
+                        setHabits(initialHabits);
+                    } else {
+                        setHabits(fetchedHabits);
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching habits:", error);
+                if (isMounted) setHabits(getInitialHabitsForDay(t));
+            } finally {
+                if (isMounted) setIsLoading(false);
+            }
+        };
+
+        fetchHabits();
+
+        return () => { isMounted = false; };
+    }, [dateKey, user, t]);
+
+    const handleAddHabit = async () => {
+        if (newHabitName.trim() === "" || !user || !dateKey) return;
+
+        const newHabit: HabitDB = {
+            id: `custom-${Date.now()}`,
+            label: newHabitName,
+            completed: false,
+        };
+
+        const newHabitsList = [...habits, newHabit];
+        setHabits(newHabitsList); // Optimistic update
+        setNewHabitName("");
+        setIsAddDialogOpen(false);
+
+        try {
+            await updateHabitsForDate(newHabitsList, dateKey, user.uid);
+            toast({
+                title: t.toastSuccessTitle,
+                description: t.toastHabitAdded,
+            });
+        } catch (e) {
+            console.error("Failed to update habits:", e);
+            setHabits(habits); // Revert on failure
+            toast({
+                variant: "destructive",
+                title: t.toastErrorTitle,
+                description: t.toastErrorDescription,
+            });
+        }
     };
 
-    fetchHabits();
-
-    return () => {
-      isMounted = false;
-    };
-
-  }, [dateKey, user, t, toast]);
-  
-  const handleSelectDate = (selectedDate: Date | undefined) => {
-    setDate(selectedDate);
-  };
-
-  const updateHabits = async (updatedHabits: HabitDB[]) => {
-      if (!dateKey || !user) return;
-      
-      try {
-          await updateHabitsForDate(updatedHabits, dateKey, user.uid);
-          return true; // Indicate success
-      } catch (e) {
-          console.error("Failed to update habits:", e);
-          toast({
-              variant: "destructive",
-              title: t.toastErrorTitle,
-              description: t.toastErrorDescription,
-          });
-          return false; // Indicate failure
-      }
-  };
-
-  const handleAddHabit = async (newHabitName: string) => {
-    if (newHabitName.trim() === "" || !user || !dateKey) return;
-
-    const newHabit: HabitDB = {
-      id: `custom-${Date.now()}`,
-      label: newHabitName,
-      completed: false,
-    };
-    
-    const newHabitsList = [...habits, newHabit];
-    
-    // Set state locally for instant UI update
-    setHabits(newHabitsList);
-    
-    // Then, persist the changes to Firestore
-    const success = await updateHabits(newHabitsList);
-
-    if (success) {
-      toast({
-          title: t.toastSuccessTitle,
-          description: t.toastHabitAdded,
-      });
-    } else {
-      // If the update fails, revert the local state to the previous one
-      setHabits(habits);
-    }
-  };
-  
-  const handleToggleHabit = (id: string) => {
-    const newHabitsList = habits.map(habit =>
-        habit.id === id ? { ...habit, completed: !habit.completed } : habit
-    );
-    setHabits(newHabitsList); // Optimistic UI update
-    updateHabits(newHabitsList).then(success => {
-      if(!success) {
-        // Revert on failure
-        setHabits(habits);
-      }
-    });
-  };
-  
-  const formatDate = (date: Date) => {
-    if (language === 'es') {
-      return format(date, "d 'de' MMMM 'de' yyyy", { locale: es });
-    }
-    return format(date, "MMMM d, yyyy");
-  };
-
-  return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <div className="max-w-4xl mx-auto">
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>{t.title}</CardTitle>
-            <CardDescription>{t.description}</CardDescription>
-          </CardHeader>
-        </Card>
+    const handleToggleHabit = async (id: string) => {
+        if (!user || !dateKey) return;
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="md:col-span-1">
-             <Card>
-                <CardHeader>
-                    <CardTitle className="text-xl">{t.calendarTitle}</CardTitle>
-                    <CardDescription>{t.calendarDescription}</CardDescription>
-                </CardHeader>
-                <CardContent className="flex justify-center">
-                    <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={handleSelectDate}
-                        className="rounded-md border p-0"
-                     />
-                </CardContent>
-            </Card>
-          </div>
-          <div className="md:col-span-2">
-            {isLoading ? (
-              <HabitTrackerSkeleton />
-            ) : (
-              <HabitTracker 
-                title={`${t.selectedDay} ${date ? formatDate(date) : ''}`} 
-                habits={mapHabitsForUI(habits)}
-                onAddHabit={handleAddHabit}
-                onToggleHabit={handleToggleHabit}
-                showEmptyState={habits.length === 0}
-              />
-            )}
-          </div>
+        const toggledHabits = habits.map(habit =>
+            habit.id === id ? { ...habit, completed: !habit.completed } : habit
+        );
+        
+        setHabits(toggledHabits); // Optimistic update
+        
+        try {
+            await updateHabitsForDate(toggledHabits, dateKey, user.uid);
+        } catch(e) {
+            setHabits(habits); // Revert
+             toast({
+                variant: "destructive",
+                title: t.toastErrorTitle,
+                description: t.toastErrorDescription,
+            });
+        }
+    };
+
+    const formatDate = (d: Date) => language === 'es'
+        ? format(d, "d 'de' MMMM 'de' yyyy", { locale: es })
+        : format(d, "MMMM d, yyyy");
+
+    return (
+        <div className="p-4 sm:p-6 lg:p-8">
+            <div className="max-w-4xl mx-auto">
+                <Card className="mb-8">
+                    <CardHeader>
+                        <CardTitle>{t.title}</CardTitle>
+                        <CardDescription>{t.description}</CardDescription>
+                    </CardHeader>
+                </Card>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div className="md:col-span-1">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-xl">{t.calendarTitle}</CardTitle>
+                                <CardDescription>{t.calendarDescription}</CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex justify-center">
+                                <Calendar
+                                    mode="single"
+                                    selected={date}
+                                    onSelect={setDate}
+                                    className="rounded-md border p-0"
+                                />
+                            </CardContent>
+                        </Card>
+                    </div>
+                    <div className="md:col-span-2">
+                        {isLoading ? (
+                            <HabitTrackerSkeleton />
+                        ) : (
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between">
+                                    <div>
+                                        <CardTitle className="font-headline">{`${t.selectedDay} ${date ? formatDate(date) : ''}`}</CardTitle>
+                                    </div>
+                                    <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                                        <DialogTrigger asChild>
+                                            <Button size="icon" variant="outline">
+                                                <Plus className="h-4 w-4" />
+                                                <span className="sr-only">{t.addHabit}</span>
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent>
+                                            <DialogHeader>
+                                                <DialogTitle>{t.addNewHabit}</DialogTitle>
+                                            </DialogHeader>
+                                            <div className="grid gap-4 py-4">
+                                                <div className="grid grid-cols-4 items-center gap-4">
+                                                    <Label htmlFor="habit-name" className="text-right">
+                                                        {t.habitName}
+                                                    </Label>
+                                                    <Input
+                                                        id="habit-name"
+                                                        value={newHabitName}
+                                                        onChange={(e) => setNewHabitName(e.target.value)}
+                                                        className="col-span-3"
+                                                        placeholder={t.habitNamePlaceholder}
+                                                        onKeyDown={(e) => e.key === 'Enter' && handleAddHabit()}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <DialogFooter>
+                                                <DialogClose asChild>
+                                                    <Button type="button" variant="secondary">{t.cancel}</Button>
+                                                </DialogClose>
+                                                <Button onClick={handleAddHabit} disabled={!newHabitName.trim()}>{t.add}</Button>
+                                            </DialogFooter>
+                                        </DialogContent>
+                                    </Dialog>
+                                </CardHeader>
+                                <CardContent>
+                                    <HabitTracker
+                                        habits={mapHabitsForUI(habits)}
+                                        onToggleHabit={handleToggleHabit}
+                                    />
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 }
 
