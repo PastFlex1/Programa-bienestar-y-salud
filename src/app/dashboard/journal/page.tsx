@@ -2,22 +2,31 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from '@/context/language-provider';
 import { useUser } from '@/context/user-provider';
 import { useAuth } from '@/context/auth-provider';
-import { History, Calendar as CalendarIcon, Save } from 'lucide-react';
+import { History, Calendar as CalendarIcon, Save, Trash2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { saveJournalEntry, getJournalEntries, JournalEntry } from '@/lib/firebase/journal';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Calendar } from '@/components/ui/calendar';
+import { saveJournalEntry, getJournalEntries, JournalEntry, deleteJournalEntry } from '@/lib/firebase/journal';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 const translations = {
     es: {
@@ -32,7 +41,12 @@ const translations = {
         history: "Historial de Entradas",
         noHistory: "Aún no tienes entradas en tu diario.",
         loadingHistory: "Cargando historial...",
-        selectDate: "Selecciona una fecha"
+        selectDate: "Selecciona una fecha",
+        deleteConfirmTitle: "¿Estás seguro?",
+        deleteConfirmDesc: "Esta acción no se puede deshacer. Esto eliminará permanentemente tu entrada del diario.",
+        cancel: "Cancelar",
+        delete: "Eliminar",
+        deleteError: "No se pudo eliminar la entrada."
     },
     en: {
         welcome: "Welcome to your Journal",
@@ -46,7 +60,12 @@ const translations = {
         history: "Entry History",
         noHistory: "You don't have any journal entries yet.",
         loadingHistory: "Loading history...",
-        selectDate: "Select a date"
+        selectDate: "Select a date",
+        deleteConfirmTitle: "Are you sure?",
+        deleteConfirmDesc: "This action cannot be undone. This will permanently delete your journal entry.",
+        cancel: "Cancel",
+        delete: "Delete",
+        deleteError: "Could not delete the entry."
     }
 };
 
@@ -63,25 +82,17 @@ export default function JournalPage() {
     const [error, setError] = useState<string | null>(null);
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
-    const selectedDateFormatted = selectedDate.toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-    });
-    
     useEffect(() => {
-        const fetchEntries = async () => {
-            if (!user) {
-              if(!authLoading) setIsLoadingHistory(false);
-              return;
-            };
-            setIsLoadingHistory(true);
-            const fetchedEntries = await getJournalEntries(user.uid);
-            setEntries(fetchedEntries);
+        if (!user && !authLoading) {
             setIsLoadingHistory(false);
-        };
-        fetchEntries();
+            return;
+        }
+        if (user) {
+            setIsLoadingHistory(true);
+            getJournalEntries(user.uid)
+                .then(setEntries)
+                .finally(() => setIsLoadingHistory(false));
+        }
     }, [user, authLoading]);
 
     const handleSaveEntry = async () => {
@@ -104,10 +115,8 @@ export default function JournalPage() {
 
         try {
             await saveJournalEntry(newEntryData, user.uid);
-            
             setEntries(prev => [newEntryData, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
             setEntry(""); 
-
         } catch (e) {
             setError(t.saveError);
         } finally {
@@ -115,6 +124,20 @@ export default function JournalPage() {
         }
     };
     
+    const handleDeleteEntry = async (entryToDelete: JournalEntry) => {
+        if (!user) {
+            setError(t.deleteError);
+            return;
+        }
+        
+        try {
+            await deleteJournalEntry(entryToDelete, user.uid);
+            setEntries(prev => prev.filter(e => e.date !== entryToDelete.date));
+        } catch (e) {
+            setError(t.deleteError);
+        }
+    };
+
     const formatEntryDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', {
             year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
@@ -127,34 +150,14 @@ export default function JournalPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle>{t.welcome}, {userName || 'User'}</CardTitle>
-                        <CardDescription>
-                             {t.selectedDate} {selectedDateFormatted}. {t.reflect}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="flex flex-col sm:flex-row gap-4">
-                            <Textarea 
-                                placeholder={t.placeholder}
-                                rows={10}
-                                className="resize-none flex-1"
-                                value={entry}
-                                onChange={(e) => setEntry(e.target.value)}
-                            />
+                         <div className="flex items-center justify-between text-sm text-muted-foreground">
+                            <span>
+                                {t.selectedDate} {format(selectedDate, 'PPP', { locale: language === 'es' ? es : undefined })}. {t.reflect}
+                            </span>
                             <Popover>
                                 <PopoverTrigger asChild>
-                                <Button
-                                    variant={"outline"}
-                                    className={cn(
-                                    "w-full sm:w-[280px] justify-start text-left font-normal",
-                                    !selectedDate && "text-muted-foreground"
-                                    )}
-                                >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {selectedDate ? (
-                                        format(selectedDate, 'PPP', { locale: language === 'es' ? es : undefined })
-                                    ) : (
-                                        <span>{t.selectDate}</span>
-                                    )}
+                                <Button variant="ghost" size="icon">
+                                    <CalendarIcon className="h-5 w-5" />
                                 </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0">
@@ -167,6 +170,15 @@ export default function JournalPage() {
                                 </PopoverContent>
                             </Popover>
                         </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <Textarea 
+                            placeholder={t.placeholder}
+                            rows={8}
+                            className="resize-none flex-1"
+                            value={entry}
+                            onChange={(e) => setEntry(e.target.value)}
+                        />
                         <Button onClick={handleSaveEntry} disabled={isSaving || !entry.trim() || authLoading}>
                             {isSaving ? (
                                 <>
@@ -184,36 +196,56 @@ export default function JournalPage() {
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                           <History className="h-6 w-6" />
-                           {t.history}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {isLoadingHistory ? (
-                            <div className="space-y-2">
-                                <Skeleton className="h-8 w-full" />
-                                <Skeleton className="h-8 w-full" />
-                                <Skeleton className="h-8 w-full" />
-                            </div>
-                        ) : entries.length > 0 ? (
-                            <Accordion type="single" collapsible className="w-full">
-                                {entries.map((item) => (
-                                    <AccordionItem value={item.date} key={item.date}>
-                                        <AccordionTrigger>{formatEntryDate(item.date)}</AccordionTrigger>
-                                        <AccordionContent className="whitespace-pre-wrap text-muted-foreground">
-                                            {item.entry}
-                                        </AccordionContent>
-                                    </AccordionItem>
-                                ))}
-                            </Accordion>
-                        ) : (
-                            <p className="text-muted-foreground">{t.noHistory}</p>
-                        )}
-                    </CardContent>
-                </Card>
+                <div className="space-y-4">
+                    <h2 className="text-2xl font-bold font-headline flex items-center gap-2">
+                       <History className="h-6 w-6" />
+                       {t.history}
+                    </h2>
+                     {isLoadingHistory ? (
+                        <div className="space-y-4">
+                            <Skeleton className="h-24 w-full" />
+                            <Skeleton className="h-24 w-full" />
+                        </div>
+                    ) : entries.length > 0 ? (
+                        entries.map((item) => (
+                           <Card key={item.date}>
+                               <CardHeader>
+                                   <CardTitle className="text-lg">
+                                       {formatEntryDate(item.date)}
+                                   </CardTitle>
+                               </CardHeader>
+                               <CardContent className="whitespace-pre-wrap text-muted-foreground">
+                                   {item.entry}
+                               </CardContent>
+                               <CardFooter className="flex justify-end">
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="icon">
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>{t.deleteConfirmTitle}</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            {t.deleteConfirmDesc}
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>{t.cancel}</AlertDialogCancel>
+                                          <AlertDialogAction onClick={() => handleDeleteEntry(item)} className={buttonVariants({ variant: "destructive" })}>
+                                            {t.delete}
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                               </CardFooter>
+                           </Card>
+                        ))
+                    ) : (
+                        <p className="text-muted-foreground text-center py-8">{t.noHistory}</p>
+                    )}
+                </div>
             </div>
         </div>
     );

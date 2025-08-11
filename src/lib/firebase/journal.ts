@@ -1,7 +1,7 @@
 
 "use server";
 
-import { collection, doc, setDoc, updateDoc, arrayUnion, getDoc } from "firebase/firestore";
+import { collection, doc, setDoc, updateDoc, arrayUnion, getDoc, arrayRemove } from "firebase/firestore";
 import { db } from "./config";
 import { revalidatePath } from "next/cache";
 
@@ -34,12 +34,10 @@ export async function saveJournalEntry(entry: JournalEntry, userId: string) {
         };
 
         if (docSnap.exists()) {
-            // If the user document exists, add the new entry to the 'entries' array.
             await updateDoc(userJournalDocRef, {
                 entries: arrayUnion(newEntryWithDate)
             });
         } else {
-            // If the user document doesn't exist, create it with the first entry.
             await setDoc(userJournalDocRef, {
                 entries: [newEntryWithDate]
             });
@@ -63,7 +61,6 @@ export async function getJournalEntries(userId: string): Promise<JournalEntry[]>
     try {
         const docSnap = await getDoc(userJournalDocRef);
         if (docSnap.exists() && docSnap.data().entries) {
-            // Firestore returns entries, which might not be sorted. Sort them by date descending.
             const entries = docSnap.data().entries as JournalEntry[];
             return entries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         } else {
@@ -71,6 +68,25 @@ export async function getJournalEntries(userId: string): Promise<JournalEntry[]>
         }
     } catch (error) {
         console.error("Error fetching journal entries:", error);
-        return []; // Return empty array on error
+        return [];
     }
+}
+
+export async function deleteJournalEntry(entryToDelete: JournalEntry, userId: string) {
+    if (!userId) {
+        throw new Error("User not authenticated");
+    }
+
+    const userJournalDocRef = doc(journalCollection, userId);
+
+    try {
+        await updateDoc(userJournalDocRef, {
+            entries: arrayRemove(entryToDelete)
+        });
+    } catch (error) {
+        console.error("Error deleting journal entry:", error);
+        throw new Error("Could not delete journal entry.");
+    }
+    
+    revalidatePath("/dashboard/journal");
 }
