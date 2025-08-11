@@ -1,8 +1,6 @@
 
 "use client";
 
-// This page is no longer used due to the redirect in next.config.js,
-// but it's kept as a fallback.
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,7 +21,7 @@ export default function Home() {
     const router = useRouter();
 
     useEffect(() => {
-        router.replace('/dashboard');
+        router.replace('/auth/login');
     }, [router]);
 
     return <LoadingScreen />;
