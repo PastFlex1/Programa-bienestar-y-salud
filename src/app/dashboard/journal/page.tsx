@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const translations = {
     es: {
@@ -46,7 +47,10 @@ const translations = {
         deleteConfirmDesc: "Esta acción no se puede deshacer. Esto eliminará permanentemente tu entrada del diario.",
         cancel: "Cancelar",
         delete: "Eliminar",
-        deleteError: "No se pudo eliminar la entrada."
+        deleteError: "No se pudo eliminar la entrada.",
+        entryDate: "Fecha de Entrada",
+        entryContent: "Entrada",
+        actions: "Acciones"
     },
     en: {
         welcome: "Welcome to your Journal",
@@ -65,7 +69,10 @@ const translations = {
         deleteConfirmDesc: "This action cannot be undone. This will permanently delete your journal entry.",
         cancel: "Cancel",
         delete: "Delete",
-        deleteError: "Could not delete the entry."
+        deleteError: "Could not delete the entry.",
+        entryDate: "Entry Date",
+        entryContent: "Entry",
+        actions: "Actions"
     }
 };
 
@@ -209,41 +216,50 @@ export default function JournalPage() {
                             <Skeleton className="h-24 w-full" />
                         </div>
                     ) : entries.length > 0 ? (
-                        entries.map((item) => (
-                           <Card key={item.date}>
-                               <CardHeader>
-                                   <CardTitle className="text-lg">
-                                       {formatEntryDate(item.date)}
-                                   </CardTitle>
-                               </CardHeader>
-                               <CardContent className="whitespace-pre-wrap text-muted-foreground">
-                                   {item.entry}
-                               </CardContent>
-                               <CardFooter className="flex justify-end">
-                                    <AlertDialog>
-                                      <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="icon">
-                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                        </Button>
-                                      </AlertDialogTrigger>
-                                      <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                          <AlertDialogTitle>{t.deleteConfirmTitle}</AlertDialogTitle>
-                                          <AlertDialogDescription>
-                                            {t.deleteConfirmDesc}
-                                          </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                          <AlertDialogCancel>{t.cancel}</AlertDialogCancel>
-                                          <AlertDialogAction onClick={() => handleDeleteEntry(item)} className={cn(buttonVariants({ variant: "destructive" }))}>
-                                            {t.delete}
-                                          </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                      </AlertDialogContent>
-                                    </AlertDialog>
-                               </CardFooter>
-                           </Card>
-                        ))
+                       <Card>
+                           <CardContent className="p-0">
+                               <Table>
+                                   <TableHeader>
+                                       <TableRow>
+                                           <TableHead>{t.entryDate}</TableHead>
+                                           <TableHead>{t.entryContent}</TableHead>
+                                           <TableHead className="text-right">{t.actions}</TableHead>
+                                       </TableRow>
+                                   </TableHeader>
+                                   <TableBody>
+                                       {entries.map((item) => (
+                                           <TableRow key={item.date}>
+                                               <TableCell className="font-medium">{formatEntryDate(item.date)}</TableCell>
+                                               <TableCell className="whitespace-pre-wrap text-muted-foreground">{item.entry}</TableCell>
+                                               <TableCell className="text-right">
+                                                   <AlertDialog>
+                                                     <AlertDialogTrigger asChild>
+                                                       <Button variant="ghost" size="icon">
+                                                           <Trash2 className="h-4 w-4 text-destructive" />
+                                                       </Button>
+                                                     </AlertDialogTrigger>
+                                                     <AlertDialogContent>
+                                                       <AlertDialogHeader>
+                                                         <AlertDialogTitle>{t.deleteConfirmTitle}</AlertDialogTitle>
+                                                         <AlertDialogDescription>
+                                                           {t.deleteConfirmDesc}
+                                                         </AlertDialogDescription>
+                                                       </AlertDialogHeader>
+                                                       <AlertDialogFooter>
+                                                         <AlertDialogCancel>{t.cancel}</AlertDialogCancel>
+                                                         <AlertDialogAction onClick={() => handleDeleteEntry(item)} className={cn(buttonVariants({ variant: "destructive" }))}>
+                                                           {t.delete}
+                                                         </AlertDialogAction>
+                                                       </AlertDialogFooter>
+                                                     </AlertDialogContent>
+                                                   </AlertDialog>
+                                               </TableCell>
+                                           </TableRow>
+                                       ))}
+                                   </TableBody>
+                               </Table>
+                           </CardContent>
+                       </Card>
                     ) : (
                         <p className="text-muted-foreground text-center py-8">{t.noHistory}</p>
                     )}
