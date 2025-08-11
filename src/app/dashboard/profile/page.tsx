@@ -12,6 +12,7 @@ import { useUser } from '@/context/user-provider';
 import { useLanguage } from '@/context/language-provider';
 import { logoutAction } from '@/lib/firebase/auth';
 import { useAuth } from '@/context/auth-provider';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const translations = {
   es: {
@@ -27,7 +28,8 @@ const translations = {
     toastFileTooLargeTitle: "Archivo muy grande",
     toastFileTooLargeDescription: "Por favor, selecciona una imagen de menos de 2MB.",
     emailPlaceholder: "usuario@example.com",
-    avatarAlt: "Perfil de usuario"
+    avatarAlt: "Perfil de usuario",
+    loadingProfile: "Cargando perfil..."
   },
   en: {
     title: "User Profile",
@@ -42,7 +44,8 @@ const translations = {
     toastFileTooLargeTitle: "File Too Large",
     toastFileTooLargeDescription: "Please select an image smaller than 2MB.",
     emailPlaceholder: "user@example.com",
-    avatarAlt: "User profile"
+    avatarAlt: "User profile",
+    loadingProfile: "Loading profile..."
   }
 };
 
@@ -50,7 +53,7 @@ const translations = {
 export default function ProfilePage() {
   const { language } = useLanguage();
   const t = translations[language];
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const { userName, avatarUrl, updateUser } = useUser();
   
@@ -99,6 +102,39 @@ export default function ProfilePage() {
   const handleAvatarButtonClick = () => {
     fileInputRef.current?.click();
   };
+
+  if (authLoading) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="max-w-2xl mx-auto space-y-8">
+          <Card>
+            <CardHeader>
+              <CardTitle><Skeleton className="h-8 w-48" /></CardTitle>
+              <CardDescription><Skeleton className="h-5 w-72" /></CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center space-x-4">
+                <Skeleton className="h-20 w-20 rounded-full" />
+                <Skeleton className="h-10 w-32" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-20" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-20" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+              <Skeleton className="h-10 w-36" />
+            </CardContent>
+            <CardFooter className="flex justify-end">
+                <Skeleton className="h-10 w-28" />
+            </CardFooter>
+          </Card>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
