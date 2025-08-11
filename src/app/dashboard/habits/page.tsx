@@ -150,7 +150,7 @@ export default function HabitsPage() {
         
         try {
             await updateHabitsForDate(newHabitsList, dateKey, user.uid);
-            setHabits(newHabitsList); // Update state on success
+            setHabits(newHabitsList); 
             toast({
                 title: t.toastSuccessTitle,
                 description: t.toastHabitAdded,
@@ -177,7 +177,6 @@ export default function HabitsPage() {
             habit.id === id ? { ...habit, completed: !habit.completed } : habit
         );
         
-        // Optimistic update
         setHabits(toggledHabits);
         
         try {
@@ -188,7 +187,6 @@ export default function HabitsPage() {
                 title: t.toastErrorTitle,
                 description: t.toastErrorDescription,
             });
-            // Revert optimistic update
             setHabits(habits);
         }
     };
@@ -286,5 +284,3 @@ export default function HabitsPage() {
         </div>
     );
 }
-
-    

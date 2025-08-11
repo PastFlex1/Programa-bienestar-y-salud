@@ -1,7 +1,7 @@
 
 "use server";
 
-import { collection, doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "./config";
 import { revalidatePath } from "next/cache";
 
@@ -38,7 +38,8 @@ export async function getHabitsForDate(dateKey: string, userId: string): Promise
             // Ensure the habits field is an array before returning
             return Array.isArray(data.habits) ? data.habits : [];
         } else {
-            // Document for this date does not exist yet
+            // Document for this date does not exist yet, return empty array.
+            // The initial habits will be set on the client side.
             return [];
         }
     } catch (error) {
@@ -62,11 +63,14 @@ export async function updateHabitsForDate(habits: Habit[], dateKey: string, user
     
     try {
         const dateDocRef = getHabitDateDocRef(userId, dateKey);
+        // Using setDoc with merge: true is safer if the document might have other fields
+        // but for this specific case, a simple setDoc is fine as we manage the whole 'habits' array.
         await setDoc(dateDocRef, { 
             habits: habits,
             lastUpdated: serverTimestamp()
         });
         
+        // Revalidate the path to ensure the cache is updated on the client.
         revalidatePath("/dashboard/habits");
     } catch (error) {
         console.error("Error updating habits for date:", dateKey, error);
