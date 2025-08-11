@@ -113,37 +113,54 @@ export default function HabitsPage() {
     
     const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
 
+    console.log("HabitsPage Rendering. User:", user);
+
     React.useEffect(() => {
+        console.log("useEffect triggered. User:", user, "dateKey:", dateKey);
         if (!user || !dateKey) {
             setIsLoading(false);
+            console.log("useEffect exited early: no user or dateKey.");
             return;
         }
 
         let isMounted = true;
         setIsLoading(true);
+        console.log("useEffect fetching habits for date:", dateKey);
 
         getHabitsForDate(dateKey, user.uid)
             .then(fetchedHabits => {
                 if (isMounted) {
+                    console.log("Fetched habits:", fetchedHabits);
                     setHabits(fetchedHabits.length > 0 ? fetchedHabits : getInitialHabitsForDay(t));
                 }
             })
             .catch(error => {
-                console.error("Error fetching habits:", error);
+                console.error("useEffect: Error fetching habits:", error);
                 if (isMounted) setHabits(getInitialHabitsForDay(t));
             })
             .finally(() => {
-                if (isMounted) setIsLoading(false);
+                if (isMounted) {
+                    setIsLoading(false);
+                    console.log("useEffect finished fetching.");
+                }
             });
 
-        return () => { isMounted = false; };
+        return () => { 
+            console.log("useEffect cleanup.");
+            isMounted = false; 
+        };
     }, [dateKey, user, t]);
 
 
     const handleAddHabit = async () => {
-        if (newHabitName.trim() === "" || !user || !dateKey) return;
+        console.log("handleAddHabit called. newHabitName:", newHabitName, "user:", user, "dateKey:", dateKey);
+        if (newHabitName.trim() === "" || !user || !dateKey) {
+             console.log("handleAddHabit exited early: validation failed.");
+            return;
+        }
 
         setIsSaving(true);
+        console.log("handleAddHabit: isSaving set to true");
 
         const newHabit: HabitDB = {
             id: `custom-${Date.now()}`,
@@ -154,7 +171,9 @@ export default function HabitsPage() {
         const newHabitsList = [...habits, newHabit];
         
         try {
+            console.log("handleAddHabit: Calling updateHabitsForDate with:", newHabitsList);
             await updateHabitsForDate(newHabitsList, dateKey, user.uid);
+            console.log("handleAddHabit: updateHabitsForDate successful.");
             setHabits(newHabitsList);
             toast({
                 title: t.toastSuccessTitle,
@@ -163,7 +182,7 @@ export default function HabitsPage() {
             setNewHabitName(""); 
             setIsAddDialogOpen(false);
         } catch (e) {
-            console.error("Failed to update habits:", e);
+            console.error("handleAddHabit: Failed to update habits:", e);
             toast({
                 variant: "destructive",
                 title: t.toastErrorTitle,
@@ -171,22 +190,30 @@ export default function HabitsPage() {
             });
         } finally {
             setIsSaving(false);
+             console.log("handleAddHabit: isSaving set to false");
         }
     };
 
 
     const handleToggleHabit = async (id: string) => {
-        if (!user || !dateKey) return;
+        console.log("handleToggleHabit called for id:", id);
+        if (!user || !dateKey) {
+            console.log("handleToggleHabit exited early: no user or dateKey.");
+            return;
+        }
         
         const toggledHabits = habits.map(habit =>
             habit.id === id ? { ...habit, completed: !habit.completed } : habit
         );
         
         setHabits(toggledHabits);
+        console.log("handleToggleHabit: UI state updated.", toggledHabits);
         
         try {
             await updateHabitsForDate(toggledHabits, dateKey, user.uid);
+            console.log("handleToggleHabit: updateHabitsForDate successful.");
         } catch(e) {
+             console.error("handleToggleHabit: Failed to update habits, reverting UI.", e);
              toast({
                 variant: "destructive",
                 title: t.toastErrorTitle,
@@ -303,7 +330,5 @@ export default function HabitsPage() {
         </div>
     );
 }
-
-    
 
     
