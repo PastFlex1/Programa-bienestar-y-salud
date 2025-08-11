@@ -1,12 +1,12 @@
 
 "use server";
 
-import { collection, doc, setDoc, updateDoc, arrayUnion, getDoc, arrayRemove } from "firebase/firestore";
+import { collection, doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "./config";
 import { revalidatePath } from "next/cache";
 
 export interface JournalEntry {
-    date: string;
+    date: string; // ISO string
     entry: string;
 }
 
@@ -24,10 +24,14 @@ export async function saveJournalEntry(entry: JournalEntry, userId: string) {
         const docSnap = await getDoc(userJournalDocRef);
 
         if (docSnap.exists()) {
-            await updateDoc(userJournalDocRef, {
-                entries: arrayUnion(entry)
+            // Document exists, update the entries array
+            const existingEntries = docSnap.data().entries as JournalEntry[] || [];
+            const updatedEntries = [...existingEntries, entry];
+             await updateDoc(userJournalDocRef, {
+                entries: updatedEntries
             });
         } else {
+            // Document doesn't exist, create it with the first entry
             await setDoc(userJournalDocRef, {
                 entries: [entry]
             });
@@ -70,9 +74,14 @@ export async function deleteJournalEntry(entryToDelete: JournalEntry, userId: st
     const userJournalDocRef = doc(journalCollection, userId);
 
     try {
-        await updateDoc(userJournalDocRef, {
-            entries: arrayRemove(entryToDelete)
-        });
+        const docSnap = await getDoc(userJournalDocRef);
+        if (docSnap.exists()) {
+             const existingEntries = docSnap.data().entries as JournalEntry[] || [];
+             const updatedEntries = existingEntries.filter(e => e.date !== entryToDelete.date || e.entry !== entryToDelete.entry);
+             await updateDoc(userJournalDocRef, {
+                entries: updatedEntries
+            });
+        }
     } catch (error) {
         console.error("Error deleting journal entry:", error);
         throw new Error("Could not delete journal entry.");
