@@ -12,12 +12,10 @@ export type Habit = {
   completed: boolean;
 };
 
-const usersCollection = collection(db, "users");
-
 // Gets a reference to a specific habit date document for a user
 const getHabitDateDocRef = (userId: string, dateKey: string) => {
     // Path: /users/{userId}/habitDates/{yyyy-MM-dd}
-    return doc(usersCollection, userId, "habitDates", dateKey);
+    return doc(db, "users", userId, "habitDates", dateKey);
 }
 
 /**
@@ -64,14 +62,11 @@ export async function updateHabitsForDate(habits: Habit[], dateKey: string, user
     
     try {
         const dateDocRef = getHabitDateDocRef(userId, dateKey);
-        // Using setDoc will create the document if it doesn't exist, 
-        // or completely overwrite it if it does. This is a reliable way to manage the daily list.
         await setDoc(dateDocRef, { 
             habits: habits,
-            lastUpdated: serverTimestamp() // Adds a timestamp for debugging
+            lastUpdated: serverTimestamp()
         });
         
-        // Revalidate the path to ensure data is fresh on the client
         revalidatePath("/dashboard/habits");
     } catch (error) {
         console.error("Error updating habits for date:", dateKey, error);

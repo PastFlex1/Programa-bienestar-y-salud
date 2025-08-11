@@ -115,7 +115,7 @@ const HabitTrackerSkeleton = () => (
 export default function HabitsPage() {
     const { language } = useLanguage();
     const t = translations[language];
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const { toast } = useToast();
 
     const [date, setDate] = React.useState<Date | undefined>(new Date());
@@ -127,6 +127,10 @@ export default function HabitsPage() {
     const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
 
     React.useEffect(() => {
+        if (authLoading) {
+            setIsLoading(true);
+            return;
+        }
         if (!user || !dateKey) {
             setIsLoading(false);
             return;
@@ -140,7 +144,7 @@ export default function HabitsPage() {
                 if (isMounted) {
                     if (fetchedHabits.length === 0) {
                         const initialHabits = getInitialHabitsForDay(t);
-                        await updateHabitsForDate(initialHabits, dateKey, user.uid);
+                        // Do not auto-add habits, let the user decide
                         setHabits(initialHabits);
                     } else {
                         setHabits(fetchedHabits);
@@ -157,7 +161,7 @@ export default function HabitsPage() {
         fetchHabits();
 
         return () => { isMounted = false; };
-    }, [dateKey, user, t]);
+    }, [dateKey, user, t, authLoading]);
 
     const handleAddHabit = async () => {
         if (newHabitName.trim() === "" || !user || !dateKey) return;
@@ -167,21 +171,20 @@ export default function HabitsPage() {
             label: newHabitName,
             completed: false,
         };
-
+        
         const newHabitsList = [...habits, newHabit];
-        setHabits(newHabitsList); // Optimistic update
-        setNewHabitName("");
-        setIsAddDialogOpen(false);
-
+        
         try {
             await updateHabitsForDate(newHabitsList, dateKey, user.uid);
+            setHabits(newHabitsList);
+            setNewHabitName("");
+            setIsAddDialogOpen(false);
             toast({
                 title: t.toastSuccessTitle,
                 description: t.toastHabitAdded,
             });
         } catch (e) {
             console.error("Failed to update habits:", e);
-            setHabits(habits); // Revert on failure
             toast({
                 variant: "destructive",
                 title: t.toastErrorTitle,
@@ -197,12 +200,10 @@ export default function HabitsPage() {
             habit.id === id ? { ...habit, completed: !habit.completed } : habit
         );
         
-        setHabits(toggledHabits); // Optimistic update
-        
         try {
             await updateHabitsForDate(toggledHabits, dateKey, user.uid);
+            setHabits(toggledHabits);
         } catch(e) {
-            setHabits(habits); // Revert
              toast({
                 variant: "destructive",
                 title: t.toastErrorTitle,
@@ -214,6 +215,8 @@ export default function HabitsPage() {
     const formatDate = (d: Date) => language === 'es'
         ? format(d, "d 'de' MMMM 'de' yyyy", { locale: es })
         : format(d, "MMMM d, yyyy");
+    
+    const pageLoading = authLoading || isLoading;
 
     return (
         <div className="p-4 sm:p-6 lg:p-8">
@@ -243,7 +246,7 @@ export default function HabitsPage() {
                         </Card>
                     </div>
                     <div className="md:col-span-2">
-                        {isLoading ? (
+                        {pageLoading ? (
                             <HabitTrackerSkeleton />
                         ) : (
                             <Card>
