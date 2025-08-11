@@ -100,7 +100,7 @@ const HabitTrackerSkeleton = () => (
 export default function HabitsPage() {
   const { language } = useLanguage();
   const t = translations[language];
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   
   const [date, setDate] = React.useState<Date | undefined>(new Date());
@@ -110,7 +110,9 @@ export default function HabitsPage() {
   const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
 
   React.useEffect(() => {
+    // Do not fetch if there is no user or no selected date.
     if (!user || !dateKey) {
+      setIsLoading(false);
       return;
     }
     
@@ -123,6 +125,7 @@ export default function HabitsPage() {
         if (isMounted) {
             if (fetchedHabits.length === 0) {
                 const initialHabits = getInitialHabitsForDay(t);
+                // Pre-fill habits for the day if none exist
                 await updateHabitsForDate(initialHabits, dateKey, user.uid);
                 setHabits(initialHabits);
             } else {
@@ -131,6 +134,11 @@ export default function HabitsPage() {
         }
       } catch (error) {
         console.error("Error fetching habits:", error);
+        toast({
+            variant: "destructive",
+            title: t.toastErrorTitle,
+            description: "Could not fetch habits.",
+        });
         if (isMounted) setHabits(getInitialHabitsForDay(t));
       } finally {
         if (isMounted) setIsLoading(false);
@@ -143,23 +151,18 @@ export default function HabitsPage() {
       isMounted = false;
     };
 
-  }, [dateKey, user, t]);
+  }, [dateKey, user, t, toast]);
   
   const handleSelectDate = (selectedDate: Date | undefined) => {
     setDate(selectedDate);
   };
 
-  const handleUpdateHabits = async (updatedHabits: HabitDB[]) => {
+  const updateHabits = async (updatedHabits: HabitDB[]) => {
       if (!dateKey || !user) return;
       
-      setHabits(updatedHabits);
-
       try {
           await updateHabitsForDate(updatedHabits, dateKey, user.uid);
-          toast({
-              title: t.toastSuccessTitle,
-              description: t.toastSuccessDescription
-          });
+          return true; // Indicate success
       } catch (e) {
           console.error("Failed to update habits:", e);
           toast({
@@ -167,12 +170,10 @@ export default function HabitsPage() {
               title: t.toastErrorTitle,
               description: t.toastErrorDescription,
           });
-          // Revert on failure
-          const fetchedHabits = await getHabitsForDate(dateKey, user.uid);
-          setHabits(fetchedHabits);
+          return false; // Indicate failure
       }
   };
-  
+
   const handleAddHabit = async (newHabitName: string) => {
     if (newHabitName.trim() === "" || !user || !dateKey) return;
 
@@ -188,29 +189,30 @@ export default function HabitsPage() {
     setHabits(newHabitsList);
     
     // Then, persist the changes to Firestore
-    try {
-        await updateHabitsForDate(newHabitsList, dateKey, user.uid);
-        toast({
-            title: t.toastSuccessTitle,
-            description: t.toastHabitAdded,
-        });
-    } catch(e) {
-        console.error("Failed to add habit:", e);
-        // If the update fails, revert the local state
-        setHabits(habits);
-        toast({
-            variant: "destructive",
-            title: t.toastErrorTitle,
-            description: t.toastErrorDescription,
-        });
+    const success = await updateHabits(newHabitsList);
+
+    if (success) {
+      toast({
+          title: t.toastSuccessTitle,
+          description: t.toastHabitAdded,
+      });
+    } else {
+      // If the update fails, revert the local state to the previous one
+      setHabits(habits);
     }
   };
-
+  
   const handleToggleHabit = (id: string) => {
     const newHabitsList = habits.map(habit =>
         habit.id === id ? { ...habit, completed: !habit.completed } : habit
     );
-    handleUpdateHabits(newHabitsList);
+    setHabits(newHabitsList); // Optimistic UI update
+    updateHabits(newHabitsList).then(success => {
+      if(!success) {
+        // Revert on failure
+        setHabits(habits);
+      }
+    });
   };
   
   const formatDate = (date: Date) => {
@@ -219,8 +221,6 @@ export default function HabitsPage() {
     }
     return format(date, "MMMM d, yyyy");
   };
-
-  const pageLoading = authLoading || isLoading;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -250,7 +250,7 @@ export default function HabitsPage() {
             </Card>
           </div>
           <div className="md:col-span-2">
-            {pageLoading ? (
+            {isLoading ? (
               <HabitTrackerSkeleton />
             ) : (
               <HabitTracker 
@@ -267,3 +267,4 @@ export default function HabitsPage() {
     </div>
   );
 }
+
