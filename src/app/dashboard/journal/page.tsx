@@ -7,10 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from '@/context/language-provider';
 import { useUser } from '@/context/user-provider';
-import { analyzeJournalEntry } from '@/ai/flows/journal-analysis-flow';
-import type { JournalAnalysis } from '@/ai/flows/journal-analysis-flow';
-import { JournalResponse } from '@/components/journal-response';
-import { Sparkles, History, Calendar as CalendarIcon } from 'lucide-react';
+import { History, Calendar as CalendarIcon, Save } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { saveJournalEntry, getJournalEntries, JournalEntry } from '@/lib/firebase/journal';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -27,11 +24,10 @@ const translations = {
         selectedDate: "Entrada para el",
         reflect: "Tómate un momento para reflexionar.",
         placeholder: "¿Qué tienes en mente?",
-        analyzeButton: "Guardar y Analizar",
-        analyzingButton: "Guardando y Analizando...",
-        error: "Hubo un error al analizar la entrada.",
+        saveButton: "Guardar Entrada",
+        savingButton: "Guardando...",
         saveError: "Hubo un error al guardar tu entrada.",
-        noContent: "Por favor, escribe algo antes de analizar.",
+        noContent: "Por favor, escribe algo antes de guardar.",
         history: "Historial de Entradas",
         noHistory: "Aún no tienes entradas en tu diario.",
         loadingHistory: "Cargando historial...",
@@ -42,11 +38,10 @@ const translations = {
         selectedDate: "Entry for",
         reflect: "Take a moment to reflect.",
         placeholder: "What's on your mind?",
-        analyzeButton: "Save & Analyze",
-        analyzingButton: "Saving & Analyzing...",
-        error: "There was an error analyzing the entry.",
+        saveButton: "Save Entry",
+        savingButton: "Saving...",
         saveError: "There was an error saving your entry.",
-        noContent: "Please write something before analyzing.",
+        noContent: "Please write something before saving.",
         history: "Entry History",
         noHistory: "You don't have any journal entries yet.",
         loadingHistory: "Loading history...",
@@ -61,8 +56,7 @@ export default function JournalPage() {
 
     const [entry, setEntry] = useState("");
     const [entries, setEntries] = useState<JournalEntry[]>([]);
-    const [analysis, setAnalysis] = useState<JournalAnalysis | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const [isLoadingHistory, setIsLoadingHistory] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -84,15 +78,14 @@ export default function JournalPage() {
         fetchEntries();
     }, []);
 
-    const handleAnalyze = async () => {
+    const handleSaveEntry = async () => {
         if (!entry.trim()) {
             setError(t.noContent);
             return;
         }
 
-        setIsLoading(true);
+        setIsSaving(true);
         setError(null);
-        setAnalysis(null);
         
         const newEntryData: JournalEntry = {
             date: selectedDate.toISOString(),
@@ -100,12 +93,7 @@ export default function JournalPage() {
         };
 
         try {
-            // First, save the entry
             await saveJournalEntry(newEntryData);
-
-            // Then, analyze it
-            const result = await analyzeJournalEntry({ journalEntry: entry });
-            setAnalysis(result);
             
             // Add new entry to the top of the list locally
             setEntries(prev => [newEntryData, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
@@ -113,13 +101,9 @@ export default function JournalPage() {
 
         } catch (e: any) {
             console.error(e);
-            if (e.message.includes("save")) {
-                setError(t.saveError);
-            } else {
-                setError(t.error);
-            }
+            setError(t.saveError);
         } finally {
-            setIsLoading(false);
+            setIsSaving(false);
         }
     };
     
@@ -175,41 +159,22 @@ export default function JournalPage() {
                                 </PopoverContent>
                             </Popover>
                         </div>
-                        <Button onClick={handleAnalyze} disabled={isLoading}>
-                            {isLoading ? (
+                        <Button onClick={handleSaveEntry} disabled={isSaving}>
+                            {isSaving ? (
                                 <>
-                                    <Sparkles className="mr-2 h-4 w-4 animate-pulse" />
-                                    {t.analyzingButton}
+                                    <Save className="mr-2 h-4 w-4 animate-pulse" />
+                                    {t.savingButton}
                                 </>
                             ) : (
                                 <>
-                                    <Sparkles className="mr-2 h-4 w-4" />
-                                    {t.analyzeButton}
+                                    <Save className="mr-2 h-4 w-4" />
+                                    {t.saveButton}
                                 </>
                             )}
                         </Button>
                          {error && <p className="text-sm text-destructive">{error}</p>}
                     </CardContent>
                 </Card>
-
-                {isLoading && (
-                    <Card>
-                        <CardContent className="p-6 space-y-4">
-                           <Skeleton className="h-6 w-1/3" />
-                           <Skeleton className="h-4 w-full" />
-                           <Skeleton className="h-4 w-full" />
-                           <Skeleton className="h-4 w-3/4" />
-                           <br/>
-                           <Skeleton className="h-6 w-1/3" />
-                           <Skeleton className="h-4 w-full" />
-                           <Skeleton className="h-4 w-3/4" />
-                        </CardContent>
-                    </Card>
-                )}
-
-                {analysis && !isLoading && (
-                    <JournalResponse analysis={analysis} />
-                )}
 
                 <Card>
                     <CardHeader>
