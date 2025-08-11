@@ -11,12 +11,12 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const JournalAnalysisInputSchema = z.object({
+const JournalAnalysisInputSchema = z.object({
   journalEntry: z.string().describe('The user-written journal entry text.'),
 });
 export type JournalAnalysisInput = z.infer<typeof JournalAnalysisInputSchema>;
 
-export const JournalAnalysisSchema = z.object({
+const JournalAnalysisSchema = z.object({
   summary: z.string().describe('A concise, one or two-sentence summary of the journal entry.'),
   analysis: z.string().describe('A compassionate and insightful analysis of the key themes, emotions, and patterns in the entry.'),
   advice: z.string().describe('A single, practical, and actionable piece of advice or a reflective question based on the analysis.'),
