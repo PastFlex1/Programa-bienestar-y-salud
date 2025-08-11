@@ -2,7 +2,6 @@
 "use client";
 
 import * as React from "react";
-import { HabitTracker } from "@/components/habit-tracker";
 import type { Habit as HabitUI } from "@/components/habit-tracker";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
@@ -18,8 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
-
+import { HabitTracker } from "@/components/habit-tracker";
 
 const translations = {
   es: {
@@ -105,19 +103,14 @@ export default function HabitsPage() {
     const [habits, setHabits] = React.useState<HabitDB[]>([]);
     const [newHabitName, setNewHabitName] = React.useState("");
     const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
-    const [isLoading, setIsLoading] = React.useState(true);
-
+    
     const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
 
     React.useEffect(() => {
-        if (!user || !dateKey) {
-            setIsLoading(true);
-            return;
-        };
+        if (!user || !dateKey) return;
 
         let isMounted = true;
         const fetchHabits = async () => {
-            setIsLoading(true);
             try {
                 const fetchedHabits = await getHabitsForDate(dateKey, user.uid);
                 if (isMounted) {
@@ -130,8 +123,6 @@ export default function HabitsPage() {
             } catch (error) {
                 console.error("Error fetching habits:", error);
                 if (isMounted) setHabits(getInitialHabitsForDay(t));
-            } finally {
-                if (isMounted) setIsLoading(false);
             }
         };
 
@@ -164,6 +155,7 @@ export default function HabitsPage() {
             });
         } catch (e) {
             console.error("Failed to update habits:", e);
+            // Revert optimistic update
             setHabits(habits); 
             toast({
                 variant: "destructive",
@@ -191,6 +183,7 @@ export default function HabitsPage() {
                 title: t.toastErrorTitle,
                 description: t.toastErrorDescription,
             });
+            // Revert optimistic update
             setHabits(habits);
         }
     };
@@ -273,10 +266,9 @@ export default function HabitsPage() {
                                 </Dialog>
                             </CardHeader>
                             <CardContent>
-                                <HabitTracker
+                               <HabitTracker
                                     habits={mapHabitsForUI(habits)}
                                     onToggleHabit={handleToggleHabit}
-                                    isLoading={isLoading}
                                 />
                             </CardContent>
                         </Card>
@@ -286,5 +278,3 @@ export default function HabitsPage() {
         </div>
     );
 }
-
-    
