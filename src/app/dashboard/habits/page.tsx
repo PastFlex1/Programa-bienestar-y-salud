@@ -158,8 +158,8 @@ export default function HabitsPage() {
                 title: t.toastSuccessTitle,
                 description: t.toastHabitAdded,
             });
-            setIsAddDialogOpen(false);
-            setNewHabitName("");
+            setNewHabitName(""); // Reset input field
+            setIsAddDialogOpen(false); // Close modal
         } catch (e) {
             console.error("Failed to update habits:", e);
             toast({
@@ -190,6 +190,7 @@ export default function HabitsPage() {
                 title: t.toastErrorTitle,
                 description: t.toastErrorDescription,
             });
+            // Revert UI change on failure
             setHabits(habits);
         }
     };
@@ -299,3 +300,6 @@ export default function HabitsPage() {
         </div>
     );
 }
+
+
+    
