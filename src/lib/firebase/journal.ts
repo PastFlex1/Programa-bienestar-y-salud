@@ -1,7 +1,7 @@
 
 "use server";
 
-import { collection, doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
+import { collection, doc, setDoc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import { db } from "./config";
 import { revalidatePath } from "next/cache";
 
@@ -21,23 +21,15 @@ export async function saveJournalEntry(entry: JournalEntry, userId: string) {
     const userJournalDocRef = doc(journalCollection, userId);
 
     try {
-        const docSnap = await getDoc(userJournalDocRef);
+        // Using setDoc with merge: true will create the document if it doesn't exist,
+        // or merge the new data with existing data if it does.
+        // arrayUnion adds the new entry to the 'entries' array without duplicates.
+        await setDoc(userJournalDocRef, {
+            entries: arrayUnion(entry)
+        }, { merge: true });
 
-        if (docSnap.exists()) {
-            // Document exists, update the entries array
-            const existingEntries = docSnap.data().entries as JournalEntry[] || [];
-            const updatedEntries = [...existingEntries, entry];
-             await updateDoc(userJournalDocRef, {
-                entries: updatedEntries
-            });
-        } else {
-            // Document doesn't exist, create it with the first entry
-            await setDoc(userJournalDocRef, {
-                entries: [entry]
-            });
-        }
     } catch (error) {
-        console.error("Error saving journal entry:", error);
+        console.error("Detailed Firestore Error:", error);
         throw new Error("Could not save journal entry.");
     }
     

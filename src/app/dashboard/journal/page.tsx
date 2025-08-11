@@ -124,6 +124,7 @@ export default function JournalPage() {
             setEntries(prev => [newEntryData, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
             setEntry(""); 
         } catch (e) {
+            console.error("Error in handleSaveEntry:", e);
             setError(t.saveError);
         } finally {
             setIsSaving(false);
