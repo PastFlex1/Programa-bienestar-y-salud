@@ -8,7 +8,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { useLanguage } from "@/context/language-provider";
 import { format } from "date-fns";
 import { es } from 'date-fns/locale';
-import { Droplets, Footprints, Brain, BookOpen, CheckCircle2, Plus } from "lucide-react";
+import { Droplets, Footprints, Brain, BookOpen, CheckCircle2, Plus, Loader2 } from "lucide-react";
 import { getHabitsForDate, updateHabitsForDate } from "@/lib/firebase/habits";
 import type { Habit as HabitDB } from "@/lib/firebase/habits";
 import { useAuth } from "@/context/auth-provider";
@@ -44,6 +44,7 @@ const translations = {
     habitNamePlaceholder: "Ej: Meditar por 5 minutos",
     cancel: "Cancelar",
     add: "Agregar",
+    adding: "Agregando...",
   },
   en: {
     title: "Habit Tracking",
@@ -69,6 +70,7 @@ const translations = {
     habitNamePlaceholder: "E.g.: Meditate for 5 minutes",
     cancel: "Cancel",
     add: "Add",
+    adding: "Adding...",
   }
 };
 
@@ -103,6 +105,7 @@ export default function HabitsPage() {
     const [habits, setHabits] = React.useState<HabitDB[]>([]);
     const [newHabitName, setNewHabitName] = React.useState("");
     const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
+    const [isSaving, setIsSaving] = React.useState(false);
     
     const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
 
@@ -135,6 +138,8 @@ export default function HabitsPage() {
     const handleAddHabit = async () => {
         if (newHabitName.trim() === "" || !user || !dateKey) return;
 
+        setIsSaving(true);
+
         const newHabit: HabitDB = {
             id: `custom-${Date.now()}`,
             label: newHabitName,
@@ -142,26 +147,25 @@ export default function HabitsPage() {
         };
         
         const newHabitsList = [...habits, newHabit];
-        setHabits(newHabitsList);
         
-        setIsAddDialogOpen(false);
-        setNewHabitName("");
-
         try {
             await updateHabitsForDate(newHabitsList, dateKey, user.uid);
+            setHabits(newHabitsList); // Update state on success
             toast({
                 title: t.toastSuccessTitle,
                 description: t.toastHabitAdded,
             });
+            setIsAddDialogOpen(false);
+            setNewHabitName("");
         } catch (e) {
             console.error("Failed to update habits:", e);
-            // Revert optimistic update
-            setHabits(habits); 
             toast({
                 variant: "destructive",
                 title: t.toastErrorTitle,
                 description: t.toastErrorDescription,
             });
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -173,6 +177,7 @@ export default function HabitsPage() {
             habit.id === id ? { ...habit, completed: !habit.completed } : habit
         );
         
+        // Optimistic update
         setHabits(toggledHabits);
         
         try {
@@ -248,7 +253,7 @@ export default function HabitsPage() {
                                                     className="col-span-3"
                                                     placeholder={t.habitNamePlaceholder}
                                                     onKeyDown={(e) => {
-                                                        if (e.key === 'Enter') {
+                                                        if (e.key === 'Enter' && !isSaving) {
                                                             e.preventDefault();
                                                             handleAddHabit();
                                                         }
@@ -258,9 +263,12 @@ export default function HabitsPage() {
                                         </div>
                                         <DialogFooter>
                                             <DialogClose asChild>
-                                                <Button type="button" variant="secondary">{t.cancel}</Button>
+                                                <Button type="button" variant="secondary" disabled={isSaving}>{t.cancel}</Button>
                                             </DialogClose>
-                                            <Button onClick={handleAddHabit} disabled={!newHabitName.trim()}>{t.add}</Button>
+                                            <Button onClick={handleAddHabit} disabled={!newHabitName.trim() || isSaving}>
+                                                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                {isSaving ? t.adding : t.add}
+                                            </Button>
                                         </DialogFooter>
                                     </DialogContent>
                                 </Dialog>
@@ -278,3 +286,5 @@ export default function HabitsPage() {
         </div>
     );
 }
+
+    
