@@ -115,16 +115,19 @@ export default function JournalPage() {
         setError(null);
         
         const newEntryData: JournalEntry = {
+            id: `entry-${Date.now()}`,
             date: selectedDate.toISOString(),
             entry: entry,
         };
 
         try {
             await saveJournalEntry(newEntryData, user.uid);
-            setEntries(prev => [newEntryData, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+            // Re-fetch entries to ensure consistency
+            const updatedEntries = await getJournalEntries(user.uid);
+            setEntries(updatedEntries);
             setEntry(""); 
         } catch (e) {
-            console.error("Error in handleSaveEntry:", e);
+            console.error("Detailed client-side error:", e);
             setError(t.saveError);
         } finally {
             setIsSaving(false);
@@ -139,7 +142,7 @@ export default function JournalPage() {
         
         try {
             await deleteJournalEntry(entryToDelete, user.uid);
-            setEntries(prev => prev.filter(e => e.date !== entryToDelete.date));
+            setEntries(prev => prev.filter(e => e.id !== entryToDelete.id));
         } catch (e) {
             setError(t.deleteError);
         }
@@ -229,8 +232,8 @@ export default function JournalPage() {
                                    </TableHeader>
                                    <TableBody>
                                        {entries.map((item) => (
-                                           <TableRow key={item.date}>
-                                               <TableCell className="font-medium">{formatEntryDate(item.date)}</TableCell>
+                                           <TableRow key={item.id}>
+                                               <TableCell className="font-medium whitespace-nowrap">{formatEntryDate(item.date)}</TableCell>
                                                <TableCell className="whitespace-pre-wrap text-muted-foreground">{item.entry}</TableCell>
                                                <TableCell className="text-right">
                                                    <AlertDialog>
