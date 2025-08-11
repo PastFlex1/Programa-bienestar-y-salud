@@ -64,7 +64,7 @@ const getInitialHabitsForDay = (t: any): Habit[] => {
 export default function HabitsPage() {
   const { language } = useLanguage();
   const t = translations[language];
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   
   const [date, setDate] = React.useState<Date | undefined>(new Date());
   const [habits, setHabits] = React.useState<Habit[]>([]);
@@ -75,16 +75,16 @@ export default function HabitsPage() {
   React.useEffect(() => {
     const fetchAndInitializeHabits = async () => {
         if (!dateKey || !user) {
-            setIsLoading(false);
+            if (!authLoading) setIsLoading(false);
             return;
         }
         
         setIsLoading(true);
         try {
             const initialHabits = getInitialHabitsForDay(t);
-            await initializeHabitsForDay(initialHabits, dateKey);
+            await initializeHabitsForDay(initialHabits, dateKey, user.uid);
             
-            const fetchedHabits = await getHabitsForDate(dateKey);
+            const fetchedHabits = await getHabitsForDate(dateKey, user.uid);
             setHabits(fetchedHabits.length > 0 ? fetchedHabits : initialHabits);
         } catch (error) {
             console.error("Error fetching habits:", error);
@@ -94,16 +94,17 @@ export default function HabitsPage() {
         }
     };
 
-    fetchAndInitializeHabits();
-
-  }, [dateKey, user, t]);
+    if (user) {
+      fetchAndInitializeHabits();
+    }
+  }, [dateKey, user, authLoading, t]);
   
   const handleSelectDate = (selectedDate: Date | undefined) => {
     setDate(selectedDate);
   };
   
   const handleAddHabit = async (newHabitName: string) => {
-    if (!dateKey || newHabitName.trim() === "") return;
+    if (!dateKey || newHabitName.trim() === "" || !user) return;
 
     const newHabitObject: Habit = {
       id: `custom-${Date.now()}`,
@@ -112,12 +113,12 @@ export default function HabitsPage() {
       completed: false, // Start as not completed
     };
     
-    await addHabit(newHabitObject, dateKey);
+    await addHabit(newHabitObject, dateKey, user.uid);
     setHabits(prev => [...prev, newHabitObject]);
   };
 
   const handleToggleHabit = async (id: string) => {
-    if (!dateKey) return;
+    if (!dateKey || !user) return;
     
     const habitToToggle = habits.find(h => h.id === id);
     if (!habitToToggle) return;
@@ -130,7 +131,7 @@ export default function HabitsPage() {
       )
     );
     
-    await toggleHabit(id, newCompletedStatus, dateKey);
+    await toggleHabit(id, newCompletedStatus, dateKey, user.uid);
   };
   
   const formatDate = (date: Date) => {
@@ -157,6 +158,8 @@ export default function HabitsPage() {
       </CardContent>
     </Card>
   );
+
+  const pageLoading = authLoading || isLoading;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -186,7 +189,7 @@ export default function HabitsPage() {
             </Card>
           </div>
           <div className="md:col-span-2">
-            {isLoading ? (
+            {pageLoading ? (
               <HabitTrackerSkeleton />
             ) : habits.length > 0 ? (
               <HabitTracker 

@@ -3,7 +3,6 @@
 
 import { collection, doc, getDoc, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import { db } from "./config";
-import { getSession } from "./auth";
 import type { Habit } from "@/components/habit-tracker";
 import { revalidatePath } from "next/cache";
 
@@ -11,14 +10,13 @@ import { revalidatePath } from "next/cache";
 const habitsCollection = collection(db, "habits");
 
 // Gets habits for a user on a specific date
-export async function getHabitsForDate(dateKey: string) {
-    const session = await getSession();
-    if (!session?.email) {
+export async function getHabitsForDate(dateKey: string, userId: string) {
+    if (!userId) {
         throw new Error("User not authenticated");
     }
 
     try {
-        const docRef = doc(habitsCollection, session.email, "dates", dateKey);
+        const docRef = doc(habitsCollection, userId, "dates", dateKey);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
@@ -33,13 +31,12 @@ export async function getHabitsForDate(dateKey: string) {
 }
 
 // Toggles the completion status of a habit
-export async function toggleHabit(habitId: string, completed: boolean, dateKey: string) {
-    const session = await getSession();
-    if (!session?.email) {
+export async function toggleHabit(habitId: string, completed: boolean, dateKey: string, userId: string) {
+    if (!userId) {
         throw new Error("User not authenticated");
     }
     
-    const docRef = doc(habitsCollection, session.email, "dates", dateKey);
+    const docRef = doc(habitsCollection, userId, "dates", dateKey);
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
@@ -54,13 +51,12 @@ export async function toggleHabit(habitId: string, completed: boolean, dateKey: 
 }
 
 // Adds a new custom habit for a user on a specific date
-export async function addHabit(newHabit: Habit, dateKey: string) {
-    const session = await getSession();
-    if (!session?.email) {
+export async function addHabit(newHabit: Habit, dateKey: string, userId: string) {
+    if (!userId) {
         throw new Error("User not authenticated");
     }
 
-    const docRef = doc(habitsCollection, session.email, "dates", dateKey);
+    const docRef = doc(habitsCollection, userId, "dates", dateKey);
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
@@ -79,13 +75,12 @@ export async function addHabit(newHabit: Habit, dateKey: string) {
 }
 
 // Initializes habits for a new day if they don't exist
-export async function initializeHabitsForDay(initialHabits: Habit[], dateKey: string) {
-    const session = await getSession();
-    if (!session?.email) {
+export async function initializeHabitsForDay(initialHabits: Habit[], dateKey: string, userId: string) {
+    if (!userId) {
         throw new Error("User not authenticated");
     }
 
-    const docRef = doc(habitsCollection, session.email, "dates", dateKey);
+    const docRef = doc(habitsCollection, userId, "dates", dateKey);
     const docSnap = await getDoc(docRef);
 
     if (!docSnap.exists()) {

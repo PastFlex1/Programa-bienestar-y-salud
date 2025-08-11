@@ -3,47 +3,28 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode, useMemo } from 'react';
 import type { User as FirebaseUser } from 'firebase/auth';
-import { getSession } from '@/lib/firebase/auth'; // We'll create this function
-
-type User = {
-  isLoggedIn: boolean;
-  email: string;
-  name: string;
-} | null;
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/lib/firebase/config';
 
 type AuthContextType = {
-    user: User;
+    user: FirebaseUser | null;
     loading: boolean;
 };
 
 const AuthContext = createContext<AuthContextType>({ user: null, loading: true });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [user, setUser] = useState<User>(null);
+    const [user, setUser] = useState<FirebaseUser | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchSession = async () => {
-            try {
-                const session = await getSession();
-                if (session) {
-                    setUser({
-                        isLoggedIn: true,
-                        email: session.email as string,
-                        name: session.name as string
-                    });
-                } else {
-                    setUser(null);
-                }
-            } catch (error) {
-                console.error("Failed to fetch session", error);
-                setUser(null);
-            } finally {
-                setLoading(false);
-            }
-        };
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            setUser(user);
+            setLoading(false);
+        });
 
-        fetchSession();
+        // Cleanup subscription on unmount
+        return () => unsubscribe();
     }, []);
 
     const value = useMemo(() => ({ user, loading }), [user, loading]);
