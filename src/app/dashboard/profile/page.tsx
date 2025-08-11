@@ -55,7 +55,7 @@ export default function ProfilePage() {
   const { userName, avatarUrl, updateUser } = useUser();
   
   const [name, setName] = useState(userName);
-  const [email, setEmail] = useState(user?.email || ''); 
+  const [email, setEmail] = useState(''); 
   const [previewAvatarUrl, setPreviewAvatarUrl] = useState(avatarUrl);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
