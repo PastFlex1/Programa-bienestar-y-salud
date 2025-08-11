@@ -101,7 +101,7 @@ const mapHabitsForUI = (dbHabits: HabitDB[]): HabitUI[] => {
 export default function HabitsPage() {
     const { language } = useLanguage();
     const t = translations[language];
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth(); // Use the loading state from auth
     const { toast } = useToast();
 
     const [date, setDate] = React.useState<Date | undefined>(new Date());
@@ -113,24 +113,21 @@ export default function HabitsPage() {
     
     const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
 
-    console.log("HabitsPage Rendering. User:", user);
-
     React.useEffect(() => {
-        console.log("useEffect triggered. User:", user, "dateKey:", dateKey);
-        if (!user || !dateKey) {
-            setIsLoading(false);
-            console.log("useEffect exited early: no user or dateKey.");
+        // Wait for auth to finish loading and for user to be available
+        if (authLoading || !user || !dateKey) {
+            if (!authLoading) { // If auth is done but there's no user, stop loading
+                setIsLoading(false);
+            }
             return;
         }
 
         let isMounted = true;
         setIsLoading(true);
-        console.log("useEffect fetching habits for date:", dateKey);
 
         getHabitsForDate(dateKey, user.uid)
             .then(fetchedHabits => {
                 if (isMounted) {
-                    console.log("Fetched habits:", fetchedHabits);
                     setHabits(fetchedHabits.length > 0 ? fetchedHabits : getInitialHabitsForDay(t));
                 }
             })
@@ -141,27 +138,27 @@ export default function HabitsPage() {
             .finally(() => {
                 if (isMounted) {
                     setIsLoading(false);
-                    console.log("useEffect finished fetching.");
                 }
             });
 
         return () => { 
-            console.log("useEffect cleanup.");
             isMounted = false; 
         };
-    }, [dateKey, user, t]);
+    }, [dateKey, user, authLoading, t]);
 
 
     const handleAddHabit = async () => {
-        console.log("handleAddHabit called. newHabitName:", newHabitName, "user:", user, "dateKey:", dateKey);
         if (newHabitName.trim() === "" || !user || !dateKey) {
-             console.log("handleAddHabit exited early: validation failed.");
+            // This toast is for user feedback if they somehow click with an empty name
+             toast({
+                variant: "destructive",
+                title: "Error",
+                description: "El nombre del hábito no puede estar vacío.",
+            });
             return;
         }
 
         setIsSaving(true);
-        console.log("handleAddHabit: isSaving set to true");
-
         const newHabit: HabitDB = {
             id: `custom-${Date.now()}`,
             label: newHabitName,
@@ -171,9 +168,7 @@ export default function HabitsPage() {
         const newHabitsList = [...habits, newHabit];
         
         try {
-            console.log("handleAddHabit: Calling updateHabitsForDate with:", newHabitsList);
             await updateHabitsForDate(newHabitsList, dateKey, user.uid);
-            console.log("handleAddHabit: updateHabitsForDate successful.");
             setHabits(newHabitsList);
             toast({
                 title: t.toastSuccessTitle,
@@ -190,15 +185,12 @@ export default function HabitsPage() {
             });
         } finally {
             setIsSaving(false);
-             console.log("handleAddHabit: isSaving set to false");
         }
     };
 
 
     const handleToggleHabit = async (id: string) => {
-        console.log("handleToggleHabit called for id:", id);
         if (!user || !dateKey) {
-            console.log("handleToggleHabit exited early: no user or dateKey.");
             return;
         }
         
@@ -207,11 +199,9 @@ export default function HabitsPage() {
         );
         
         setHabits(toggledHabits);
-        console.log("handleToggleHabit: UI state updated.", toggledHabits);
         
         try {
             await updateHabitsForDate(toggledHabits, dateKey, user.uid);
-            console.log("handleToggleHabit: updateHabitsForDate successful.");
         } catch(e) {
              console.error("handleToggleHabit: Failed to update habits, reverting UI.", e);
              toast({
@@ -264,7 +254,7 @@ export default function HabitsPage() {
                                 </div>
                                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                                     <DialogTrigger asChild>
-                                        <Button size="icon" variant="outline">
+                                        <Button size="icon" variant="outline" disabled={!user}>
                                             <Plus className="h-4 w-4" />
                                             <span className="sr-only">{t.addHabit}</span>
                                         </Button>
@@ -307,7 +297,7 @@ export default function HabitsPage() {
                                 </Dialog>
                             </CardHeader>
                             <CardContent>
-                               {isLoading ? (
+                               {isLoading || authLoading ? (
                                     <div className="space-y-4">
                                         {[...Array(4)].map((_, i) => (
                                             <div key={i} className="flex items-center space-x-3 p-3">
@@ -316,6 +306,10 @@ export default function HabitsPage() {
                                             </div>
                                         ))}
                                     </div>
+                                ) : !user ? (
+                                     <div className="text-center py-10">
+                                        <p className="text-muted-foreground">Por favor, inicia sesión para ver tus hábitos.</p>
+                                     </div>
                                 ) : (
                                     <HabitTracker
                                         habits={mapHabitsForUI(habits)}
