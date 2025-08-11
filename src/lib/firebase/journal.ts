@@ -3,7 +3,6 @@
 
 import { collection, doc, setDoc, updateDoc, arrayUnion, getDoc } from "firebase/firestore";
 import { db } from "./config";
-import { getSession } from "./auth";
 import { revalidatePath } from "next/cache";
 
 export interface JournalEntry {
@@ -19,26 +18,30 @@ export interface JournalEntry {
 // Firestore collection reference
 const journalCollection = collection(db, "journal");
 
-export async function saveJournalEntry(entry: JournalEntry) {
-    const session = await getSession();
-    if (!session?.email) {
+export async function saveJournalEntry(entry: JournalEntry, userId: string) {
+    if (!userId) {
         throw new Error("User not authenticated");
     }
 
-    const userJournalDocRef = doc(journalCollection, session.email);
+    const userJournalDocRef = doc(journalCollection, userId);
 
     try {
         const docSnap = await getDoc(userJournalDocRef);
 
+        const newEntryWithDate = {
+            ...entry,
+            date: entry.date || new Date().toISOString(),
+        };
+
         if (docSnap.exists()) {
             // If the user document exists, add the new entry to the 'entries' array.
             await updateDoc(userJournalDocRef, {
-                entries: arrayUnion(entry)
+                entries: arrayUnion(newEntryWithDate)
             });
         } else {
             // If the user document doesn't exist, create it with the first entry.
             await setDoc(userJournalDocRef, {
-                entries: [entry]
+                entries: [newEntryWithDate]
             });
         }
     } catch (error) {
@@ -49,14 +52,13 @@ export async function saveJournalEntry(entry: JournalEntry) {
     revalidatePath("/dashboard/journal");
 }
 
-export async function getJournalEntries(): Promise<JournalEntry[]> {
-    const session = await getSession();
-    if (!session?.email) {
+export async function getJournalEntries(userId: string): Promise<JournalEntry[]> {
+    if (!userId) {
         console.warn("User not authenticated, returning empty entries.");
         return [];
     }
 
-    const userJournalDocRef = doc(journalCollection, session.email);
+    const userJournalDocRef = doc(journalCollection, userId);
 
     try {
         const docSnap = await getDoc(userJournalDocRef);

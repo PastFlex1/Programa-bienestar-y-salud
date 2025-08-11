@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from '@/context/language-provider';
 import { useUser } from '@/context/user-provider';
+import { useAuth } from '@/context/auth-provider';
 import { History, Calendar as CalendarIcon, Save } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { saveJournalEntry, getJournalEntries, JournalEntry } from '@/lib/firebase/journal';
@@ -53,6 +54,7 @@ export default function JournalPage() {
     const { language } = useLanguage();
     const t = translations[language];
     const { userName } = useUser();
+    const { user, loading: authLoading } = useAuth();
 
     const [entry, setEntry] = useState("");
     const [entries, setEntries] = useState<JournalEntry[]>([]);
@@ -70,17 +72,25 @@ export default function JournalPage() {
     
     useEffect(() => {
         const fetchEntries = async () => {
+            if (!user) {
+              if(!authLoading) setIsLoadingHistory(false);
+              return;
+            };
             setIsLoadingHistory(true);
-            const fetchedEntries = await getJournalEntries();
+            const fetchedEntries = await getJournalEntries(user.uid);
             setEntries(fetchedEntries);
             setIsLoadingHistory(false);
         };
         fetchEntries();
-    }, []);
+    }, [user, authLoading]);
 
     const handleSaveEntry = async () => {
         if (!entry.trim()) {
             setError(t.noContent);
+            return;
+        }
+        if (!user) {
+            setError(t.saveError);
             return;
         }
 
@@ -93,14 +103,12 @@ export default function JournalPage() {
         };
 
         try {
-            await saveJournalEntry(newEntryData);
+            await saveJournalEntry(newEntryData, user.uid);
             
-            // Add new entry to the top of the list locally
             setEntries(prev => [newEntryData, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-            setEntry(""); // Clear textarea
+            setEntry(""); 
 
-        } catch (e: any) {
-            console.error(e);
+        } catch (e) {
             setError(t.saveError);
         } finally {
             setIsSaving(false);
@@ -159,7 +167,7 @@ export default function JournalPage() {
                                 </PopoverContent>
                             </Popover>
                         </div>
-                        <Button onClick={handleSaveEntry} disabled={isSaving || !entry.trim()}>
+                        <Button onClick={handleSaveEntry} disabled={isSaving || !entry.trim() || authLoading}>
                             {isSaving ? (
                                 <>
                                     <Save className="mr-2 h-4 w-4 animate-pulse" />
