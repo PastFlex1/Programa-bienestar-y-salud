@@ -11,10 +11,12 @@ const translations = {
   es: {
     noHabitsTitle: "Sin Hábitos",
     noHabitsDescription: "No hay hábitos registrados para este día. ¡Agrega uno para empezar!",
+    loading: "Cargando hábitos...",
   },
   en: {
     noHabitsTitle: "No Habits Yet",
     noHabitsDescription: "No habits logged for this day. Add one to get started!",
+    loading: "Loading habits...",
   }
 };
 
@@ -28,11 +30,25 @@ export interface Habit {
 interface HabitTrackerProps {
   habits: Habit[];
   onToggleHabit: (id: string) => void;
+  isLoading: boolean;
 }
 
-export function HabitTracker({ habits, onToggleHabit }: HabitTrackerProps) {
+export function HabitTracker({ habits, onToggleHabit, isLoading }: HabitTrackerProps) {
   const { language } = useLanguage();
   const t = translations[language];
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {[...Array(4)].map((_, i) => (
+            <div key={i} className="flex items-center space-x-3 p-3">
+                <Skeleton className="h-5 w-5 rounded-sm" />
+                <Skeleton className="h-5 w-48" />
+            </div>
+        ))}
+      </div>
+    )
+  }
 
   if (habits.length === 0) {
     return (
@@ -71,3 +87,5 @@ export function HabitTracker({ habits, onToggleHabit }: HabitTrackerProps) {
     </div>
   );
 }
+
+    

@@ -103,6 +103,7 @@ export default function HabitsPage() {
 
     const [date, setDate] = React.useState<Date | undefined>(new Date());
     const [habits, setHabits] = React.useState<HabitDB[]>([]);
+    const [isLoading, setIsLoading] = React.useState(true);
     const [newHabitName, setNewHabitName] = React.useState("");
     const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
@@ -110,22 +111,25 @@ export default function HabitsPage() {
     const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
 
     React.useEffect(() => {
-        if (!user || !dateKey) return;
+        if (!user || !dateKey) {
+            setIsLoading(false);
+            return;
+        }
 
         let isMounted = true;
+        setIsLoading(true);
+
         const fetchHabits = async () => {
             try {
                 const fetchedHabits = await getHabitsForDate(dateKey, user.uid);
                 if (isMounted) {
-                    if (fetchedHabits.length > 0) {
-                        setHabits(fetchedHabits);
-                    } else {
-                        setHabits(getInitialHabitsForDay(t));
-                    }
+                    setHabits(fetchedHabits.length > 0 ? fetchedHabits : getInitialHabitsForDay(t));
                 }
             } catch (error) {
                 console.error("Error fetching habits:", error);
                 if (isMounted) setHabits(getInitialHabitsForDay(t));
+            } finally {
+                if (isMounted) setIsLoading(false);
             }
         };
 
@@ -147,10 +151,10 @@ export default function HabitsPage() {
         };
         
         const newHabitsList = [...habits, newHabit];
-        setHabits(newHabitsList); 
         
         try {
             await updateHabitsForDate(newHabitsList, dateKey, user.uid);
+            setHabits(newHabitsList); // Update local state only on successful save
             toast({
                 title: t.toastSuccessTitle,
                 description: t.toastHabitAdded,
@@ -164,8 +168,6 @@ export default function HabitsPage() {
                 title: t.toastErrorTitle,
                 description: t.toastErrorDescription,
             });
-            // Revert optimistic update
-            setHabits(habits);
         } finally {
             setIsSaving(false);
         }
@@ -179,6 +181,7 @@ export default function HabitsPage() {
             habit.id === id ? { ...habit, completed: !habit.completed } : habit
         );
         
+        // Optimistic update
         setHabits(toggledHabits);
         
         try {
@@ -189,6 +192,7 @@ export default function HabitsPage() {
                 title: t.toastErrorTitle,
                 description: t.toastErrorDescription,
             });
+            // Revert on error
             setHabits(habits);
         }
     };
@@ -277,6 +281,7 @@ export default function HabitsPage() {
                                <HabitTracker
                                     habits={mapHabitsForUI(habits)}
                                     onToggleHabit={handleToggleHabit}
+                                    isLoading={isLoading}
                                 />
                             </CardContent>
                         </Card>
@@ -285,5 +290,6 @@ export default function HabitsPage() {
             </div>
         </div>
     );
+}
 
     
