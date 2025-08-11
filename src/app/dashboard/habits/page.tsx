@@ -141,7 +141,6 @@ export default function HabitsPage() {
 
 
     const handleAddHabit = async () => {
-        console.log("Add button clicked. State:", { newHabitName, dateKey, user: user?.uid });
         if (newHabitName.trim() === "" || !user || !dateKey) return;
 
         setIsSaving(true);
@@ -304,5 +303,7 @@ export default function HabitsPage() {
         </div>
     );
 }
+
+    
 
     
