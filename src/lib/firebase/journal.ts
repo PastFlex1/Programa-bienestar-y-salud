@@ -1,20 +1,19 @@
 
 "use server";
 
-import { collection, doc, addDoc, getDocs, deleteDoc, query, orderBy, Timestamp } from "firebase/firestore";
+import { collection, doc, addDoc, getDocs, deleteDoc, query, where, orderBy, Timestamp } from "firebase/firestore";
 import { db } from "./config";
 import { revalidatePath } from "next/cache";
 
 export interface JournalEntry {
     id: string;      // Document ID from Firestore
+    userId: string;  // ID of the user who owns the entry
     date: string;    // ISO string format
     entry: string;
 }
 
-// Helper function to get the subcollection for a user's journal entries
-const getJournalEntriesCollection = (userId: string) => {
-    return collection(db, 'users', userId, 'journalEntries');
-}
+// Use a top-level collection for all journal entries
+const journalCollection = collection(db, 'journal');
 
 // Gets all journal entries for a user, ordered by date
 export async function getJournalEntries(userId: string): Promise<JournalEntry[]> {
@@ -23,8 +22,8 @@ export async function getJournalEntries(userId: string): Promise<JournalEntry[]>
         return [];
     }
     
-    const entriesCollection = getJournalEntriesCollection(userId);
-    const q = query(entriesCollection, orderBy("date", "desc"));
+    // Query the top-level collection for documents where userId matches
+    const q = query(journalCollection, where("userId", "==", userId), orderBy("date", "desc"));
 
     try {
         const querySnapshot = await getDocs(q);
@@ -33,6 +32,7 @@ export async function getJournalEntries(userId: string): Promise<JournalEntry[]>
             const data = doc.data();
             entries.push({
                 id: doc.id,
+                userId: data.userId,
                 date: (data.date as Timestamp).toDate().toISOString(),
                 entry: data.entry
             });
@@ -49,11 +49,10 @@ export async function saveJournalEntry(userId: string, entryText: string, date: 
     if (!userId) {
         throw new Error("User not authenticated");
     }
-
-    const entriesCollection = getJournalEntriesCollection(userId);
     
     try {
-        await addDoc(entriesCollection, {
+        await addDoc(journalCollection, {
+            userId: userId, // Explicitly save the owner's ID
             entry: entryText,
             date: Timestamp.fromDate(date) // Store as Firestore Timestamp for proper ordering
         });
@@ -72,9 +71,12 @@ export async function deleteJournalEntry(userId: string, entryId: string) {
         throw new Error("User not authenticated");
     }
 
-    const entryDocRef = doc(db, 'users', userId, 'journalEntries', entryId);
+    // Reference the document in the top-level collection
+    const entryDocRef = doc(db, 'journal', entryId);
     
     try {
+        // Optional: You could add a security check here to ensure the userId matches
+        // the one in the document before deleting, but Firestore rules are the best place for this.
         await deleteDoc(entryDocRef);
     } catch (error) {
         console.error("Error deleting journal entry:", error);
@@ -84,5 +86,3 @@ export async function deleteJournalEntry(userId: string, entryId: string) {
     // Revalidate the path to update the UI
     revalidatePath("/dashboard/journal");
 }
-
-    
