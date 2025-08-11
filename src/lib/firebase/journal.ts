@@ -45,16 +45,18 @@ export async function getJournalEntries(userId: string): Promise<JournalEntry[]>
 }
 
 // Saves a new journal entry for a user
-export async function saveJournalEntry(userId: string, entryText: string, date: Date) {
+export async function saveJournalEntry(userId: string, entryText: string, dateIsoString: string) {
     if (!userId) {
         throw new Error("User not authenticated");
     }
     
     try {
+        // Convert ISO string back to a Date object, then to a Firestore Timestamp
+        const date = new Date(dateIsoString);
         await addDoc(journalCollection, {
-            userId: userId, // Explicitly save the owner's ID
+            userId: userId,
             entry: entryText,
-            date: Timestamp.fromDate(date) // Store as Firestore Timestamp for proper ordering
+            date: Timestamp.fromDate(date)
         });
     } catch (error) {
         console.error("Detailed Firestore Error on save:", error);
@@ -71,18 +73,22 @@ export async function deleteJournalEntry(userId: string, entryId: string) {
         throw new Error("User not authenticated");
     }
 
-    // Reference the document in the top-level collection
     const entryDocRef = doc(db, 'journal', entryId);
     
+    // Optional security check: Ensure the entry belongs to the user trying to delete it
+    // Note: This is best enforced with Firestore Security Rules for true security.
+    const docSnap = await getDocs(query(journalCollection, where('__name__', '==', entryId), where('userId', '==', userId)));
+    if (docSnap.empty) {
+        console.error("Security check failed: User does not have permission to delete this entry or entry does not exist.");
+        throw new Error("Permission denied or entry not found.");
+    }
+
     try {
-        // Optional: You could add a security check here to ensure the userId matches
-        // the one in the document before deleting, but Firestore rules are the best place for this.
         await deleteDoc(entryDocRef);
     } catch (error) {
         console.error("Error deleting journal entry:", error);
         throw new Error("Could not delete journal entry.");
     }
     
-    // Revalidate the path to update the UI
     revalidatePath("/dashboard/journal");
 }

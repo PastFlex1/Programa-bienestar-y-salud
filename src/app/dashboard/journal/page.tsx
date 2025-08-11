@@ -115,13 +115,14 @@ export default function JournalPage() {
         setError(null);
         
         try {
-            await saveJournalEntry(user.uid, entry, selectedDate);
+            // Pass date as an ISO string
+            await saveJournalEntry(user.uid, entry, selectedDate.toISOString());
             setEntry(""); // Clear textarea
             // Re-fetch entries to show the new one
             const updatedEntries = await getJournalEntries(user.uid);
             setEntries(updatedEntries);
         } catch (e) {
-            console.error("Detailed client-side error:", e);
+            console.error("Error saving journal entry:", e);
             setError(t.saveError);
         } finally {
             setIsSaving(false);
