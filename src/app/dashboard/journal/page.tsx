@@ -102,12 +102,12 @@ export default function JournalPage() {
     }, [user, authLoading]);
 
     const handleSaveEntry = async () => {
-        if (!entry.trim()) {
-            setError(t.noContent);
-            return;
-        }
         if (!user) {
             setError(t.saveError);
+            return;
+        }
+        if (!entry.trim()) {
+            setError(t.noContent);
             return;
         }
 
@@ -266,5 +266,3 @@ export default function JournalPage() {
         </div>
     );
 }
-
-    
