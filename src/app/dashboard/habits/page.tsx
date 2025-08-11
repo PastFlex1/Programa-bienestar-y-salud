@@ -18,6 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+
 
 const translations = {
   es: {
@@ -101,17 +103,17 @@ export default function HabitsPage() {
 
     const [date, setDate] = React.useState<Date | undefined>(new Date());
     const [habits, setHabits] = React.useState<HabitDB[]>([]);
-    const [isLoading, setIsLoading] = React.useState(true);
     const [newHabitName, setNewHabitName] = React.useState("");
     const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
+    const [isLoading, setIsLoading] = React.useState(true);
 
     const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
 
     React.useEffect(() => {
-        if (!user) {
-            setIsLoading(true); // Keep loading if no user
+        if (!user || !dateKey) {
+            setIsLoading(true);
             return;
-        }
+        };
 
         let isMounted = true;
         const fetchHabits = async () => {
@@ -119,21 +121,15 @@ export default function HabitsPage() {
             try {
                 const fetchedHabits = await getHabitsForDate(dateKey, user.uid);
                 if (isMounted) {
-                    if (fetchedHabits.length === 0) {
-                        // Don't set initial habits if some exist, even if empty
-                        const initialHabits = await getHabitsForDate(dateKey, user.uid);
-                        if (initialHabits.length === 0) {
-                           setHabits(getInitialHabitsForDay(t));
-                        } else {
-                           setHabits(initialHabits);
-                        }
-                    } else {
+                    if (fetchedHabits.length > 0) {
                         setHabits(fetchedHabits);
+                    } else {
+                        setHabits(getInitialHabitsForDay(t));
                     }
                 }
             } catch (error) {
                 console.error("Error fetching habits:", error);
-                if (isMounted) setHabits(getInitialHabitsForDay(t)); // Fallback
+                if (isMounted) setHabits(getInitialHabitsForDay(t));
             } finally {
                 if (isMounted) setIsLoading(false);
             }
@@ -153,17 +149,14 @@ export default function HabitsPage() {
             label: newHabitName,
             completed: false,
         };
-
-        // Optimistic UI update
+        
         const newHabitsList = [...habits, newHabit];
         setHabits(newHabitsList);
         
-        // Close modal
-        setNewHabitName("");
         setIsAddDialogOpen(false);
+        setNewHabitName("");
 
         try {
-            // Update database in the background
             await updateHabitsForDate(newHabitsList, dateKey, user.uid);
             toast({
                 title: t.toastSuccessTitle,
@@ -171,7 +164,6 @@ export default function HabitsPage() {
             });
         } catch (e) {
             console.error("Failed to update habits:", e);
-            // Revert UI on error
             setHabits(habits); 
             toast({
                 variant: "destructive",
@@ -199,7 +191,6 @@ export default function HabitsPage() {
                 title: t.toastErrorTitle,
                 description: t.toastErrorDescription,
             });
-            // Revert on error
             setHabits(habits);
         }
     };
@@ -263,7 +254,12 @@ export default function HabitsPage() {
                                                     onChange={(e) => setNewHabitName(e.target.value)}
                                                     className="col-span-3"
                                                     placeholder={t.habitNamePlaceholder}
-                                                    onKeyDown={(e) => e.key === 'Enter' && handleAddHabit()}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            handleAddHabit();
+                                                        }
+                                                    }}
                                                 />
                                             </div>
                                         </div>
@@ -290,3 +286,5 @@ export default function HabitsPage() {
         </div>
     );
 }
+
+    
