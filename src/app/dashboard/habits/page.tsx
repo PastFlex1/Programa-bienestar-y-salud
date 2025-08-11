@@ -2,7 +2,6 @@
 "use client";
 
 import * as React from "react";
-import type { Habit as HabitUI } from "@/components/habit-tracker";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { useLanguage } from "@/context/language-provider";
@@ -17,7 +16,9 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { HabitTracker } from "@/components/habit-tracker";
+import { HabitTracker, type Habit as HabitUI } from "@/components/habit-tracker";
+import { Skeleton } from "@/components/ui/skeleton";
+
 
 const translations = {
   es: {
@@ -119,21 +120,19 @@ export default function HabitsPage() {
         let isMounted = true;
         setIsLoading(true);
 
-        const fetchHabits = async () => {
-            try {
-                const fetchedHabits = await getHabitsForDate(dateKey, user.uid);
+        getHabitsForDate(dateKey, user.uid)
+            .then(fetchedHabits => {
                 if (isMounted) {
                     setHabits(fetchedHabits.length > 0 ? fetchedHabits : getInitialHabitsForDay(t));
                 }
-            } catch (error) {
+            })
+            .catch(error => {
                 console.error("Error fetching habits:", error);
                 if (isMounted) setHabits(getInitialHabitsForDay(t));
-            } finally {
+            })
+            .finally(() => {
                 if (isMounted) setIsLoading(false);
-            }
-        };
-
-        fetchHabits();
+            });
 
         return () => { isMounted = false; };
     }, [dateKey, user, t]);
@@ -154,7 +153,7 @@ export default function HabitsPage() {
         
         try {
             await updateHabitsForDate(newHabitsList, dateKey, user.uid);
-            setHabits(newHabitsList); // Update local state only on successful save
+            setHabits(newHabitsList);
             toast({
                 title: t.toastSuccessTitle,
                 description: t.toastHabitAdded,
@@ -181,7 +180,6 @@ export default function HabitsPage() {
             habit.id === id ? { ...habit, completed: !habit.completed } : habit
         );
         
-        // Optimistic update
         setHabits(toggledHabits);
         
         try {
@@ -192,7 +190,6 @@ export default function HabitsPage() {
                 title: t.toastErrorTitle,
                 description: t.toastErrorDescription,
             });
-            // Revert on error
             setHabits(habits);
         }
     };
@@ -224,6 +221,7 @@ export default function HabitsPage() {
                                     selected={date}
                                     onSelect={setDate}
                                     className="rounded-md border p-0"
+                                    disabled={isSaving}
                                 />
                             </CardContent>
                         </Card>
@@ -278,11 +276,21 @@ export default function HabitsPage() {
                                 </Dialog>
                             </CardHeader>
                             <CardContent>
-                               <HabitTracker
-                                    habits={mapHabitsForUI(habits)}
-                                    onToggleHabit={handleToggleHabit}
-                                    isLoading={isLoading}
-                                />
+                               {isLoading ? (
+                                    <div className="space-y-4">
+                                        {[...Array(4)].map((_, i) => (
+                                            <div key={i} className="flex items-center space-x-3 p-3">
+                                                <Skeleton className="h-5 w-5 rounded-sm" />
+                                                <Skeleton className="h-5 w-48" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <HabitTracker
+                                        habits={mapHabitsForUI(habits)}
+                                        onToggleHabit={handleToggleHabit}
+                                    />
+                                )}
                             </CardContent>
                         </Card>
                     </div>
@@ -291,5 +299,3 @@ export default function HabitsPage() {
         </div>
     );
 }
-
-    

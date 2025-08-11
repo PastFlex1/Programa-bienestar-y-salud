@@ -38,20 +38,16 @@ export async function getHabitsForDate(dateKey: string, userId: string): Promise
             // Ensure the habits field is an array before returning
             return Array.isArray(data.habits) ? data.habits : [];
         } else {
-            // Document for this date does not exist yet, return empty array.
-            // The initial habits will be set on the client side.
             return [];
         }
     } catch (error) {
         console.error("Error getting habits for date:", dateKey, error);
-        // In case of an error, return an empty array to prevent app crash
         return [];
     }
 }
 
 /**
  * Overwrites the entire list of habits for a user on a specific date.
- * This is used for adding, toggling, or initializing habits for the day.
  * @param habits - The complete, updated array of habits for the day.
  * @param dateKey - The date in 'yyyy-MM-dd' format.
  * @param userId - The ID of the authenticated user.
@@ -63,14 +59,11 @@ export async function updateHabitsForDate(habits: Habit[], dateKey: string, user
     
     try {
         const dateDocRef = getHabitDateDocRef(userId, dateKey);
-        // Using setDoc with merge: true is safer if the document might have other fields
-        // but for this specific case, a simple setDoc is fine as we manage the whole 'habits' array.
         await setDoc(dateDocRef, { 
             habits: habits,
             lastUpdated: serverTimestamp()
-        });
+        }, { merge: true }); // Use merge to be safe
         
-        // Revalidate the path to ensure the cache is updated on the client.
         revalidatePath("/dashboard/habits");
     } catch (error) {
         console.error("Error updating habits for date:", dateKey, error);
