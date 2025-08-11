@@ -22,7 +22,8 @@ async function createSession(email: string) {
 
     const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
     
-    cookies().set('session', JSON.stringify(session), {
+    // The `cookies()` function returns a promise that resolves to the cookie jar.
+    await cookies().set('session', JSON.stringify(session), {
         expires,
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -81,11 +82,13 @@ export async function signUpAction(previousState: any, formData: FormData) {
 
 
 export async function logoutAction() {
-    cookies().delete('session');
+    // The `cookies()` function returns a promise that resolves to the cookie jar.
+    await cookies().delete('session');
     redirect('/auth/login');
 }
 
 export async function getSession() {
+    // The `cookies()` function returns a promise that resolves to the cookie jar.
     const sessionCookie = await cookies().get('session')?.value;
     if (!sessionCookie) {
         return null;
