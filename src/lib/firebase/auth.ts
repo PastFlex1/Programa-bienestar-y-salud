@@ -1,8 +1,8 @@
 
 "use server";
 
-import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, updateProfile, type User } from "firebase/auth";
-import { get, ref, set } from "firebase/database";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, type User } from "firebase/auth";
+import { ref, set } from "firebase/database";
 import { auth, db } from './config';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -17,6 +17,7 @@ export type SessionPayload = {
 };
 
 async function createSession(user: User) {
+    const idToken = await user.getIdToken();
     const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
     
     const session: SessionPayload = {
@@ -41,7 +42,6 @@ export async function updateSessionCookie(data: Partial<SessionPayload>) {
     if (!session) return;
 
     const updatedSession = { ...session, ...data };
-
     const expires = new Date(session.expires);
      cookies().set('session', JSON.stringify(updatedSession), {
         expires,
@@ -91,6 +91,8 @@ export async function signUpAction(previousState: any, formData: FormData) {
         const user = userCredential.user;
 
         await updateProfile(user, { displayName: username });
+        await createSession({ ...user, displayName: username });
+
 
         const userRef = ref(db, "users/" + user.uid);
         await set(userRef, {
@@ -99,8 +101,6 @@ export async function signUpAction(previousState: any, formData: FormData) {
             displayName: username,
             createdAt: new Date().toISOString()
         });
-        
-        await createSession(user);
 
     } catch (error: any)
      {

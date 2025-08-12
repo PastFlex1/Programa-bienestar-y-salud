@@ -3,8 +3,8 @@
 
 import { ref, get, update } from "firebase/database";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
-import { auth, db, storage } from "./config";
-import { updateProfile } from "firebase/auth";
+import { db, storage } from "./config";
+import { getAuth, updateProfile } from "firebase/auth";
 import { getSession, updateSessionCookie } from "./auth";
 
 export type UserProfile = {
@@ -38,10 +38,9 @@ export async function updateUserProfile(data: { displayName?: string }): Promise
     const userDbRef = ref(db, `users/${session.uid}`);
     await update(userDbRef, data);
 
-    // Update Firebase Auth profile
-    if (auth.currentUser) {
-        await updateProfile(auth.currentUser, data);
-    }
+    // This part is tricky on the server. The `getAuth().currentUser` might be null.
+    // We rely on the client-side SDK to be updated, or we'd need to use the Admin SDK.
+    // For this app's purposes, updating the DB and the session cookie is sufficient.
 }
 
 
@@ -60,15 +59,10 @@ export async function uploadProfilePicture(file: File): Promise<string> {
     // Get download URL
     const photoURL = await getDownloadURL(fileRef);
 
-    // Update user profile in Auth and DB
+    // Update user profile in DB
     const userDbRef = ref(db, `users/${session.uid}`);
-    
     await update(userDbRef, { photoURL });
     
-    if (auth.currentUser) {
-      await updateProfile(auth.currentUser, { photoURL });
-    }
-
     // Update the session cookie
     await updateSessionCookie({ photoURL });
 
