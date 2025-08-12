@@ -8,9 +8,7 @@ import { useLanguage } from "@/context/language-provider";
 import { format } from "date-fns";
 import { es } from 'date-fns/locale';
 import { Droplets, Footprints, Brain, BookOpen, CheckCircle2, Plus, Loader2 } from "lucide-react";
-import { getHabitsForDate, updateHabitsForDate } from "@/lib/firebase/habits";
 import type { Habit as HabitDB } from "@/lib/firebase/habits";
-import { useAuth } from "@/context/auth-provider";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
@@ -35,11 +33,10 @@ const translations = {
       read: "Leer 10 páginas",
     },
     toastSuccessTitle: "Éxito",
-    toastSuccessDescription: "Tus hábitos se han guardado correctamente.",
+    toastSuccessDescription: "Tus hábitos se han actualizado.",
     toastErrorTitle: "Error",
-    toastErrorDescription: "No se pudieron guardar los cambios. Inténtalo de nuevo.",
+    toastErrorDescription: "No se pudieron guardar los cambios.",
     toastHabitAdded: "Hábito agregado exitosamente.",
-    toastAuthError: "Usuario no autenticado. Por favor, inicia sesión de nuevo.",
     addHabit: "Agregar Hábito",
     addNewHabit: "Agregar Nuevo Hábito",
     addNewHabitDescription: "Ingresa el nombre del nuevo hábito que quieres registrar.",
@@ -48,7 +45,6 @@ const translations = {
     cancel: "Cancelar",
     add: "Agregar",
     adding: "Agregando...",
-    loginPrompt: "Por favor, inicia sesión para ver tus hábitos."
   },
   en: {
     title: "Habit Tracking",
@@ -64,11 +60,10 @@ const translations = {
       read: "Read 10 pages",
     },
     toastSuccessTitle: "Success",
-    toastSuccessDescription: "Your habits have been saved successfully.",
+    toastSuccessDescription: "Your habits have been updated.",
     toastErrorTitle: "Error",
-    toastErrorDescription: "Could not save changes. Please try again.",
+    toastErrorDescription: "Could not save changes.",
     toastHabitAdded: "Habit added successfully.",
-    toastAuthError: "User not authenticated. Please log in again.",
     addHabit: "Add Habit",
     addNewHabit: "Add New Habit",
     addNewHabitDescription: "Enter the name of the new habit you want to track.",
@@ -77,7 +72,6 @@ const translations = {
     cancel: "Cancel",
     add: "Add",
     adding: "Adding...",
-    loginPrompt: "Please, log in to see your habits."
   }
 };
 
@@ -117,7 +111,6 @@ const HabitsSkeleton = () => (
 export default function HabitsPage() {
     const { language } = useLanguage();
     const t = translations[language];
-    const { user, loading: authLoading } = useAuth();
     const { toast } = useToast();
 
     const [date, setDate] = React.useState<Date | undefined>(new Date());
@@ -127,68 +120,29 @@ export default function HabitsPage() {
     const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
     
+    // Store habits locally per day
+    const [habitsByDate, setHabitsByDate] = React.useState<{ [key: string]: HabitDB[] }>({});
+    
     const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
     
-    console.log(`[HabitsPage] Rendering. Auth loading: ${authLoading}, User:`, user?.uid);
-
     React.useEffect(() => {
-        console.log(`[HabitsPage] useEffect triggered. Auth loading: ${authLoading}, User:`, user?.uid, `Date key: ${dateKey}`);
-        if (authLoading) {
-            setIsLoading(true);
-            return;
-        }
-
-        if (!user) {
-            console.log("[HabitsPage] No user found. Setting loading to false and clearing habits.");
-            setIsLoading(false);
-            setHabits([]);
-            return;
-        }
-        
-        if (!dateKey) return;
-
-        let isMounted = true;
         setIsLoading(true);
-        console.log(`[HabitsPage] Fetching habits for user ${user.uid} on date ${dateKey}.`);
-        
-        getHabitsForDate(dateKey, user.uid)
-            .then(fetchedHabits => {
-                if (isMounted) {
-                    const finalHabits = fetchedHabits.length > 0 ? fetchedHabits : getInitialHabitsForDay(t);
-                    console.log("[HabitsPage] Habits fetched:", finalHabits);
-                    setHabits(finalHabits);
-                }
-            })
-            .catch(error => {
-                console.error("[HabitsPage] Error fetching habits:", error);
-                if (isMounted) setHabits(getInitialHabitsForDay(t));
-            })
-            .finally(() => {
-                if (isMounted) {
-                    setIsLoading(false);
-                    console.log("[HabitsPage] Finished fetching, loading set to false.");
-                }
-            });
-
-        return () => { isMounted = false; };
-    }, [dateKey, user, authLoading, t]);
+        if (dateKey) {
+            const currentHabits = habitsByDate[dateKey] || getInitialHabitsForDay(t);
+            setHabits(currentHabits);
+        }
+        setIsLoading(false);
+    }, [dateKey, habitsByDate, t]);
 
 
     const handleAddHabit = async () => {
-        console.log("[handleAddHabit] Clicked. Current user:", user?.uid);
-        if (!user || !dateKey) {
-            const errorMessage = t.toastAuthError;
-            console.error("[handleAddHabit] Failed:", errorMessage, { userExists: !!user, dateKeyExists: !!dateKey });
-            toast({ variant: "destructive", title: t.toastErrorTitle, description: errorMessage });
-            return;
-        }
-
+        setIsSaving(true);
         if (newHabitName.trim() === "") {
              toast({ variant: "destructive", title: "Error", description: "El nombre del hábito no puede estar vacío." });
+             setIsSaving(false);
             return;
         }
 
-        setIsSaving(true);
         const newHabit: HabitDB = {
             id: `custom-${Date.now()}`,
             label: newHabitName,
@@ -196,48 +150,28 @@ export default function HabitsPage() {
         };
         
         const newHabitsList = [...habits, newHabit];
-        console.log("[handleAddHabit] Attempting to save new habits list:", newHabitsList);
         
-        try {
-            await updateHabitsForDate(newHabitsList, dateKey, user.uid);
-            console.log("[handleAddHabit] Successfully updated habits.");
+        // Simulate async operation
+        setTimeout(() => {
             setHabits(newHabitsList);
+            setHabitsByDate(prev => ({...prev, [dateKey]: newHabitsList}));
             toast({ title: t.toastSuccessTitle, description: t.toastHabitAdded });
             setNewHabitName(""); 
             setIsAddDialogOpen(false);
-        } catch (e) {
-            console.error("[handleAddHabit] Failed to update habits:", e);
-            toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastErrorDescription });
-        } finally {
             setIsSaving(false);
-        }
+        }, 500);
     };
 
 
     const handleToggleHabit = async (id: string) => {
-        console.log(`[handleToggleHabit] Toggling habit ${id}. User:`, user?.uid);
-        if (!user || !dateKey) {
-            const errorMessage = t.toastAuthError;
-            console.error("[handleToggleHabit] Failed:", errorMessage, { userExists: !!user, dateKeyExists: !!dateKey });
-            toast({ variant: "destructive", title: t.toastErrorTitle, description: errorMessage });
-            return;
-        }
-        
         const toggledHabits = habits.map(habit =>
             habit.id === id ? { ...habit, completed: !habit.completed } : habit
         );
         
         setHabits(toggledHabits);
-        console.log("[handleToggleHabit] UI updated. Attempting to save to DB.");
-        
-        try {
-            await updateHabitsForDate(toggledHabits, dateKey, user.uid);
-            console.log("[handleToggleHabit] DB update successful.");
-        } catch(e) {
-             console.error("[handleToggleHabit] Failed to update habits, reverting UI.", e);
-             toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastErrorDescription });
-             setHabits(habits);
-        }
+        setHabitsByDate(prev => ({...prev, [dateKey]: toggledHabits}));
+        // Optional: show a toast on completion
+        // toast({ title: t.toastSuccessTitle, description: t.toastSuccessDescription });
     };
 
     const formatDate = (d: Date) => language === 'es'
@@ -267,7 +201,7 @@ export default function HabitsPage() {
                                     selected={date}
                                     onSelect={setDate}
                                     className="rounded-md border p-0"
-                                    disabled={isSaving || authLoading}
+                                    disabled={isSaving}
                                 />
                             </CardContent>
                         </Card>
@@ -280,7 +214,7 @@ export default function HabitsPage() {
                                 </div>
                                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                                     <DialogTrigger asChild>
-                                        <Button size="icon" variant="outline" disabled={authLoading || !user}>
+                                        <Button size="icon" variant="outline">
                                             <Plus className="h-4 w-4" />
                                             <span className="sr-only">{t.addHabit}</span>
                                         </Button>
@@ -323,12 +257,8 @@ export default function HabitsPage() {
                                 </Dialog>
                             </CardHeader>
                             <CardContent>
-                               {authLoading || isLoading ? (
+                               {isLoading ? (
                                     <HabitsSkeleton />
-                                ) : !user ? (
-                                     <div className="text-center py-10">
-                                        <p className="text-muted-foreground">{t.loginPrompt}</p>
-                                     </div>
                                 ) : (
                                     <HabitTracker
                                         habits={mapHabitsForUI(habits)}
