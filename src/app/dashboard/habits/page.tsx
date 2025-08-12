@@ -102,6 +102,18 @@ const mapHabitsForUI = (dbHabits: HabitDB[]): HabitUI[] => {
     }));
 };
 
+const HabitsSkeleton = () => (
+    <div className="space-y-4">
+        {[...Array(4)].map((_, i) => (
+            <div key={i} className="flex items-center space-x-3 p-3">
+                <Skeleton className="h-5 w-5 rounded-sm" />
+                <Skeleton className="h-5 w-48" />
+            </div>
+        ))}
+    </div>
+);
+
+
 export default function HabitsPage() {
     const { language } = useLanguage();
     const t = translations[language];
@@ -156,7 +168,7 @@ export default function HabitsPage() {
     }, [dateKey, user, authLoading, t]);
 
 
-    const handleAddHabit = async () => {
+    const handleAddHabit = React.useCallback(async () => {
         if (!user || !dateKey) {
             toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastAuthError });
             return;
@@ -188,7 +200,7 @@ export default function HabitsPage() {
         } finally {
             setIsSaving(false);
         }
-    };
+    }, [user, dateKey, newHabitName, habits, t, toast]);
 
 
     const handleToggleHabit = async (id: string) => {
@@ -296,14 +308,7 @@ export default function HabitsPage() {
                             </CardHeader>
                             <CardContent>
                                {authLoading || isLoading ? (
-                                    <div className="space-y-4">
-                                        {[...Array(4)].map((_, i) => (
-                                            <div key={i} className="flex items-center space-x-3 p-3">
-                                                <Skeleton className="h-5 w-5 rounded-sm" />
-                                                <Skeleton className="h-5 w-48" />
-                                            </div>
-                                        ))}
-                                    </div>
+                                    <HabitsSkeleton />
                                 ) : !user ? (
                                      <div className="text-center py-10">
                                         <p className="text-muted-foreground">{t.loginPrompt}</p>
@@ -322,3 +327,5 @@ export default function HabitsPage() {
         </div>
     );
 }
+
+    
