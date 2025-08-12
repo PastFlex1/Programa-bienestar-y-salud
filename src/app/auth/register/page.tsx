@@ -15,7 +15,7 @@ const translations = {
     es: {
         title: "Crear una cuenta",
         description: "Ingresa tus datos para comenzar tu viaje con Zenith.",
-        usernameLabel: "Nombre de usuario (opcional)",
+        usernameLabel: "Nombre de usuario",
         emailLabel: "Correo Electrónico",
         passwordLabel: "Contraseña",
         submitButton: "Registrarse",
@@ -26,7 +26,7 @@ const translations = {
     en: {
         title: "Create an account",
         description: "Enter your details to start your journey with Zenith.",
-        usernameLabel: "Username (optional)",
+        usernameLabel: "Username",
         emailLabel: "Email",
         passwordLabel: "Password",
         submitButton: "Sign Up",
@@ -60,7 +60,7 @@ export default function RegisterPage() {
                 <form action={formAction} className="space-y-6">
                      <div className="space-y-2">
                         <Label htmlFor="username">{t.usernameLabel}</Label>
-                        <Input id="username" name="username" />
+                        <Input id="username" name="username" required />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="email">{t.emailLabel}</Label>

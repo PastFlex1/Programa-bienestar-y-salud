@@ -1,14 +1,20 @@
 
 "use server";
 
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, type User } from "firebase/auth";
 import { auth } from './config';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-async function createSession(uid: string) {
+async function createSession(user: User) {
     const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-    const session = { uid, isLoggedIn: true, expires: expires.toISOString() };
+    const session = { 
+        uid: user.uid, 
+        isLoggedIn: true, 
+        expires: expires.toISOString(),
+        displayName: user.displayName,
+        email: user.email 
+    };
     
     // Encrypt the session and set it in a cookie
     await cookies().set('session', JSON.stringify(session), {
@@ -29,7 +35,7 @@ export async function loginAction(previousState: any, formData: FormData) {
 
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        await createSession(userCredential.user.uid);
+        await createSession(userCredential.user);
     } catch (error: any) {
         if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
             return { success: false, message: 'Invalid email or password.' };
@@ -43,8 +49,9 @@ export async function loginAction(previousState: any, formData: FormData) {
 export async function signUpAction(previousState: any, formData: FormData) {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
+    const username = formData.get('username') as string;
 
-    if (!email || !password) {
+    if (!email || !password || !username) {
         return { success: false, message: 'Please provide all required fields.' };
     }
      if (password.length < 6) {
@@ -53,11 +60,20 @@ export async function signUpAction(previousState: any, formData: FormData) {
 
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        await createSession(userCredential.user.uid);
+        
+        // Update Firebase user profile with display name
+        await updateProfile(userCredential.user, { displayName: username });
+
+        // Refresh user object to get the updated profile
+        await userCredential.user.reload();
+
+        await createSession(userCredential.user);
+
     } catch (error: any) {
         if (error.code === 'auth/email-already-in-use') {
             return { success: false, message: 'This email is already in use. Please log in.' };
         }
+        console.error("SignUp Error:", error);
         return { success: false, message: 'An unexpected error occurred during registration.' };
     }
 
