@@ -15,7 +15,9 @@ export type Habit = {
 // Gets a reference to a specific habit date for a user
 const getHabitDateRef = (userId: string, dateKey: string) => {
     // Path: /users/{userId}/habitDates/{yyyy-MM-dd}
-    return ref(db, `users/${userId}/habitDates/${dateKey}`);
+    const path = `users/${userId}/habitDates/${dateKey}`;
+    console.log("[getHabitDateRef] Generated path:", path);
+    return ref(db, path);
 }
 
 /**
@@ -26,19 +28,22 @@ const getHabitDateRef = (userId: string, dateKey: string) => {
  */
 export async function getHabitsForDate(dateKey: string, userId: string): Promise<Habit[]> {
     if (!userId) {
-        console.warn("[getHabitsForDate] Called without a userId.");
+        console.warn("[getHabitsForDate] Called without a userId. Returning empty array.");
         return [];
     }
+    console.log(`[getHabitsForDate] Fetching for userId: ${userId}, dateKey: ${dateKey}`);
     try {
         const dateRef = getHabitDateRef(userId, dateKey);
         const snapshot = await get(dateRef);
 
         if (snapshot.exists()) {
             const data = snapshot.val();
-            // Realtime DB stores arrays as objects, so we convert it back
+            // Realtime DB stores arrays as objects if keys are not 0,1,2..., so we convert it back
             const habits = data.habits ? Object.values(data.habits) as Habit[] : [];
+            console.log(`[getHabitsForDate] Found ${habits.length} habits.`);
             return habits;
         } else {
+            console.log(`[getHabitsForDate] No habits found for this date. Returning empty array.`);
             return [];
         }
     } catch (error) {
@@ -55,17 +60,18 @@ export async function getHabitsForDate(dateKey: string, userId: string): Promise
  */
 export async function updateHabitsForDate(habits: Habit[], dateKey: string, userId: string): Promise<void> {
     if (!userId) {
-        console.error("[updateHabitsForDate] User is not authenticated.");
+        console.error("[updateHabitsForDate] User is not authenticated. Aborting.");
         throw new Error("User is not authenticated.");
     }
-
+    console.log(`[updateHabitsForDate] Updating habits for userId: ${userId}, dateKey: ${dateKey}`);
     try {
         const dateRef = getHabitDateRef(userId, dateKey);
-        // We save the habits and a timestamp. Note that RTDB doesn't have a server-side timestamp like Firestore.
+        // We save the habits and a timestamp.
         await set(dateRef, {
             habits: habits,
             lastUpdated: new Date().toISOString()
         });
+        console.log("[updateHabitsForDate] Successfully set data in Realtime Database.");
 
         revalidatePath("/dashboard/habits");
     } catch (error) {

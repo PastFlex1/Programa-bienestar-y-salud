@@ -49,6 +49,14 @@ export default function RegisterPage() {
     const { language } = useLanguage();
     const t = translations[language];
     const [state, formAction] = useActionState(signUpAction, null);
+    
+    console.log("[RegisterPage] Rendering with action state:", state);
+
+    useEffect(() => {
+        if (state?.message && !state?.success) {
+            console.log("[RegisterPage] Registration error received from action:", state.message);
+        }
+    }, [state]);
 
     return (
         <Card className="w-full max-w-md">

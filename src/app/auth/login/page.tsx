@@ -52,10 +52,16 @@ export default function LoginPage() {
   const t = translations[language];
   const [state, formAction] = useActionState(loginAction, null);
   const router = useRouter();
+  
+  console.log("[LoginPage] Rendering with action state:", state);
 
   useEffect(() => {
     if (state?.success) {
+      console.log("[LoginPage] Login successful (state.success is true), redirecting...");
       router.push('/dashboard');
+    }
+     if (state?.message && !state?.success) {
+      console.log("[LoginPage] Login error received from action:", state.message);
     }
   }, [state, router]);
 

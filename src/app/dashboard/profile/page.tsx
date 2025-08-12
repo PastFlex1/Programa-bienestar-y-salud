@@ -60,19 +60,26 @@ export default function ProfilePage() {
   const [previewAvatarUrl, setPreviewAvatarUrl] = useState("https://placehold.co/100x100.png");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  console.log(`[ProfilePage] Rendering. Auth loading: ${authLoading}, UserData:`, userData);
 
   useEffect(() => {
+    console.log("[ProfilePage] useEffect triggered. UserData:", userData);
     if (userData) {
+      console.log("[ProfilePage] UserData found, setting name and email.");
       setName(userData.displayName || '');
       setEmail(userData.email || '');
       // In a real app, you'd fetch the avatar URL from userData as well
       // setPreviewAvatarUrl(userData.avatarUrl || "https://placehold.co/100x100.png");
+    } else {
+      console.log("[ProfilePage] No UserData found yet.");
     }
   }, [userData]);
 
 
   const handleSaveChanges = () => {
-    // Here you would typically call a function to update the user data in Firestore
+    console.log("[ProfilePage] handleSaveChanges clicked.");
+    // Here you would typically call a function to update the user data in Firestore/RTDB
     // For now, we just show a toast
     toast({
       title: t.toastSuccessTitle,
@@ -82,6 +89,7 @@ export default function ProfilePage() {
 
   const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+    console.log("[ProfilePage] handleAvatarChange triggered with file:", file?.name);
     if (file) {
       if (file.size > 2 * 1024 * 1024) { // 2MB limit
         toast({
@@ -101,6 +109,7 @@ export default function ProfilePage() {
   };
 
   if (authLoading) {
+    console.log("[ProfilePage] Auth is loading, showing skeleton.");
     return (
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="max-w-2xl mx-auto space-y-8">

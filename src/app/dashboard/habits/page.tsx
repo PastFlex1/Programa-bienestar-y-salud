@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -127,14 +128,18 @@ export default function HabitsPage() {
     const [isSaving, setIsSaving] = React.useState(false);
     
     const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
+    
+    console.log(`[HabitsPage] Rendering. Auth loading: ${authLoading}, User:`, user?.uid);
 
     React.useEffect(() => {
+        console.log(`[HabitsPage] useEffect triggered. Auth loading: ${authLoading}, User:`, user?.uid, `Date key: ${dateKey}`);
         if (authLoading) {
             setIsLoading(true);
             return;
         }
 
         if (!user) {
+            console.log("[HabitsPage] No user found. Setting loading to false and clearing habits.");
             setIsLoading(false);
             setHabits([]);
             return;
@@ -144,20 +149,24 @@ export default function HabitsPage() {
 
         let isMounted = true;
         setIsLoading(true);
+        console.log(`[HabitsPage] Fetching habits for user ${user.uid} on date ${dateKey}.`);
         
         getHabitsForDate(dateKey, user.uid)
             .then(fetchedHabits => {
                 if (isMounted) {
-                    setHabits(fetchedHabits.length > 0 ? fetchedHabits : getInitialHabitsForDay(t));
+                    const finalHabits = fetchedHabits.length > 0 ? fetchedHabits : getInitialHabitsForDay(t);
+                    console.log("[HabitsPage] Habits fetched:", finalHabits);
+                    setHabits(finalHabits);
                 }
             })
             .catch(error => {
-                console.error("[useEffect] Error fetching habits:", error);
+                console.error("[HabitsPage] Error fetching habits:", error);
                 if (isMounted) setHabits(getInitialHabitsForDay(t));
             })
             .finally(() => {
                 if (isMounted) {
                     setIsLoading(false);
+                    console.log("[HabitsPage] Finished fetching, loading set to false.");
                 }
             });
 
@@ -166,8 +175,11 @@ export default function HabitsPage() {
 
 
     const handleAddHabit = async () => {
+        console.log("[handleAddHabit] Clicked. Current user:", user?.uid);
         if (!user || !dateKey) {
-            toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastAuthError });
+            const errorMessage = t.toastAuthError;
+            console.error("[handleAddHabit] Failed:", errorMessage, { userExists: !!user, dateKeyExists: !!dateKey });
+            toast({ variant: "destructive", title: t.toastErrorTitle, description: errorMessage });
             return;
         }
 
@@ -184,9 +196,11 @@ export default function HabitsPage() {
         };
         
         const newHabitsList = [...habits, newHabit];
+        console.log("[handleAddHabit] Attempting to save new habits list:", newHabitsList);
         
         try {
             await updateHabitsForDate(newHabitsList, dateKey, user.uid);
+            console.log("[handleAddHabit] Successfully updated habits.");
             setHabits(newHabitsList);
             toast({ title: t.toastSuccessTitle, description: t.toastHabitAdded });
             setNewHabitName(""); 
@@ -201,8 +215,11 @@ export default function HabitsPage() {
 
 
     const handleToggleHabit = async (id: string) => {
+        console.log(`[handleToggleHabit] Toggling habit ${id}. User:`, user?.uid);
         if (!user || !dateKey) {
-            toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastAuthError });
+            const errorMessage = t.toastAuthError;
+            console.error("[handleToggleHabit] Failed:", errorMessage, { userExists: !!user, dateKeyExists: !!dateKey });
+            toast({ variant: "destructive", title: t.toastErrorTitle, description: errorMessage });
             return;
         }
         
@@ -211,13 +228,15 @@ export default function HabitsPage() {
         );
         
         setHabits(toggledHabits);
+        console.log("[handleToggleHabit] UI updated. Attempting to save to DB.");
         
         try {
             await updateHabitsForDate(toggledHabits, dateKey, user.uid);
+            console.log("[handleToggleHabit] DB update successful.");
         } catch(e) {
              console.error("[handleToggleHabit] Failed to update habits, reverting UI.", e);
              toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastErrorDescription });
-             setHabits(habits); // Revert UI change on failure
+             setHabits(habits);
         }
     };
 
@@ -261,7 +280,7 @@ export default function HabitsPage() {
                                 </div>
                                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                                     <DialogTrigger asChild>
-                                        <Button size="icon" variant="outline" disabled={authLoading || isLoading}>
+                                        <Button size="icon" variant="outline" disabled={authLoading}>
                                             <Plus className="h-4 w-4" />
                                             <span className="sr-only">{t.addHabit}</span>
                                         </Button>
