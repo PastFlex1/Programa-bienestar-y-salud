@@ -39,10 +39,12 @@ export async function getHabitsForDate(dateKey: string): Promise<Habit[]> {
             const habits = data.habits ? Object.values(data.habits) as Habit[] : [];
             return habits;
         } else {
+            // Return an empty array if no habits are found for the date
             return [];
         }
     } catch (error) {
         console.error("[getHabitsForDate] Error getting habits for date:", dateKey, error);
+        // Return an empty array on error to prevent app crashes
         return [];
     }
 }
@@ -60,8 +62,10 @@ export async function updateHabitsForDate(habits: Habit[], dateKey: string): Pro
     
     try {
         const dateRef = getHabitDateRef(session.uid, dateKey);
+        // Ensure that what we're setting is an object, even for an empty array
+        const habitsToSet = habits.length > 0 ? habits : {};
         await set(dateRef, {
-            habits: habits,
+            habits: habitsToSet,
             lastUpdated: new Date().toISOString()
         });
 

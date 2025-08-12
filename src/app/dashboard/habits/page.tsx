@@ -103,11 +103,12 @@ export default function HabitsPage() {
         setIsLoading(true);
         getHabitsForDate(dateKey)
             .then(fetchedHabits => {
-                setHabits(fetchedHabits);
+                setHabits(fetchedHabits || []);
                 setInitialHabits(dateKey, fetchedHabits.filter(h => h.completed).length);
             })
             .catch(err => {
                 console.error(err);
+                setHabits([]); // Ensure habits is an array on error
             })
             .finally(() => setIsLoading(false));
     }, [dateKey, setInitialHabits]);
@@ -126,8 +127,9 @@ export default function HabitsPage() {
             label: newHabitName,
             completed: false,
         };
-
-        const newHabitsList = [...habits, newHabit];
+        
+        const currentHabits = habits || [];
+        const newHabitsList = [...currentHabits, newHabit];
         
         try {
             await updateHabitsForDate(newHabitsList, dateKey);
@@ -136,6 +138,7 @@ export default function HabitsPage() {
             setNewHabitName(""); 
             setIsAddDialogOpen(false);
         } catch (error) {
+            console.error(error);
             toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastErrorDescription });
         } finally {
             setIsSaving(false);
@@ -261,7 +264,7 @@ export default function HabitsPage() {
                                     </div>
                                 ) : (
                                     <HabitTracker
-                                        habits={mapHabitsForUI(habits)}
+                                        habits={mapHabitsForUI(habits || [])}
                                         onToggleHabit={handleToggleHabit}
                                     />
                                 )}
