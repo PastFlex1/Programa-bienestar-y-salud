@@ -26,12 +26,6 @@ const translations = {
     calendarDescription: "Selecciona un día para ver o agregar hábitos.",
     selectedDay: "Hábitos para el",
     loading: "Cargando hábitos...",
-    initialHabits: {
-      hydrate: "Hidratarse (8 vasos)",
-      walk: "Caminata Matutina",
-      mindful: "Momento de Atención Plena",
-      read: "Leer 10 páginas",
-    },
     toastSuccessTitle: "Éxito",
     toastSuccessDescription: "Tus hábitos se han actualizado.",
     toastErrorTitle: "Error",
@@ -53,12 +47,6 @@ const translations = {
     calendarDescription: "Select a day to view or add habits.",
     selectedDay: "Habits for",
     loading: "Loading habits...",
-    initialHabits: {
-      hydrate: "Hydrate (8 glasses)",
-      walk: "Morning Walk",
-      mindful: "Mindful Moment",
-      read: "Read 10 pages",
-    },
     toastSuccessTitle: "Success",
     toastSuccessDescription: "Your habits have been updated.",
     toastErrorTitle: "Error",
@@ -74,14 +62,6 @@ const translations = {
     adding: "Adding...",
   }
 };
-
-
-const getInitialHabitsForDay = (t: any): HabitDB[] => [
-    { id: "hydrate", label: t.initialHabits.hydrate, completed: false },
-    { id: "walk", label: t.initialHabits.walk, completed: false },
-    { id: "mindful", label: t.initialHabits.mindful, completed: false },
-    { id: "read", label: t.initialHabits.read, completed: false },
-];
 
 const mapHabitsForUI = (dbHabits: HabitDB[]): HabitUI[] => {
     const iconMapping: { [key: string]: React.ReactNode } = {
@@ -128,11 +108,11 @@ export default function HabitsPage() {
     React.useEffect(() => {
         setIsLoading(true);
         if (dateKey) {
-            const currentHabits = habitsByDate[dateKey] || getInitialHabitsForDay(t);
+            const currentHabits = habitsByDate[dateKey] || [];
             setHabits(currentHabits);
         }
         setIsLoading(false);
-    }, [dateKey, habitsByDate, t]);
+    }, [dateKey, habitsByDate]);
 
 
     const handleAddHabit = async () => {
