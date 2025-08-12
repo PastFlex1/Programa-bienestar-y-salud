@@ -2,21 +2,21 @@
 "use server";
 
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, type User } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { ref, set } from "firebase/database";
 import { auth, db } from './config';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 async function createSession(user: User) {
     const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-    const session = { 
-        uid: user.uid, 
-        isLoggedIn: true, 
+    const session = {
+        uid: user.uid,
+        isLoggedIn: true,
         expires: expires.toISOString(),
         displayName: user.displayName,
-        email: user.email 
+        email: user.email
     };
-    
+
     // Encrypt the session and set it in a cookie
     await cookies().set('session', JSON.stringify(session), {
         expires,
@@ -43,7 +43,7 @@ export async function loginAction(previousState: any, formData: FormData) {
         }
         return { success: false, message: 'An unexpected error occurred. Please try again.' };
     }
-    
+
     redirect('/dashboard');
 }
 
@@ -62,19 +62,19 @@ export async function signUpAction(previousState: any, formData: FormData) {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
-        
+
         // Update Firebase user profile with display name
         await updateProfile(user, { displayName: username });
 
-        // Create a user document in Firestore
-        const userDocRef = doc(db, "users", user.uid);
-        await setDoc(userDocRef, {
+        // Create a user document in Realtime Database
+        const userRef = ref(db, "users/" + user.uid);
+        await set(userRef, {
             uid: user.uid,
             email: user.email,
             displayName: username,
-            createdAt: serverTimestamp()
+            createdAt: new Date().toISOString()
         });
-
+        
         // Refresh user object to get the updated profile
         await user.reload();
 

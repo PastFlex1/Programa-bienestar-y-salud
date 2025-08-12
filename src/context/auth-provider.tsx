@@ -5,14 +5,14 @@ import { createContext, useContext, useEffect, useState, ReactNode, useMemo } fr
 import type { User as FirebaseUser } from 'firebase/auth';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase/config';
-import { doc, getDoc } from 'firebase/firestore';
+import { ref, get } from 'firebase/database';
 
-// Represents the data structure for a user in Firestore
+// Represents the data structure for a user in the Realtime Database
 export type UserData = {
     uid: string;
     email: string;
     displayName: string;
-    createdAt: any; // Firestore timestamp
+    createdAt: string;
 };
 
 type AuthContextType = {
@@ -33,15 +33,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setLoading(true);
             if (user) {
                 setUser(user);
-                // User is signed in, now fetch their data from Firestore
-                const userDocRef = doc(db, "users", user.uid);
-                const docSnap = await getDoc(userDocRef);
-                if (docSnap.exists()) {
-                    setUserData(docSnap.data() as UserData);
+                // User is signed in, now fetch their data from Realtime Database
+                const userRef = ref(db, `users/${user.uid}`);
+                const snapshot = await get(userRef);
+                if (snapshot.exists()) {
+                    setUserData(snapshot.val() as UserData);
                 } else {
-                    // This case might happen if the Firestore doc creation failed
-                    // or for users created before the logic was in place.
-                    console.warn(`No user document found in Firestore for uid: ${user.uid}`);
+                    console.warn(`No user data found in Realtime Database for uid: ${user.uid}`);
                     setUserData(null);
                 }
             } else {

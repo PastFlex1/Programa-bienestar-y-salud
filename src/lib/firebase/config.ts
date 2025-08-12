@@ -1,7 +1,7 @@
 
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getDatabase } from "firebase/database";
 
 const firebaseConfig = {
     projectId: "zenith-mobile-fvkph",
@@ -9,12 +9,13 @@ const firebaseConfig = {
     storageBucket: "zenith-mobile-fvkph.firebasestorage.app",
     apiKey: "AIzaSyCvsgcUFaS0LtE3ePyi0aiOujJI6EsgWiU",
     authDomain: "zenith-mobile-fvkph.firebaseapp.com",
-    messagingSenderId: "1086068591785"
+    messagingSenderId: "1086068591785",
+    databaseURL: "https://zenith-mobile-fvkph-default-rtdb.firebaseio.com"
 };
 
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
-const db = getFirestore(app);
+const db = getDatabase(app);
 
 export { app, auth, db };

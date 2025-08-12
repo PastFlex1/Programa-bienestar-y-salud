@@ -1,21 +1,21 @@
 
 "use server";
 
-import { doc, getDoc, setDoc, serverTimestamp, collection, writeBatch } from "firebase/firestore";
+import { ref, get, set } from "firebase/database";
 import { db } from "./config";
 import { revalidatePath } from "next/cache";
 
-// Type for storing in Firestore
+// Type for storing in the database
 export type Habit = {
   id: string;
   label: string;
   completed: boolean;
 };
 
-// Gets a reference to a specific habit date document for a user
-const getHabitDateDocRef = (userId: string, dateKey: string) => {
+// Gets a reference to a specific habit date for a user
+const getHabitDateRef = (userId: string, dateKey: string) => {
     // Path: /users/{userId}/habitDates/{yyyy-MM-dd}
-    return doc(db, "users", userId, "habitDates", dateKey);
+    return ref(db, `users/${userId}/habitDates/${dateKey}`);
 }
 
 /**
@@ -30,12 +30,13 @@ export async function getHabitsForDate(dateKey: string, userId: string): Promise
         return [];
     }
     try {
-        const dateDocRef = getHabitDateDocRef(userId, dateKey);
-        const docSnap = await getDoc(dateDocRef);
-        
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            const habits = Array.isArray(data.habits) ? data.habits : [];
+        const dateRef = getHabitDateRef(userId, dateKey);
+        const snapshot = await get(dateRef);
+
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            // Realtime DB stores arrays as objects, so we convert it back
+            const habits = data.habits ? Object.values(data.habits) as Habit[] : [];
             return habits;
         } else {
             return [];
@@ -57,14 +58,15 @@ export async function updateHabitsForDate(habits: Habit[], dateKey: string, user
         console.error("[updateHabitsForDate] User is not authenticated.");
         throw new Error("User is not authenticated.");
     }
-    
+
     try {
-        const dateDocRef = getHabitDateDocRef(userId, dateKey);
-        await setDoc(dateDocRef, { 
+        const dateRef = getHabitDateRef(userId, dateKey);
+        // We save the habits and a timestamp. Note that RTDB doesn't have a server-side timestamp like Firestore.
+        await set(dateRef, {
             habits: habits,
-            lastUpdated: serverTimestamp()
-        }, { merge: true }); 
-        
+            lastUpdated: new Date().toISOString()
+        });
+
         revalidatePath("/dashboard/habits");
     } catch (error) {
         console.error("[updateHabitsForDate] Error updating habits for date:", dateKey, error);
