@@ -1,7 +1,7 @@
 
 "use server";
 
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, serverTimestamp, collection, writeBatch } from "firebase/firestore";
 import { db } from "./config";
 import { revalidatePath } from "next/cache";
 
@@ -25,25 +25,19 @@ const getHabitDateDocRef = (userId: string, dateKey: string) => {
  * @returns A promise that resolves to an array of Habit objects.
  */
 export async function getHabitsForDate(dateKey: string, userId: string): Promise<Habit[]> {
-    console.log(`[getHabitsForDate] Called with userId: ${userId}, dateKey: ${dateKey}`);
     if (!userId) {
         console.warn("[getHabitsForDate] Called without a userId.");
         return [];
     }
     try {
         const dateDocRef = getHabitDateDocRef(userId, dateKey);
-        console.log(`[getHabitsForDate] Getting doc from path: ${dateDocRef.path}`);
         const docSnap = await getDoc(dateDocRef);
         
         if (docSnap.exists()) {
             const data = docSnap.data();
-            console.log("[getHabitsForDate] Document exists. Data:", data);
-            // Ensure the habits field is an array before returning
             const habits = Array.isArray(data.habits) ? data.habits : [];
-            console.log("[getHabitsForDate] Returning habits:", habits);
             return habits;
         } else {
-            console.log("[getHabitsForDate] Document does not exist.");
             return [];
         }
     } catch (error) {
@@ -59,9 +53,6 @@ export async function getHabitsForDate(dateKey: string, userId: string): Promise
  * @param userId - The ID of the authenticated user.
  */
 export async function updateHabitsForDate(habits: Habit[], dateKey: string, userId: string): Promise<void> {
-    console.log(`[updateHabitsForDate] Called with userId: ${userId}, dateKey: ${dateKey}`);
-    console.log(`[updateHabitsForDate] Habits to save:`, habits);
-    
     if (!userId) {
         console.error("[updateHabitsForDate] User is not authenticated.");
         throw new Error("User is not authenticated.");
@@ -69,19 +60,14 @@ export async function updateHabitsForDate(habits: Habit[], dateKey: string, user
     
     try {
         const dateDocRef = getHabitDateDocRef(userId, dateKey);
-        console.log(`[updateHabitsForDate] Setting doc at path: ${dateDocRef.path}`);
         await setDoc(dateDocRef, { 
             habits: habits,
             lastUpdated: serverTimestamp()
-        }, { merge: true }); // Use merge to be safe
+        }, { merge: true }); 
         
-        console.log("[updateHabitsForDate] Document successfully written.");
         revalidatePath("/dashboard/habits");
-        console.log("[updateHabitsForDate] Path revalidated.");
     } catch (error) {
         console.error("[updateHabitsForDate] Error updating habits for date:", dateKey, error);
         throw new Error("Could not update habits in the database.");
     }
 }
-
-    

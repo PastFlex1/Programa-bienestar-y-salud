@@ -162,9 +162,7 @@ export default function HabitsPage() {
                 }
             });
 
-        return () => { 
-            isMounted = false; 
-        };
+        return () => { isMounted = false; };
     }, [dateKey, user, authLoading, t]);
 
 
@@ -264,7 +262,7 @@ export default function HabitsPage() {
                                 </div>
                                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                                     <DialogTrigger asChild>
-                                        <Button size="icon" variant="outline">
+                                        <Button size="icon" variant="outline" disabled={authLoading}>
                                             <Plus className="h-4 w-4" />
                                             <span className="sr-only">{t.addHabit}</span>
                                         </Button>
@@ -327,5 +325,3 @@ export default function HabitsPage() {
         </div>
     );
 }
-
-    
