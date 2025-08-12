@@ -70,16 +70,22 @@ export default function LoginPage() {
   const [state, formAction] = useActionState(loginAction, { success: false, message: ""});
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalContent, setModalContent] = useState({ title: "", description: "", isError: false });
   
   useEffect(() => {
     if (!state.message) return;
 
     if (state.success) {
-      router.push('/dashboard');
+      setModalContent({ title: t.successTitle, description: t.successDescription, isError: false });
+      setIsModalOpen(true);
+      setTimeout(() => {
+          router.push('/dashboard');
+      }, 1500);
     } else {
+      setModalContent({ title: t.errorTitle, description: state.message, isError: true });
       setIsModalOpen(true);
     }
-  }, [state, router]);
+  }, [state, router, t]);
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -118,14 +124,14 @@ export default function LoginPage() {
       <Dialog open={isModalOpen} onOpenChange={(isOpen) => !isOpen && handleCloseModal()}>
           <DialogContent>
               <DialogHeader>
-                  <div className={`flex justify-center items-center h-16 w-16 rounded-full bg-opacity-20 mx-auto mb-4 bg-destructive`}>
-                    <XCircle className="h-10 w-10 text-destructive-foreground" />
+                  <div className={`flex justify-center items-center h-16 w-16 rounded-full bg-opacity-20 mx-auto mb-4 ${modalContent.isError ? 'bg-destructive' : 'bg-primary'}`}>
+                    {modalContent.isError ? <XCircle className="h-10 w-10 text-destructive-foreground" /> : <CheckCircle2 className="h-10 w-10 text-primary" />}
                   </div>
                   <DialogTitle className="text-center font-headline text-2xl">
-                    {t.errorTitle}
+                    {modalContent.title}
                   </DialogTitle>
                   <DialogDescription className="text-center">
-                    {state.message}
+                    {modalContent.description}
                   </DialogDescription>
               </DialogHeader>
               <DialogFooter>
