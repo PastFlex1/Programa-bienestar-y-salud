@@ -9,6 +9,7 @@ import { redirect } from 'next/navigation';
 
 async function createSession(user: User) {
     const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    
     const session = {
         uid: user.uid,
         isLoggedIn: true,
@@ -77,8 +78,14 @@ export async function signUpAction(previousState: any, formData: FormData) {
         
         // Refresh user object to get the updated profile
         await user.reload();
+        
+        // We need to get the refreshed user object to create the session with the correct display name
+        const refreshedUser = auth.currentUser;
+        if (!refreshedUser) {
+            throw new Error("Could not get refreshed user after sign up.");
+        }
 
-        await createSession(user);
+        await createSession(refreshedUser);
 
     } catch (error: any) {
         if (error.code === 'auth/email-already-in-use') {
