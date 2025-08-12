@@ -7,6 +7,7 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Play, Pause, RotateCcw, Volume1, Volume2, VolumeX } from "lucide-react";
 import { useLanguage } from "@/context/language-provider";
+import { useProgress } from "@/context/progress-provider";
 
 const translations = {
     es: {
@@ -26,12 +27,18 @@ interface MeditationPlayerProps {
 export function MeditationPlayer({ title, lengthMinutes, audioUrl }: MeditationPlayerProps) {
     const { language } = useLanguage();
     const t = translations[language];
+    const { logMeditation } = useProgress();
 
     const audioRef = useRef<HTMLAudioElement>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
     const [volume, setVolume] = useState(0.5); // From 0 to 1
     const [duration, setDuration] = useState(lengthMinutes * 60);
+
+    const handleAudioEnd = () => {
+        setIsPlaying(false);
+        logMeditation(new Date(), lengthMinutes);
+    };
 
     useEffect(() => {
         const audio = audioRef.current;
@@ -107,7 +114,7 @@ export function MeditationPlayer({ title, lengthMinutes, audioUrl }: MeditationP
 
     return (
         <div className="p-4 space-y-6">
-            <audio ref={audioRef} src={audioUrl} preload="metadata" onEnded={() => setIsPlaying(false)} />
+            <audio ref={audioRef} src={audioUrl} preload="metadata" onEnded={handleAudioEnd} />
             <DialogHeader className="text-center">
                 <DialogTitle className="text-2xl font-headline">{title}</DialogTitle>
                 <DialogDescription>{formatTime(progress)} / {formatTime(duration)}</DialogDescription>

@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from '@/context/theme-provider';
 import { LanguageProvider } from '@/context/language-provider';
 import { AuthProvider } from '@/context/auth-provider';
+import { ProgressProvider } from '@/context/progress-provider';
 
 export const metadata: Metadata = {
   title: 'Zenith',
@@ -31,8 +32,10 @@ export default function RootLayout({
         >
           <LanguageProvider>
             <AuthProvider>
-              {children}
-              <Toaster />
+              <ProgressProvider>
+                {children}
+                <Toaster />
+              </ProgressProvider>
             </AuthProvider>
           </LanguageProvider>
         </ThemeProvider>

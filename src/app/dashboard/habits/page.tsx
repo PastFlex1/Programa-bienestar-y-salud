@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { HabitTracker, type Habit as HabitUI } from "@/components/habit-tracker";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useProgress } from "@/context/progress-provider";
 
 
 const translations = {
@@ -98,9 +99,9 @@ export default function HabitsPage() {
     const { language } = useLanguage();
     const t = translations[language];
     const { toast } = useToast();
+    const { logHabit } = useProgress();
 
     const [date, setDate] = React.useState<Date | undefined>(new Date());
-    const [habits, setHabits] = React.useState<HabitDB[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
     const [newHabitName, setNewHabitName] = React.useState("");
     const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
@@ -111,20 +112,19 @@ export default function HabitsPage() {
     const [habitsByDate, setHabitsByDate] = React.useState<{ [key: string]: HabitDB[] }>({});
     
     const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
+    const habits = habitsByDate[dateKey] || [];
     
     React.useEffect(() => {
         setIsLoading(true);
-        if (dateKey) {
-            const currentHabits = habitsByDate[dateKey] || [];
-            setHabits(currentHabits);
-        }
+        // This effect now simply reacts to date changes.
+        // The `habits` variable is derived directly from `habitsByDate` and the `dateKey`.
         setIsLoading(false);
-    }, [dateKey, habitsByDate]);
+    }, [dateKey]);
 
 
     const handleAddHabit = async () => {
         setIsSaving(true);
-        if (newHabitName.trim() === "") {
+        if (newHabitName.trim() === "" || !dateKey) {
              toast({ variant: "destructive", title: "Error", description: "El nombre del hábito no puede estar vacío." });
              setIsSaving(false);
             return;
@@ -140,7 +140,6 @@ export default function HabitsPage() {
         
         // Simulate async operation
         setTimeout(() => {
-            setHabits(newHabitsList);
             setHabitsByDate(prev => ({...prev, [dateKey]: newHabitsList}));
             toast({ title: t.toastSuccessTitle, description: t.toastHabitAdded });
             setNewHabitName(""); 
@@ -151,18 +150,23 @@ export default function HabitsPage() {
 
 
     const handleToggleHabit = async (id: string) => {
+        if (!date) return;
         let habitJustCompleted = false;
+        
         const toggledHabits = habits.map(habit => {
             if (habit.id === id) {
-                if (!habit.completed) {
+                const updatedHabit = { ...habit, completed: !habit.completed };
+                if (updatedHabit.completed) {
                     habitJustCompleted = true;
+                    logHabit(date, true); // Log completion
+                } else {
+                    logHabit(date, false); // Log incompletion (decrement)
                 }
-                return { ...habit, completed: !habit.completed };
+                return updatedHabit;
             }
             return habit;
         });
         
-        setHabits(toggledHabits);
         setHabitsByDate(prev => ({...prev, [dateKey]: toggledHabits}));
         
         if (habitJustCompleted) {

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Bar, BarChart, XAxis, YAxis } from "recharts";
@@ -5,6 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from "@/components/ui/chart";
 import { TrendingUp } from "lucide-react";
 import { useLanguage } from "@/context/language-provider";
+import { useProgress } from "@/context/progress-provider";
+import { eachDayOfInterval, startOfWeek, format } from "date-fns";
+import { es } from 'date-fns/locale';
 
 const translations = {
   es: {
@@ -30,17 +34,34 @@ const translations = {
 
 export function ProgressCharts() {
   const { language } = useLanguage();
+  const { progressData } = useProgress();
   const t = translations[language];
 
-  const chartData = [
-    { day: t.days.mon, minutes: 10, habits: 2 },
-    { day: t.days.tue, minutes: 15, habits: 1 },
-    { day: t.days.wed, minutes: 12, habits: 3 },
-    { day: t.days.thu, minutes: 20, habits: 2 },
-    { day: t.days.fri, minutes: 25, habits: 3 },
-    { day: t.days.sat, minutes: 30, habits: 3 },
-    { day: t.days.sun, minutes: 20, habits: 2 },
-  ];
+  const chartData = React.useMemo(() => {
+    const today = new Date();
+    const weekStart = startOfWeek(today, { weekStartsOn: 1 }); // Monday
+    const weekDays = eachDayOfInterval({ start: weekStart, end: today });
+    
+    const dayLabels = {
+        en: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        es: ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"],
+    };
+
+    const daysOfWeek = dayLabels[language];
+
+    return daysOfWeek.map((dayLabel, index) => {
+        const date = new Date(weekStart);
+        date.setDate(date.getDate() + index);
+        const dateKey = format(date, 'yyyy-MM-dd');
+        const dayData = progressData[dateKey] || { minutes: 0, habits: 0 };
+        return {
+            day: dayLabel,
+            minutes: dayData.minutes,
+            habits: dayData.habits
+        };
+    });
+  }, [progressData, language]);
+
 
   const chartConfig = {
     minutes: {
@@ -74,7 +95,7 @@ export function ProgressCharts() {
                   tickLine={false}
                   tickMargin={10}
                   axisLine={false}
-                  tickFormatter={(value) => value.slice(0, 3)}
+                  tickFormatter={(value) => value}
                 />
                 <YAxis hide />
                 <ChartTooltip content={<ChartTooltipContent />} />
@@ -91,7 +112,7 @@ export function ProgressCharts() {
                   tickLine={false}
                   tickMargin={10}
                   axisLine={false}
-                  tickFormatter={(value) => value.slice(0, 3)}
+                  tickFormatter={(value) => value}
                 />
                 <YAxis hide />
                 <ChartTooltip content={<ChartTooltipContent />} />
