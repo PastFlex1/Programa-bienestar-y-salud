@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -166,7 +165,7 @@ export default function HabitsPage() {
     }, [dateKey, user, authLoading, t]);
 
 
-    const handleAddHabit = React.useCallback(async () => {
+    const handleAddHabit = async () => {
         if (!user || !dateKey) {
             toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastAuthError });
             return;
@@ -198,7 +197,7 @@ export default function HabitsPage() {
         } finally {
             setIsSaving(false);
         }
-    }, [user, dateKey, newHabitName, habits, t, toast]);
+    };
 
 
     const handleToggleHabit = async (id: string) => {
@@ -262,7 +261,7 @@ export default function HabitsPage() {
                                 </div>
                                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                                     <DialogTrigger asChild>
-                                        <Button size="icon" variant="outline">
+                                        <Button size="icon" variant="outline" disabled={authLoading || isLoading}>
                                             <Plus className="h-4 w-4" />
                                             <span className="sr-only">{t.addHabit}</span>
                                         </Button>

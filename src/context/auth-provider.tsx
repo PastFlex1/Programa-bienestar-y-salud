@@ -35,12 +35,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 setUser(user);
                 // User is signed in, now fetch their data from Realtime Database
                 const userRef = ref(db, `users/${user.uid}`);
-                const snapshot = await get(userRef);
-                if (snapshot.exists()) {
-                    setUserData(snapshot.val() as UserData);
-                } else {
-                    console.warn(`No user data found in Realtime Database for uid: ${user.uid}`);
-                    setUserData(null);
+                try {
+                    const snapshot = await get(userRef);
+                    if (snapshot.exists()) {
+                        setUserData(snapshot.val() as UserData);
+                    } else {
+                        // This case can happen if the user was created in Auth but not in DB
+                        // Or if the data is not yet replicated. We can retry or warn.
+                        console.warn(`No user data found in Realtime Database for uid: ${user.uid}. A default object will be used.`);
+                        // Create a fallback userData object to prevent parts of the UI from breaking
+                        setUserData({
+                            uid: user.uid,
+                            email: user.email || "No email",
+                            displayName: user.displayName || "User",
+                            createdAt: new Date().toISOString()
+                        });
+                    }
+                } catch (error) {
+                     console.error("Error fetching user data from Realtime Database:", error);
+                     setUserData(null);
                 }
             } else {
                 // User is signed out
