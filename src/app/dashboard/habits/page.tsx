@@ -39,6 +39,9 @@ const translations = {
     cancel: "Cancelar",
     add: "Agregar",
     adding: "Agregando...",
+    habitCompleted: "¡Hábito Completado!",
+    habitCompletedDescription: "¡Sigue así!",
+    close: "Cerrar",
   },
   en: {
     title: "Habit Tracking",
@@ -60,6 +63,9 @@ const translations = {
     cancel: "Cancel",
     add: "Add",
     adding: "Adding...",
+    habitCompleted: "Habit Completed!",
+    habitCompletedDescription: "Keep up the great work!",
+    close: "Close",
   }
 };
 
@@ -99,6 +105,7 @@ export default function HabitsPage() {
     const [newHabitName, setNewHabitName] = React.useState("");
     const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
+    const [isCompletionModalOpen, setIsCompletionModalOpen] = React.useState(false);
     
     // Store habits locally per day
     const [habitsByDate, setHabitsByDate] = React.useState<{ [key: string]: HabitDB[] }>({});
@@ -144,14 +151,23 @@ export default function HabitsPage() {
 
 
     const handleToggleHabit = async (id: string) => {
-        const toggledHabits = habits.map(habit =>
-            habit.id === id ? { ...habit, completed: !habit.completed } : habit
-        );
+        let habitJustCompleted = false;
+        const toggledHabits = habits.map(habit => {
+            if (habit.id === id) {
+                if (!habit.completed) {
+                    habitJustCompleted = true;
+                }
+                return { ...habit, completed: !habit.completed };
+            }
+            return habit;
+        });
         
         setHabits(toggledHabits);
         setHabitsByDate(prev => ({...prev, [dateKey]: toggledHabits}));
-        // Optional: show a toast on completion
-        // toast({ title: t.toastSuccessTitle, description: t.toastSuccessDescription });
+        
+        if (habitJustCompleted) {
+            setIsCompletionModalOpen(true);
+        }
     };
 
     const formatDate = (d: Date) => language === 'es'
@@ -250,6 +266,22 @@ export default function HabitsPage() {
                     </div>
                 </div>
             </div>
+             <Dialog open={isCompletionModalOpen} onOpenChange={setIsCompletionModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <div className="flex justify-center items-center h-16 w-16 rounded-full bg-primary/20 mx-auto mb-4">
+                           <CheckCircle2 className="h-10 w-10 text-primary" />
+                        </div>
+                        <DialogTitle className="text-center font-headline text-2xl">{t.habitCompleted}</DialogTitle>
+                        <DialogDescription className="text-center">{t.habitCompletedDescription}</DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button className="w-full">{t.close}</Button>
+                        </DialogClose>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
