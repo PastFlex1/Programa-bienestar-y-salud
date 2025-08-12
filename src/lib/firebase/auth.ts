@@ -27,6 +27,7 @@ async function createSession(user: User) {
         email: user.email
     };
 
+    // Note: Cookies can only be set in a Server Action or Route Handler
     await cookies().set('session', JSON.stringify(session), {
         expires,
         httpOnly: true,
@@ -53,6 +54,7 @@ export async function loginAction(previousState: any, formData: FormData) {
         await createSession(userCredential.user);
     } catch (error: any) {
         let message = 'An unexpected error occurred. Please try again.';
+        // Handle specific auth errors
         if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
             message = 'Invalid email or password.';
         }
@@ -83,14 +85,17 @@ export async function signUpAction(previousState: any, formData: FormData) {
     }
 
     try {
+        // 1. Create user in Firebase Auth
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
         console.log("[signUpAction] User created in Firebase Auth with UID:", user.uid);
 
+        // 2. Update the user's profile in Firebase Auth
         await updateProfile(user, { displayName: username });
         console.log("[signUpAction] Firebase Auth profile updated with displayName:", username);
 
 
+        // 3. Save user data to Realtime Database
         const userRef = ref(db, "users/" + user.uid);
         await set(userRef, {
             uid: user.uid,
@@ -100,16 +105,15 @@ export async function signUpAction(previousState: any, formData: FormData) {
         });
         console.log("[signUpAction] User data saved to Realtime Database at path:", `users/${user.uid}`);
         
-        // Reload user to get updated profile info before creating session
-        await user.reload();
-        const freshUser = auth.currentUser;
-        
-        if (freshUser) {
-           await createSession(freshUser);
-        } else {
-            throw new Error("Could not get fresh user data for session creation.");
+        // 4. Create a session for the new user
+        // The `user` object from `createUserWithEmailAndPassword` might not have the updated displayName yet,
+        // so we manually pass it to our session creator.
+        const userForSession = {
+            ...user,
+            displayName: username
         }
-
+        
+        await createSession(userForSession);
 
     } catch (error: any) {
         let message = 'An unexpected error occurred during registration.';
