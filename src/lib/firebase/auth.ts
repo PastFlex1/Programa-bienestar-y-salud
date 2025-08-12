@@ -6,7 +6,6 @@ import { get, ref, set } from "firebase/database";
 import { auth, db } from './config';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { getUserProfile } from "./users";
 
 export type SessionPayload = {
     uid: string;
@@ -29,7 +28,8 @@ async function createSession(user: User) {
         photoURL: user.photoURL
     };
 
-    cookies().set('session', JSON.stringify(session), {
+    // Use `await` here as a good practice, though set is synchronous
+    await cookies().set('session', JSON.stringify(session), {
         expires,
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -44,7 +44,8 @@ export async function updateSessionCookie(data: Partial<SessionPayload>) {
     const updatedSession = { ...session, ...data };
 
     const expires = new Date(session.expires);
-     cookies().set('session', JSON.stringify(updatedSession), {
+     // Use `await` here as a good practice
+     await cookies().set('session', JSON.stringify(updatedSession), {
         expires,
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -72,7 +73,6 @@ export async function loginAction(previousState: any, formData: FormData) {
         return { success: false, message };
     }
     
-    // Redirect on success from the server action
     redirect('/dashboard');
 }
 
@@ -119,12 +119,13 @@ export async function signUpAction(previousState: any, formData: FormData) {
 
 
 export async function logoutAction() {
-    cookies().set('session', '', { expires: new Date(0) });
+    // Use `await` here as a good practice
+    await cookies().set('session', '', { expires: new Date(0) });
     redirect('/auth/login');
 }
 
 export async function getSession() {
-    const sessionCookie = cookies().get('session')?.value;
+    const sessionCookie = await cookies().get('session')?.value;
     if (!sessionCookie) {
         return null;
     }
