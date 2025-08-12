@@ -16,7 +16,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { HabitTracker } from "@/components/habit-tracker";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useProgress } from "@/context/progress-provider";
 
 const translations = {
@@ -82,18 +81,6 @@ const mapHabitsForUI = (dbHabits: Habit[]) => {
         icon: iconMapping[h.id] || <CheckCircle2 className="h-5 w-5 text-primary" />
     }));
 };
-
-const HabitsSkeleton = () => (
-    <div className="space-y-4">
-        {[...Array(4)].map((_, i) => (
-            <div key={i} className="flex items-center space-x-3 p-3">
-                <Skeleton className="h-5 w-5 rounded-sm" />
-                <Skeleton className="h-5 w-48" />
-            </div>
-        ))}
-    </div>
-);
-
 
 export default function HabitsPage() {
     const { language } = useLanguage();
@@ -269,14 +256,10 @@ export default function HabitsPage() {
                                 </Dialog>
                             </CardHeader>
                             <CardContent>
-                               {isLoading ? (
-                                    <HabitsSkeleton />
-                                ) : (
-                                    <HabitTracker
-                                        habits={mapHabitsForUI(habits)}
-                                        onToggleHabit={handleToggleHabit}
-                                    />
-                                )}
+                                <HabitTracker
+                                    habits={mapHabitsForUI(habits)}
+                                    onToggleHabit={handleToggleHabit}
+                                />
                             </CardContent>
                         </Card>
                     </div>

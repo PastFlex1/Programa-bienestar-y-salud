@@ -15,7 +15,6 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { getJournalEntries, saveJournalEntry, deleteJournalEntry, type JournalEntry } from "@/lib/firebase/journal";
-import { Skeleton } from "@/components/ui/skeleton";
 
 const translations = {
   es: {
@@ -255,13 +254,7 @@ export default function JournalPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
-                <div className="space-y-4">
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                </div>
-            ) : history.length === 0 ? (
+            {history.length === 0 && !isLoading ? (
               <p className="text-muted-foreground text-center py-4">{t.noEntries}</p>
             ) : (
               <Accordion type="single" collapsible className="w-full">
