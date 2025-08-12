@@ -74,16 +74,17 @@ export default function RegisterPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
-        if (state.message) {
+        if (!state.message) return;
+
+        if (state.success) {
+            router.push('/dashboard');
+        } else {
             setIsModalOpen(true);
         }
-    }, [state]);
+    }, [state, router]);
 
     const handleCloseModal = () => {
         setIsModalOpen(false);
-        if (state.success) {
-            router.push('/dashboard');
-        }
     }
 
 
@@ -122,23 +123,20 @@ export default function RegisterPage() {
             <Dialog open={isModalOpen} onOpenChange={(isOpen) => !isOpen && handleCloseModal()}>
                 <DialogContent>
                     <DialogHeader>
-                        <div className={`flex justify-center items-center h-16 w-16 rounded-full bg-opacity-20 mx-auto mb-4 ${state.success ? 'bg-primary' : 'bg-destructive'}`}>
-                           {state.success ? 
-                             <CheckCircle2 className="h-10 w-10 text-primary-foreground" /> :
+                        <div className={`flex justify-center items-center h-16 w-16 rounded-full bg-opacity-20 mx-auto mb-4 bg-destructive`}>
                              <XCircle className="h-10 w-10 text-destructive-foreground" />
-                           }
                         </div>
                         <DialogTitle className="text-center font-headline text-2xl">
-                            {state.success ? t.successTitle : t.errorTitle}
+                            {t.errorTitle}
                         </DialogTitle>
                         <DialogDescription className="text-center">
-                             {state.success ? t.successDescription : state.message}
+                             {state.message}
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
                         <DialogClose asChild>
                             <Button className="w-full" onClick={handleCloseModal}>
-                                {state.success ? t.continueButton : t.closeButton}
+                                {t.closeButton}
                             </Button>
                         </DialogClose>
                     </DialogFooter>
