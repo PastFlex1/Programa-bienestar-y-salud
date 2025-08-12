@@ -76,16 +76,15 @@ export default function LoginPage() {
     if (!state.message) return;
 
     if (state.success) {
+      // The redirection is now handled by the server action.
+      // We can still show a modal if we want, but it will be brief.
       setModalContent({ title: t.successTitle, description: t.successDescription, isError: false });
       setIsModalOpen(true);
-      setTimeout(() => {
-          router.push('/dashboard');
-      }, 1500);
     } else {
       setModalContent({ title: t.errorTitle, description: state.message, isError: true });
       setIsModalOpen(true);
     }
-  }, [state, router, t]);
+  }, [state, t]);
 
   const handleCloseModal = () => {
     setIsModalOpen(false);

@@ -72,7 +72,8 @@ export async function loginAction(previousState: any, formData: FormData) {
         return { success: false, message };
     }
     
-    return { success: true, message: "Login successful" };
+    // Redirect on success from the server action
+    redirect('/dashboard');
 }
 
 export async function signUpAction(previousState: any, formData: FormData) {
@@ -113,7 +114,7 @@ export async function signUpAction(previousState: any, formData: FormData) {
         return { success: false, message };
     }
 
-    return { success: true, message: "Registration successful" };
+    redirect('/dashboard');
 }
 
 
