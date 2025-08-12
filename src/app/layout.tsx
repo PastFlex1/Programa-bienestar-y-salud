@@ -4,7 +4,6 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from '@/context/theme-provider';
 import { LanguageProvider } from '@/context/language-provider';
-import { UserProvider } from '@/context/user-provider';
 import { AuthProvider } from '@/context/auth-provider';
 
 export const metadata: Metadata = {
@@ -32,10 +31,8 @@ export default function RootLayout({
         >
           <LanguageProvider>
             <AuthProvider>
-              <UserProvider>
-                {children}
-                <Toaster />
-              </UserProvider>
+              {children}
+              <Toaster />
             </AuthProvider>
           </LanguageProvider>
         </ThemeProvider>

@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
-import { useUser } from '@/context/user-provider';
 import { useLanguage } from '@/context/language-provider';
 import { logoutAction } from '@/lib/firebase/auth';
 import { useAuth } from '@/context/auth-provider';
@@ -53,30 +52,28 @@ const translations = {
 export default function ProfilePage() {
   const { language } = useLanguage();
   const t = translations[language];
-  const { user, loading: authLoading } = useAuth();
+  const { userData, loading: authLoading } = useAuth();
   const { toast } = useToast();
-  const { userName, avatarUrl, updateUser } = useUser();
   
-  const [name, setName] = useState(userName);
+  const [name, setName] = useState('');
   const [email, setEmail] = useState(''); 
-  const [previewAvatarUrl, setPreviewAvatarUrl] = useState(avatarUrl);
+  const [previewAvatarUrl, setPreviewAvatarUrl] = useState("https://placehold.co/100x100.png");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setName(userName);
-    setPreviewAvatarUrl(avatarUrl);
-  }, [userName, avatarUrl]);
-
-  useEffect(() => {
-    if (user?.email) {
-      setEmail(user.email);
+    if (userData) {
+      setName(userData.displayName || '');
+      setEmail(userData.email || '');
+      // In a real app, you'd fetch the avatar URL from userData as well
+      // setPreviewAvatarUrl(userData.avatarUrl || "https://placehold.co/100x100.png");
     }
-  }, [user]);
+  }, [userData]);
 
 
   const handleSaveChanges = () => {
-    updateUser({ userName: name, avatarUrl: previewAvatarUrl });
+    // Here you would typically call a function to update the user data in Firestore
+    // For now, we just show a toast
     toast({
       title: t.toastSuccessTitle,
       description: t.toastSuccessDescription,
@@ -148,7 +145,9 @@ export default function ProfilePage() {
             <div className="flex items-center space-x-4">
               <Avatar className="h-20 w-20">
                 <AvatarImage src={previewAvatarUrl} alt={t.avatarAlt} data-ai-hint="woman smiling" />
-                <AvatarFallback>👤</AvatarFallback>
+                <AvatarFallback>
+                  {name ? name.charAt(0).toUpperCase() : '👤'}
+                </AvatarFallback>
               </Avatar>
               <Button variant="outline" onClick={handleAvatarButtonClick}>{t.changePhoto}</Button>
               <input
