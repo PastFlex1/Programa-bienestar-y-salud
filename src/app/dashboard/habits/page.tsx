@@ -108,10 +108,10 @@ export default function HabitsPage() {
             })
             .catch(err => {
                 console.error(err);
-                toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastErrorDescription });
+                // toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastErrorDescription });
             })
             .finally(() => setIsLoading(false));
-    }, [dateKey, toast, t, setInitialHabits]);
+    }, [dateKey, setInitialHabits]);
 
 
     const handleAddHabit = async () => {
@@ -256,10 +256,16 @@ export default function HabitsPage() {
                                 </Dialog>
                             </CardHeader>
                             <CardContent>
-                                <HabitTracker
-                                    habits={mapHabitsForUI(habits)}
-                                    onToggleHabit={handleToggleHabit}
-                                />
+                                {isLoading ? (
+                                    <div className="flex justify-center items-center h-40">
+                                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                    </div>
+                                ) : (
+                                    <HabitTracker
+                                        habits={mapHabitsForUI(habits)}
+                                        onToggleHabit={handleToggleHabit}
+                                    />
+                                )}
                             </CardContent>
                         </Card>
                     </div>

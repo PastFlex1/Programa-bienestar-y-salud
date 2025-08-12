@@ -115,10 +115,10 @@ export default function JournalPage() {
       .then(entries => setHistory(entries))
       .catch(err => {
         console.error(err);
-        toast({ variant: "destructive", title: t.toastErrorTitle, description: "Could not fetch journal history." });
+        // toast({ variant: "destructive", title: t.toastErrorTitle, description: "Could not fetch journal history." });
       })
       .finally(() => setIsLoading(false));
-  }, [toast, t]);
+  }, []);
 
 
   const handleSaveEntry = async () => {
@@ -254,7 +254,11 @@ export default function JournalPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {history.length === 0 && !isLoading ? (
+            {isLoading ? (
+                 <div className="flex justify-center items-center h-40">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+            ) : history.length === 0 ? (
               <p className="text-muted-foreground text-center py-4">{t.noEntries}</p>
             ) : (
               <Accordion type="single" collapsible className="w-full">
