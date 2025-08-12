@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/context/auth-provider";
 import { BrainCircuit } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
+import { UserIcon } from "./user-icon";
 
 export function AppHeader() {
   const { userData, loading } = useAuth();
@@ -19,9 +20,9 @@ export function AppHeader() {
         <Skeleton className="h-10 w-10 rounded-full" />
       ) : (
         <Avatar>
-          <AvatarImage src={"https://placehold.co/100x100.png"} alt="Perfil de usuario" data-ai-hint="woman smiling" />
+          <AvatarImage src={userData?.photoURL} alt="Perfil de usuario" />
           <AvatarFallback>
-            {userData?.displayName ? userData.displayName.charAt(0).toUpperCase() : '👤'}
+            <UserIcon className="text-muted-foreground" />
           </AvatarFallback>
         </Avatar>
       )}

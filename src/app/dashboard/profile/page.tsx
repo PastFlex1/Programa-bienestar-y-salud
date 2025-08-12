@@ -12,6 +12,7 @@ import { useLanguage } from '@/context/language-provider';
 import { logoutAction } from '@/lib/firebase/auth';
 import { useAuth } from '@/context/auth-provider';
 import { Skeleton } from '@/components/ui/skeleton';
+import { UserIcon } from '@/components/user-icon';
 
 const translations = {
   es: {
@@ -57,28 +58,21 @@ export default function ProfilePage() {
   
   const [name, setName] = useState('');
   const [email, setEmail] = useState(''); 
-  const [previewAvatarUrl, setPreviewAvatarUrl] = useState("https://placehold.co/100x100.png");
+  const [previewAvatarUrl, setPreviewAvatarUrl] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  console.log(`[ProfilePage] Rendering. Auth loading: ${authLoading}, UserData:`, userData);
-
   useEffect(() => {
-    console.log("[ProfilePage] useEffect triggered. UserData:", userData);
     if (userData) {
-      console.log("[ProfilePage] UserData found, setting name and email.");
       setName(userData.displayName || '');
       setEmail(userData.email || '');
       // In a real app, you'd fetch the avatar URL from userData as well
-      // setPreviewAvatarUrl(userData.avatarUrl || "https://placehold.co/100x100.png");
-    } else {
-      console.log("[ProfilePage] No UserData found yet.");
+      // setPreviewAvatarUrl(userData.avatarUrl || null);
     }
   }, [userData]);
 
 
   const handleSaveChanges = () => {
-    console.log("[ProfilePage] handleSaveChanges clicked.");
     // Here you would typically call a function to update the user data in Firestore/RTDB
     // For now, we just show a toast
     toast({
@@ -89,7 +83,6 @@ export default function ProfilePage() {
 
   const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    console.log("[ProfilePage] handleAvatarChange triggered with file:", file?.name);
     if (file) {
       if (file.size > 2 * 1024 * 1024) { // 2MB limit
         toast({
@@ -109,7 +102,6 @@ export default function ProfilePage() {
   };
 
   if (authLoading) {
-    console.log("[ProfilePage] Auth is loading, showing skeleton.");
     return (
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="max-w-2xl mx-auto space-y-8">
@@ -153,9 +145,9 @@ export default function ProfilePage() {
           <CardContent className="space-y-6">
             <div className="flex items-center space-x-4">
               <Avatar className="h-20 w-20">
-                <AvatarImage src={previewAvatarUrl} alt={t.avatarAlt} data-ai-hint="woman smiling" />
+                <AvatarImage src={previewAvatarUrl ?? undefined} alt={t.avatarAlt} />
                 <AvatarFallback>
-                  {name ? name.charAt(0).toUpperCase() : '👤'}
+                  <UserIcon className="text-muted-foreground" />
                 </AvatarFallback>
               </Avatar>
               <Button variant="outline" onClick={handleAvatarButtonClick}>{t.changePhoto}</Button>
