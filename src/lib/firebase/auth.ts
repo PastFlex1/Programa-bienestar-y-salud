@@ -110,8 +110,9 @@ export async function signUpAction(previousState: any, formData: FormData) {
         // so we manually pass it to our session creator.
         const userForSession = {
             ...user,
-            displayName: username
-        }
+            displayName: username,
+            email, // ensure email is passed
+        } as User
         
         await createSession(userForSession);
 

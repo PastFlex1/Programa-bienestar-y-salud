@@ -4,13 +4,13 @@ import { getAuth } from "firebase/auth";
 import { getDatabase } from "firebase/database";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCvsgcUFaS0LtE3ePyi0aiOujJI6EsgWiU",
-  authDomain: "zenith-mobile-fvkph.firebaseapp.com",
-  databaseURL: "https://zenith-mobile-fvkph-default-rtdb.firebaseio.com",
-  projectId: "zenith-mobile-fvkph",
-  storageBucket: "zenith-mobile-fvkph.firebasestorage.app",
-  messagingSenderId: "1086068591785",
-  appId: "1:1086068591785:web:66eda9bfb4379e7b696db8"
+  apiKey: "AIzaSyBwgz_t1hh4ZV_GLU5IYsl3aqSr0ELrkTc",
+  authDomain: "appmeditacion-751db.firebaseapp.com",
+  databaseURL: "https://appmeditacion-751db-default-rtdb.firebaseio.com",
+  projectId: "appmeditacion-751db",
+  storageBucket: "appmeditacion-751db.appspot.com",
+  messagingSenderId: "964735261053",
+  appId: "1:964735261053:web:a31c5d5f667bf97fe7d414"
 };
 
 // Initialize Firebase
