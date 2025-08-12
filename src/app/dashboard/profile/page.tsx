@@ -9,10 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/context/language-provider';
-import { logoutAction } from '@/lib/firebase/auth';
 import { useAuth } from '@/context/auth-provider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UserIcon } from '@/components/user-icon';
+import { useRouter } from 'next/navigation';
 
 const translations = {
   es: {
@@ -53,8 +53,9 @@ const translations = {
 export default function ProfilePage() {
   const { language } = useLanguage();
   const t = translations[language];
-  const { userData, loading: authLoading, photoURL, updatePhotoURL } = useAuth();
+  const { userData, loading, photoURL, updatePhotoURL, logout, updateUserData } = useAuth();
   const { toast } = useToast();
+  const router = useRouter();
   
   const [name, setName] = useState('');
   const [email, setEmail] = useState(''); 
@@ -70,8 +71,7 @@ export default function ProfilePage() {
 
 
   const handleSaveChanges = () => {
-    // Here you would typically call a function to update the user data in Firestore/RTDB
-    // including uploading the new photo if one was selected and getting its new URL.
+    updateUserData({ displayName: name, email });
     toast({
       title: t.toastSuccessTitle,
       description: t.toastSuccessDescription,
@@ -90,7 +90,7 @@ export default function ProfilePage() {
         return;
       }
       const newAvatarUrl = URL.createObjectURL(file);
-      updatePhotoURL(newAvatarUrl); // Update the global state
+      updatePhotoURL(newAvatarUrl); 
     }
   };
 
@@ -98,7 +98,12 @@ export default function ProfilePage() {
     fileInputRef.current?.click();
   };
 
-  if (authLoading) {
+  const handleSignOut = () => {
+    logout();
+    router.push('/auth/login');
+  }
+
+  if (loading) {
     return (
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="max-w-2xl mx-auto space-y-8">
@@ -170,15 +175,13 @@ export default function ProfilePage() {
                 id="email" 
                 type="email" 
                 value={email}
-                disabled
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <Button onClick={handleSaveChanges}>{t.saveChanges}</Button>
           </CardContent>
           <CardFooter className="flex justify-end">
-             <form action={logoutAction}>
-                <Button variant="destructive" type="submit">{t.signOut}</Button>
-             </form>
+             <Button variant="destructive" onClick={handleSignOut}>{t.signOut}</Button>
           </CardFooter>
         </Card>
       </div>

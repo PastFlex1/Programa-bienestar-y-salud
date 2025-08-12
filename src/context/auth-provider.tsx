@@ -1,89 +1,84 @@
 
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode, useMemo } from 'react';
-import type { User as FirebaseUser } from 'firebase/auth';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase/config';
-import { ref, get } from 'firebase/database';
+import { createContext, useContext, useState, ReactNode, useMemo, useEffect } from 'react';
 
-// Represents the data structure for a user in the Realtime Database
+// This is a local-only, simulated user data structure.
 export type UserData = {
-    uid: string;
-    email: string;
-    displayName: string;
-    createdAt: string;
-    photoURL?: string; // Add photoURL to the type
+    email: string | null;
+    displayName: string | null;
+    photoURL?: string;
 };
 
 type AuthContextType = {
-    user: FirebaseUser | null;
     userData: UserData | null;
     loading: boolean;
     photoURL: string | null;
     updatePhotoURL: (url: string) => void;
+    signUp: (data: { displayName: string, email: string }) => void;
+    login: (data: { displayName: string, email: string }) => void;
+    logout: () => void;
+    updateUserData: (data: Partial<UserData>) => void;
 };
 
 const AuthContext = createContext<AuthContextType>({ 
-    user: null, 
     userData: null, 
     loading: true, 
     photoURL: null, 
-    updatePhotoURL: () => {} 
+    updatePhotoURL: () => {},
+    signUp: () => {},
+    login: () => {},
+    logout: () => {},
+    updateUserData: () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [user, setUser] = useState<FirebaseUser | null>(null);
     const [userData, setUserData] = useState<UserData | null>(null);
     const [loading, setLoading] = useState(true);
     const [photoURL, setPhotoURL] = useState<string | null>(null);
 
+    // On initial load, set loading to false. We are not fetching any data.
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            setLoading(true);
-            if (user) {
-                setUser(user);
-                setPhotoURL(user.photoURL); // Set initial photoURL from auth
-                const userRef = ref(db, `users/${user.uid}`);
-                try {
-                    const snapshot = await get(userRef);
-                    if (snapshot.exists()) {
-                        const dbData = snapshot.val() as UserData;
-                        setUserData(dbData);
-                        if (dbData.photoURL) { // Prefer photoURL from DB if it exists
-                            setPhotoURL(dbData.photoURL);
-                        }
-                    } else {
-                        console.warn(`No user data found in Realtime Database for uid: ${user.uid}. A default object will be used.`);
-                        setUserData({
-                            uid: user.uid,
-                            email: user.email || "No email",
-                            displayName: user.displayName || "User",
-                            createdAt: new Date().toISOString()
-                        });
-                    }
-                } catch (error) {
-                     console.error("Error fetching user data from Realtime Database:", error);
-                     setUserData(null);
-                }
-            } else {
-                setUser(null);
-                setUserData(null);
-                setPhotoURL(null);
-            }
-            setLoading(false);
-        });
+        setLoading(false);
+    }, [])
 
-        return () => unsubscribe();
-    }, []);
+    const signUp = ({ displayName, email }: { displayName: string, email: string }) => {
+        const newUser: UserData = { displayName, email, photoURL: null };
+        setUserData(newUser);
+        setPhotoURL(null);
+    };
+
+    const login = ({ displayName, email }: { displayName: string, email: string }) => {
+        const loggedInUser: UserData = { displayName, email, photoURL: photoURL }; // Persist photoURL on login
+        setUserData(loggedInUser);
+    };
+    
+    const logout = () => {
+        setUserData(null);
+        setPhotoURL(null);
+    };
 
     const updatePhotoURL = (url: string) => {
         setPhotoURL(url);
-        // Here you would also update the photoURL in Firebase Auth and your database
-        // For now, we just update the context state for a live preview effect
+        if (userData) {
+            setUserData(prev => prev ? { ...prev, photoURL: url } : null);
+        }
     };
+
+    const updateUserData = (data: Partial<UserData>) => {
+        setUserData(prev => prev ? { ...prev, ...data } : null);
+    }
     
-    const value = useMemo(() => ({ user, userData, loading, photoURL, updatePhotoURL }), [user, userData, loading, photoURL]);
+    const value = useMemo(() => ({ 
+        userData, 
+        loading, 
+        photoURL, 
+        updatePhotoURL,
+        signUp,
+        login,
+        logout,
+        updateUserData
+    }), [userData, loading, photoURL]);
 
     return (
         <AuthContext.Provider value={value}>

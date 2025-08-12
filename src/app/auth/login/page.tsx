@@ -2,16 +2,15 @@
 "use client";
 
 import Link from 'next/link';
-import { useActionState, useEffect } from 'react';
-import { useFormStatus } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import { BrainCircuit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { loginAction } from '@/lib/firebase/auth';
 import { useLanguage } from '@/context/language-provider';
-import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/auth-provider';
+import { useState } from 'react';
 
 const translations = {
   es: {
@@ -38,21 +37,18 @@ const translations = {
   }
 };
 
-function LoginButton({t, onClick}: {t: any, onClick: () => void}) {
-  const { pending } = useFormStatus();
-  return (
-    <Button onClick={onClick} className="w-full" disabled={pending}>
-      {pending ? t.loggingIn : t.loginButton}
-    </Button>
-  );
-}
 
 export default function LoginPage() {
   const { language } = useLanguage();
   const t = translations[language];
   const router = useRouter();
+  const { login } = useAuth();
+  const [email, setEmail] = useState('');
 
   const handleLoginClick = () => {
+    // With local auth, we can just "log in" the user with the provided email.
+    // In a real scenario, you'd validate password etc.
+    login({ email: email, displayName: email.split('@')[0] });
     router.push('/dashboard');
   };
 
@@ -67,13 +63,15 @@ export default function LoginPage() {
         <div className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="email">{t.emailLabel}</Label>
-            <Input id="email" name="email" type="email" />
+            <Input id="email" name="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">{t.passwordLabel}</Label>
             <Input id="password" name="password" type="password" />
           </div>
-          <LoginButton t={t} onClick={handleLoginClick} />
+          <Button onClick={handleLoginClick} className="w-full">
+            {t.loginButton}
+          </Button>
         </div>
         <div className="mt-6 text-center text-sm">
           {t.registerPrompt}{" "}

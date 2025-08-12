@@ -1,15 +1,16 @@
 
 "use client"
 
-import { useActionState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
-import { useFormStatus } from "react-dom"
+import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useLanguage } from "@/context/language-provider"
-import { signUpAction } from "@/lib/firebase/auth"
+import { useAuth } from "@/context/auth-provider";
+import { useToast } from "@/hooks/use-toast";
 
 const translations = {
     es: {
@@ -22,6 +23,9 @@ const translations = {
         signingUpButton: "Registrando...",
         loginPrompt: "¿Ya tienes una cuenta?",
         loginLink: "Inicia sesión",
+        errorTitle: "Error de Registro",
+        errorFields: "Por favor, completa todos los campos.",
+        errorPassword: "La contraseña debe tener al menos 6 caracteres."
     },
     en: {
         title: "Create an account",
@@ -33,30 +37,43 @@ const translations = {
         signingUpButton: "Signing up...",
         loginPrompt: "Already have an account?",
         loginLink: "Log in",
+        errorTitle: "Registration Error",
+        errorFields: "Please fill in all fields.",
+        errorPassword: "Password must be at least 6 characters long."
     }
 }
 
-function SignUpButton({t}: {t: any}) {
-    const { pending } = useFormStatus();
-    return (
-        <Button type="submit" className="w-full" disabled={pending}>
-            {pending ? t.signingUpButton : t.submitButton}
-        </Button>
-    );
-}
 
 export default function RegisterPage() {
     const { language } = useLanguage();
     const t = translations[language];
-    const [state, formAction] = useActionState(signUpAction, null);
-    
-    console.log("[RegisterPage] Rendering with action state:", state);
+    const router = useRouter();
+    const { signUp } = useAuth();
+    const { toast } = useToast();
 
-    useEffect(() => {
-        if (state?.message && !state?.success) {
-            console.log("[RegisterPage] Registration error received from action:", state.message);
+    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [isSigningUp, setIsSigningUp] = useState(false);
+
+    const handleSignUp = () => {
+        if (!username || !email || !password) {
+            toast({ variant: 'destructive', title: t.errorTitle, description: t.errorFields });
+            return;
         }
-    }, [state]);
+        if (password.length < 6) {
+            toast({ variant: 'destructive', title: t.errorTitle, description: t.errorPassword });
+            return;
+        }
+
+        setIsSigningUp(true);
+        // Simulate async operation
+        setTimeout(() => {
+            signUp({ displayName: username, email });
+            setIsSigningUp(false);
+            router.push('/dashboard');
+        }, 500);
+    };
 
     return (
         <Card className="w-full max-w-md">
@@ -65,28 +82,24 @@ export default function RegisterPage() {
                 <CardDescription>{t.description}</CardDescription>
             </CardHeader>
             <CardContent>
-                <form action={formAction} className="space-y-6">
+                <div className="space-y-6">
                      <div className="space-y-2">
                         <Label htmlFor="username">{t.usernameLabel}</Label>
-                        <Input id="username" name="username" required />
+                        <Input id="username" name="username" required value={username} onChange={e => setUsername(e.target.value)} />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="email">{t.emailLabel}</Label>
-                        <Input id="email" name="email" type="email" required />
+                        <Input id="email" name="email" type="email" required value={email} onChange={e => setEmail(e.target.value)} />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="password">{t.passwordLabel}</Label>
-                        <Input id="password" name="password" type="password" required />
+                        <Input id="password" name="password" type="password" required value={password} onChange={e => setPassword(e.target.value)} />
                     </div>
                     
-                    {state?.message && !state?.success && (
-                        <p className="text-sm text-destructive text-center bg-destructive/10 p-2 rounded-md">
-                            {state.message}
-                        </p>
-                    )}
-
-                    <SignUpButton t={t} />
-                </form>
+                    <Button onClick={handleSignUp} className="w-full" disabled={isSigningUp}>
+                        {isSigningUp ? t.signingUpButton : t.submitButton}
+                    </Button>
+                </div>
                 <div className="mt-6 text-center text-sm">
                     {t.loginPrompt}{" "}
                     <Link href="/auth/login" className="underline text-primary">
