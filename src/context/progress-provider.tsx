@@ -37,21 +37,21 @@ const ProgressProviderContext = React.createContext<ProgressProviderState>(initi
 export function ProgressProvider({ children, ...props }: ProgressProviderProps) {
   const [progressData, setProgressData] = React.useState<ProgressData>({});
 
-  const setInitialProgress = (data: ProgressData) => {
+  const setInitialProgress = React.useCallback((data: ProgressData) => {
     setProgressData(data);
-  }
+  }, []);
 
-  const setInitialHabits = (dateKey: string, count: number) => {
+  const setInitialHabits = React.useCallback((dateKey: string, count: number) => {
      setProgressData(prev => ({
       ...prev,
       [dateKey]: {
-        ...prev[dateKey],
+        ...(prev[dateKey] || { minutes: 0 }),
         habits: count,
       }
      }))
-  }
+  }, []);
 
-  const logMeditation = (date: Date, minutes: number) => {
+  const logMeditation = React.useCallback((date: Date, minutes: number) => {
     const dateKey = format(date, "yyyy-MM-dd");
     setProgressData(prev => {
       const dayData = prev[dateKey] || { minutes: 0, habits: 0 };
@@ -66,9 +66,9 @@ export function ProgressProvider({ children, ...props }: ProgressProviderProps) 
         [dateKey]: updatedDayData,
       };
     });
-  };
+  }, []);
 
-  const logHabit = (date: Date, completed: boolean) => {
+  const logHabit = React.useCallback((date: Date, completed: boolean) => {
     const dateKey = format(date, "yyyy-MM-dd");
     setProgressData(prev => {
       const dayData = prev[dateKey] || { minutes: 0, habits: 0 };
@@ -83,7 +83,7 @@ export function ProgressProvider({ children, ...props }: ProgressProviderProps) 
         [dateKey]: updatedDayData,
       };
     });
-  };
+  }, []);
 
   const value = {
     progressData,

@@ -115,7 +115,6 @@ export default function JournalPage() {
       .then(entries => setHistory(entries))
       .catch(err => {
         console.error(err);
-        // toast({ variant: "destructive", title: t.toastErrorTitle, description: "Could not fetch journal history." });
       })
       .finally(() => setIsLoading(false));
   }, []);

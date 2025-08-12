@@ -108,7 +108,6 @@ export default function HabitsPage() {
             })
             .catch(err => {
                 console.error(err);
-                // toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastErrorDescription });
             })
             .finally(() => setIsLoading(false));
     }, [dateKey, setInitialHabits]);
