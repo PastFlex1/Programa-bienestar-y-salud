@@ -2,7 +2,8 @@
 "use server";
 
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, type User } from "firebase/auth";
-import { auth } from './config';
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { auth, db } from './config';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
@@ -60,14 +61,24 @@ export async function signUpAction(previousState: any, formData: FormData) {
 
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
         
         // Update Firebase user profile with display name
-        await updateProfile(userCredential.user, { displayName: username });
+        await updateProfile(user, { displayName: username });
+
+        // Create a user document in Firestore
+        const userDocRef = doc(db, "users", user.uid);
+        await setDoc(userDocRef, {
+            uid: user.uid,
+            email: user.email,
+            displayName: username,
+            createdAt: serverTimestamp()
+        });
 
         // Refresh user object to get the updated profile
-        await userCredential.user.reload();
+        await user.reload();
 
-        await createSession(userCredential.user);
+        await createSession(user);
 
     } catch (error: any) {
         if (error.code === 'auth/email-already-in-use') {
