@@ -19,15 +19,14 @@ export type SessionPayload = {
 
 async function createSession(user: User) {
     const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-    const profile = await getUserProfile(user.uid);
     
     const session: SessionPayload = {
         uid: user.uid,
         isLoggedIn: true,
         expires: expires.toISOString(),
-        displayName: profile?.displayName || user.displayName,
+        displayName: user.displayName,
         email: user.email,
-        photoURL: profile?.photoURL || user.photoURL
+        photoURL: user.photoURL
     };
 
     cookies().set('session', JSON.stringify(session), {

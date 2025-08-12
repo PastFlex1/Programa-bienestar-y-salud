@@ -33,19 +33,15 @@ export async function updateUserProfile(data: { displayName?: string }): Promise
     if (!session) {
         throw new Error("User not authenticated");
     }
-    const user = auth.currentUser;
-    if (!user) {
-        // This case should ideally not happen if a session exists,
-        // but it's good practice to check.
-        throw new Error("User not authenticated");
-    }
+    
+    // Update Realtime Database profile
+    const userDbRef = ref(db, `users/${session.uid}`);
+    await update(userDbRef, data);
 
     // Update Firebase Auth profile
-    await updateProfile(user, data);
-
-    // Update Realtime Database profile
-    const userDbRef = ref(db, `users/${user.uid}`);
-    await update(userDbRef, data);
+    if (auth.currentUser) {
+        await updateProfile(auth.currentUser, data);
+    }
 }
 
 
@@ -69,9 +65,8 @@ export async function uploadProfilePicture(file: File): Promise<string> {
     
     await update(userDbRef, { photoURL });
     
-    const authUser = auth.currentUser;
-    if (authUser) {
-      await updateProfile(authUser, { photoURL });
+    if (auth.currentUser) {
+      await updateProfile(auth.currentUser, { photoURL });
     }
 
     // Update the session cookie
