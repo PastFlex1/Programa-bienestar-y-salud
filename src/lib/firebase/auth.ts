@@ -93,7 +93,7 @@ export async function signUpAction(previousState: any, formData: FormData) {
 
 
 export async function logoutAction() {
-    await cookies().delete('session');
+    cookies().set('session', '', { expires: new Date(0) });
     redirect('/auth/login');
 }
 
