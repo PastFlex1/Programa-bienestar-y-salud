@@ -38,10 +38,10 @@ const translations = {
   }
 };
 
-function LoginButton({t}: {t: any}) {
+function LoginButton({t, onClick}: {t: any, onClick: () => void}) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" className="w-full" disabled={pending}>
+    <Button onClick={onClick} className="w-full" disabled={pending}>
       {pending ? t.loggingIn : t.loginButton}
     </Button>
   );
@@ -50,20 +50,11 @@ function LoginButton({t}: {t: any}) {
 export default function LoginPage() {
   const { language } = useLanguage();
   const t = translations[language];
-  const [state, formAction] = useActionState(loginAction, null);
   const router = useRouter();
-  
-  console.log("[LoginPage] Rendering with action state:", state);
 
-  useEffect(() => {
-    if (state?.success) {
-      console.log("[LoginPage] Login successful (state.success is true), redirecting...");
-      router.push('/dashboard');
-    }
-     if (state?.message && !state?.success) {
-      console.log("[LoginPage] Login error received from action:", state.message);
-    }
-  }, [state, router]);
+  const handleLoginClick = () => {
+    router.push('/dashboard');
+  };
 
   return (
     <Card className="w-full max-w-md">
@@ -73,22 +64,17 @@ export default function LoginPage() {
         <CardDescription>{t.description}</CardDescription>
       </CardHeader>
       <CardContent>
-        <form action={formAction} className="space-y-6">
+        <div className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="email">{t.emailLabel}</Label>
-            <Input id="email" name="email" type="email" required />
+            <Input id="email" name="email" type="email" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">{t.passwordLabel}</Label>
-            <Input id="password" name="password" type="password" required />
+            <Input id="password" name="password" type="password" />
           </div>
-          {state?.message && !state?.success && (
-            <p className="text-sm text-destructive text-center bg-destructive/10 p-2 rounded-md">
-              {state.message}
-            </p>
-          )}
-          <LoginButton t={t} />
-        </form>
+          <LoginButton t={t} onClick={handleLoginClick} />
+        </div>
         <div className="mt-6 text-center text-sm">
           {t.registerPrompt}{" "}
           <Link href="/auth/register" className="underline text-primary">
