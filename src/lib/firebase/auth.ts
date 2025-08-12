@@ -7,10 +7,18 @@ import { auth, db } from './config';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
+type SessionPayload = {
+    uid: string;
+    isLoggedIn: true;
+    expires: string;
+    displayName: string | null;
+    email: string | null;
+};
+
 async function createSession(user: User) {
     const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
     
-    const session = {
+    const session: SessionPayload = {
         uid: user.uid,
         isLoggedIn: true,
         expires: expires.toISOString(),
@@ -18,7 +26,6 @@ async function createSession(user: User) {
         email: user.email
     };
 
-    // Encrypt the session and set it in a cookie
     await cookies().set('session', JSON.stringify(session), {
         expires,
         httpOnly: true,
@@ -42,6 +49,7 @@ export async function loginAction(previousState: any, formData: FormData) {
         if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
             return { success: false, message: 'Invalid email or password.' };
         }
+        console.error("[Login Error]:", error);
         return { success: false, message: 'An unexpected error occurred. Please try again.' };
     }
 
@@ -64,10 +72,8 @@ export async function signUpAction(previousState: any, formData: FormData) {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        // Update Firebase user profile with display name
         await updateProfile(user, { displayName: username });
 
-        // Create a user document in Realtime Database
         const userRef = ref(db, "users/" + user.uid);
         await set(userRef, {
             uid: user.uid,
@@ -76,16 +82,7 @@ export async function signUpAction(previousState: any, formData: FormData) {
             createdAt: new Date().toISOString()
         });
         
-        // Refresh user object to get the updated profile
-        await user.reload();
-        
-        // We need to get the refreshed user object to create the session with the correct display name
-        const refreshedUser = auth.currentUser;
-        if (!refreshedUser) {
-            throw new Error("Could not get refreshed user after sign up.");
-        }
-
-        await createSession(refreshedUser);
+        await createSession(user);
 
     } catch (error: any) {
         if (error.code === 'auth/email-already-in-use') {
@@ -110,7 +107,7 @@ export async function getSession() {
         return null;
     }
     try {
-        const parsed = JSON.parse(sessionCookie);
+        const parsed: SessionPayload = JSON.parse(sessionCookie);
         if (new Date(parsed.expires) > new Date()) {
             return parsed;
         }
