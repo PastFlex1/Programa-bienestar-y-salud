@@ -53,12 +53,11 @@ const translations = {
 export default function ProfilePage() {
   const { language } = useLanguage();
   const t = translations[language];
-  const { userData, loading: authLoading } = useAuth();
+  const { userData, loading: authLoading, photoURL, updatePhotoURL } = useAuth();
   const { toast } = useToast();
   
   const [name, setName] = useState('');
   const [email, setEmail] = useState(''); 
-  const [previewAvatarUrl, setPreviewAvatarUrl] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -66,15 +65,13 @@ export default function ProfilePage() {
     if (userData) {
       setName(userData.displayName || '');
       setEmail(userData.email || '');
-      // In a real app, you'd fetch the avatar URL from userData as well
-      // setPreviewAvatarUrl(userData.avatarUrl || null);
     }
   }, [userData]);
 
 
   const handleSaveChanges = () => {
     // Here you would typically call a function to update the user data in Firestore/RTDB
-    // For now, we just show a toast
+    // including uploading the new photo if one was selected and getting its new URL.
     toast({
       title: t.toastSuccessTitle,
       description: t.toastSuccessDescription,
@@ -93,7 +90,7 @@ export default function ProfilePage() {
         return;
       }
       const newAvatarUrl = URL.createObjectURL(file);
-      setPreviewAvatarUrl(newAvatarUrl);
+      updatePhotoURL(newAvatarUrl); // Update the global state
     }
   };
 
@@ -145,7 +142,7 @@ export default function ProfilePage() {
           <CardContent className="space-y-6">
             <div className="flex items-center space-x-4">
               <Avatar className="h-20 w-20">
-                <AvatarImage src={previewAvatarUrl ?? undefined} alt={t.avatarAlt} />
+                <AvatarImage src={photoURL ?? undefined} alt={t.avatarAlt} />
                 <AvatarFallback>
                   <UserIcon className="text-muted-foreground" />
                 </AvatarFallback>

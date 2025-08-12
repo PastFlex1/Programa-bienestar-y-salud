@@ -8,7 +8,7 @@ import { Skeleton } from "./ui/skeleton";
 import { UserIcon } from "./user-icon";
 
 export function AppHeader() {
-  const { userData, loading } = useAuth();
+  const { photoURL, loading } = useAuth();
 
   return (
     <header className="flex items-center justify-between p-4 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
@@ -20,7 +20,7 @@ export function AppHeader() {
         <Skeleton className="h-10 w-10 rounded-full" />
       ) : (
         <Avatar>
-          <AvatarImage src={userData?.photoURL} alt="Perfil de usuario" />
+          <AvatarImage src={photoURL ?? undefined} alt="Perfil de usuario" />
           <AvatarFallback>
             <UserIcon className="text-muted-foreground" />
           </AvatarFallback>

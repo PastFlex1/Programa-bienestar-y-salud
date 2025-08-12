@@ -13,37 +13,48 @@ export type UserData = {
     email: string;
     displayName: string;
     createdAt: string;
+    photoURL?: string; // Add photoURL to the type
 };
 
 type AuthContextType = {
     user: FirebaseUser | null;
     userData: UserData | null;
     loading: boolean;
+    photoURL: string | null;
+    updatePhotoURL: (url: string) => void;
 };
 
-const AuthContext = createContext<AuthContextType>({ user: null, userData: null, loading: true });
+const AuthContext = createContext<AuthContextType>({ 
+    user: null, 
+    userData: null, 
+    loading: true, 
+    photoURL: null, 
+    updatePhotoURL: () => {} 
+});
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<FirebaseUser | null>(null);
     const [userData, setUserData] = useState<UserData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [photoURL, setPhotoURL] = useState<string | null>(null);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             setLoading(true);
             if (user) {
                 setUser(user);
-                // User is signed in, now fetch their data from Realtime Database
+                setPhotoURL(user.photoURL); // Set initial photoURL from auth
                 const userRef = ref(db, `users/${user.uid}`);
                 try {
                     const snapshot = await get(userRef);
                     if (snapshot.exists()) {
-                        setUserData(snapshot.val() as UserData);
+                        const dbData = snapshot.val() as UserData;
+                        setUserData(dbData);
+                        if (dbData.photoURL) { // Prefer photoURL from DB if it exists
+                            setPhotoURL(dbData.photoURL);
+                        }
                     } else {
-                        // This case can happen if the user was created in Auth but not in DB
-                        // Or if the data is not yet replicated. We can retry or warn.
                         console.warn(`No user data found in Realtime Database for uid: ${user.uid}. A default object will be used.`);
-                        // Create a fallback userData object to prevent parts of the UI from breaking
                         setUserData({
                             uid: user.uid,
                             email: user.email || "No email",
@@ -56,18 +67,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                      setUserData(null);
                 }
             } else {
-                // User is signed out
                 setUser(null);
                 setUserData(null);
+                setPhotoURL(null);
             }
             setLoading(false);
         });
 
-        // Cleanup subscription on unmount
         return () => unsubscribe();
     }, []);
 
-    const value = useMemo(() => ({ user, userData, loading }), [user, userData, loading]);
+    const updatePhotoURL = (url: string) => {
+        setPhotoURL(url);
+        // Here you would also update the photoURL in Firebase Auth and your database
+        // For now, we just update the context state for a live preview effect
+    };
+    
+    const value = useMemo(() => ({ user, userData, loading, photoURL, updatePhotoURL }), [user, userData, loading, photoURL]);
 
     return (
         <AuthContext.Provider value={value}>
