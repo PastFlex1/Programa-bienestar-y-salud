@@ -62,8 +62,9 @@ export async function loginAction(previousState: any, formData: FormData) {
         return { success: false, message };
     }
 
-    console.log("[loginAction] Login successful, redirecting to /dashboard...");
-    redirect('/dashboard');
+    console.log("[loginAction] Login successful, returning success state.");
+    // Instead of redirecting, we return a success state. The client will handle the redirect.
+    return { success: true, message: "Login successful" };
 }
 
 export async function signUpAction(previousState: any, formData: FormData) {
