@@ -14,7 +14,7 @@ const translations = {
         volume: "Volumen",
     },
     en: {
-        volume: "Volume",
+        volume: "Volumen",
     }
 }
 

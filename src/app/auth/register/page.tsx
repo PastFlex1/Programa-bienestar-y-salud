@@ -1,17 +1,18 @@
 
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import { useRouter } from 'next/navigation';
+import { useRouter } from "next/navigation";
+import { useFormState, useFormStatus } from 'react-dom';
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { useLanguage } from "@/context/language-provider"
-import { useAuth } from "@/context/auth-provider";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { signUpAction } from "@/lib/firebase/auth";
 
 const translations = {
     es: {
@@ -25,12 +26,10 @@ const translations = {
         loginPrompt: "¿Ya tienes una cuenta?",
         loginLink: "Inicia sesión",
         errorTitle: "Error de Registro",
-        errorFields: "Por favor, completa todos los campos.",
-        errorPassword: "La contraseña debe tener al menos 6 caracteres.",
         successTitle: "Registro Exitoso",
-        successDescription: "¡Tu cuenta ha sido creada! Serás redirigido.",
+        successDescription: "¡Tu cuenta ha sido creada! Serás redirigido al dashboard.",
         closeButton: "Cerrar",
-        continueButton: "Continuar"
+        continueButton: "Continuar",
     },
     en: {
         title: "Create an account",
@@ -43,76 +42,50 @@ const translations = {
         loginPrompt: "Already have an account?",
         loginLink: "Log in",
         errorTitle: "Registration Error",
-        errorFields: "Please fill in all fields.",
-        errorPassword: "Password must be at least 6 characters long.",
         successTitle: "Registration Successful",
-        successDescription: "Your account has been created! You will be redirected.",
+        successDescription: "Your account has been created! You will be redirected to the dashboard.",
         closeButton: "Close",
-        continueButton: "Continue"
+        continueButton: "Continue",
     }
 }
 
+function SignUpButton({t}: {t: typeof translations['en']}) {
+    const { pending } = useFormStatus();
+    return (
+        <Button type="submit" className="w-full" disabled={pending}>
+            {pending ? (
+                <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {t.signingUpButton}
+                </>
+            ) : (
+                t.submitButton
+            )}
+        </Button>
+    )
+}
 
 export default function RegisterPage() {
     const { language } = useLanguage();
     const t = translations[language];
     const router = useRouter();
-    const { signUp } = useAuth();
-
-    const [username, setUsername] = useState('');
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [isSigningUp, setIsSigningUp] = useState(false);
     
-    const [modalState, setModalState] = useState<{
-        isOpen: boolean;
-        type: 'success' | 'error';
-        title: string;
-        description: string;
-    }>({ isOpen: false, type: 'error', title: '', description: ''});
+    const [state, formAction] = useFormState(signUpAction, { success: false, message: "" });
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
-
-    const handleSignUp = () => {
-        if (!username || !email || !password) {
-            setModalState({
-                isOpen: true,
-                type: 'error',
-                title: t.errorTitle,
-                description: t.errorFields
-            });
-            return;
+    useEffect(() => {
+        if (state.message) {
+            setIsModalOpen(true);
         }
-        if (password.length < 6) {
-            setModalState({
-                isOpen: true,
-                type: 'error',
-                title: t.errorTitle,
-                description: t.errorPassword
-            });
-            return;
-        }
-
-        setIsSigningUp(true);
-        // Simulate async operation
-        setTimeout(() => {
-            signUp({ displayName: username, email });
-            setIsSigningUp(false);
-            setModalState({
-                isOpen: true,
-                type: 'success',
-                title: t.successTitle,
-                description: t.successDescription
-            });
-        }, 500);
-    };
+    }, [state]);
 
     const handleCloseModal = () => {
-        const currentType = modalState.type;
-        setModalState({ isOpen: false, type: 'error', title: '', description: '' });
-        if (currentType === 'success') {
+        setIsModalOpen(false);
+        if (state.success) {
             router.push('/dashboard');
         }
     }
+
 
     return (
         <>
@@ -122,24 +95,21 @@ export default function RegisterPage() {
                     <CardDescription>{t.description}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="space-y-6">
+                    <form action={formAction} className="space-y-6">
                          <div className="space-y-2">
                             <Label htmlFor="username">{t.usernameLabel}</Label>
-                            <Input id="username" name="username" required value={username} onChange={e => setUsername(e.target.value)} />
+                            <Input id="username" name="username" required />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="email">{t.emailLabel}</Label>
-                            <Input id="email" name="email" type="email" required value={email} onChange={e => setEmail(e.target.value)} />
+                            <Input id="email" name="email" type="email" required />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="password">{t.passwordLabel}</Label>
-                            <Input id="password" name="password" type="password" required value={password} onChange={e => setPassword(e.target.value)} />
+                            <Input id="password" name="password" type="password" required />
                         </div>
-                        
-                        <Button onClick={handleSignUp} className="w-full" disabled={isSigningUp}>
-                            {isSigningUp ? t.signingUpButton : t.submitButton}
-                        </Button>
-                    </div>
+                        <SignUpButton t={t} />
+                    </form>
                     <div className="mt-6 text-center text-sm">
                         {t.loginPrompt}{" "}
                         <Link href="/auth/login" className="underline text-primary">
@@ -149,23 +119,26 @@ export default function RegisterPage() {
                 </CardContent>
             </Card>
 
-            <Dialog open={modalState.isOpen} onOpenChange={(isOpen) => !isOpen && handleCloseModal()}>
+            <Dialog open={isModalOpen} onOpenChange={(isOpen) => !isOpen && handleCloseModal()}>
                 <DialogContent>
                     <DialogHeader>
-                        <div className="flex justify-center items-center h-16 w-16 rounded-full bg-opacity-20 mx-auto mb-4"
-                             style={{ backgroundColor: modalState.type === 'success' ? 'var(--primary)' : 'var(--destructive)'}}>
-                           {modalState.type === 'success' ? 
+                        <div className={`flex justify-center items-center h-16 w-16 rounded-full bg-opacity-20 mx-auto mb-4 ${state.success ? 'bg-primary' : 'bg-destructive'}`}>
+                           {state.success ? 
                              <CheckCircle2 className="h-10 w-10 text-primary-foreground" /> :
                              <XCircle className="h-10 w-10 text-destructive-foreground" />
                            }
                         </div>
-                        <DialogTitle className="text-center font-headline text-2xl">{modalState.title}</DialogTitle>
-                        <DialogDescription className="text-center">{modalState.description}</DialogDescription>
+                        <DialogTitle className="text-center font-headline text-2xl">
+                            {state.success ? t.successTitle : t.errorTitle}
+                        </DialogTitle>
+                        <DialogDescription className="text-center">
+                             {state.success ? t.successDescription : state.message}
+                        </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
                         <DialogClose asChild>
                             <Button className="w-full" onClick={handleCloseModal}>
-                                {modalState.type === 'success' ? t.continueButton : t.closeButton}
+                                {state.success ? t.continueButton : t.closeButton}
                             </Button>
                         </DialogClose>
                     </DialogFooter>

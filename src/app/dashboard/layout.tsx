@@ -10,11 +10,11 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // const session = await getSession();
+  const session = await getSession();
 
-  // if (!session?.isLoggedIn) {
-  //   redirect('/auth/login');
-  // }
+  if (!session?.isLoggedIn) {
+    redirect('/auth/login');
+  }
 
   return (
       <div className="bg-background min-h-screen text-foreground font-body">

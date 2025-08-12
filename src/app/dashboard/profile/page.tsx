@@ -9,25 +9,31 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/context/language-provider';
-import { useAuth } from '@/context/auth-provider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UserIcon } from '@/components/user-icon';
-import { useRouter } from 'next/navigation';
+import { logoutAction } from '@/lib/firebase/auth';
+import { updateUserProfile, uploadProfilePicture, type UserProfile } from '@/lib/firebase/users';
+import { Loader2 } from 'lucide-react';
+import { useSession } from '@/context/session-provider';
+
 
 const translations = {
   es: {
     title: "Perfil de Usuario",
     description: "Gestiona la información de tu cuenta.",
     changePhoto: "Cambiar Foto",
+    savingPhoto: "Guardando...",
     nameLabel: "Nombre",
     emailLabel: "Correo Electrónico",
     saveChanges: "Guardar Cambios",
+    savingChanges: "Guardando...",
     signOut: "Cerrar Sesión",
     toastSuccessTitle: "Perfil Actualizado",
     toastSuccessDescription: "Tus cambios han sido guardados exitosamente.",
+    toastErrorTitle: "Error",
+    toastErrorDescription: "No se pudieron guardar los cambios.",
     toastFileTooLargeTitle: "Archivo muy grande",
     toastFileTooLargeDescription: "Por favor, selecciona una imagen de menos de 2MB.",
-    emailPlaceholder: "usuario@example.com",
     avatarAlt: "Perfil de usuario",
     loadingProfile: "Cargando perfil..."
   },
@@ -35,15 +41,18 @@ const translations = {
     title: "User Profile",
     description: "Manage your account information.",
     changePhoto: "Change Photo",
+    savingPhoto: "Saving...",
     nameLabel: "Name",
     emailLabel: "Email",
     saveChanges: "Save Changes",
+    savingChanges: "Saving...",
     signOut: "Sign Out",
     toastSuccessTitle: "Profile Updated",
     toastSuccessDescription: "Your changes have been saved successfully.",
+    toastErrorTitle: "Error",
+    toastErrorDescription: "Could not save changes.",
     toastFileTooLargeTitle: "File Too Large",
     toastFileTooLargeDescription: "Please select an image smaller than 2MB.",
-    emailPlaceholder: "user@example.com",
     avatarAlt: "User profile",
     loadingProfile: "Loading profile..."
   }
@@ -53,34 +62,50 @@ const translations = {
 export default function ProfilePage() {
   const { language } = useLanguage();
   const t = translations[language];
-  const { userData, loading, photoURL, updatePhotoURL, logout, updateUserData } = useAuth();
   const { toast } = useToast();
-  const router = useRouter();
+  const { session, loading: sessionLoading, updateSession } = useSession();
   
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState(''); 
-
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   useEffect(() => {
-    if (userData) {
-      setName(userData.displayName || '');
-      setEmail(userData.email || '');
+    if (session) {
+        setProfile({
+            displayName: session.displayName || "",
+            email: session.email || "",
+            photoURL: session.photoURL || null
+        });
     }
-  }, [userData]);
+  }, [session]);
 
 
-  const handleSaveChanges = () => {
-    updateUserData({ displayName: name, email });
-    toast({
-      title: t.toastSuccessTitle,
-      description: t.toastSuccessDescription,
-    });
+  const handleSaveChanges = async () => {
+    if (!profile || !session) return;
+    setIsSaving(true);
+    try {
+        await updateUserProfile({ displayName: profile.displayName });
+        await updateSession({ displayName: profile.displayName }); // Update session cookie
+        toast({
+            title: t.toastSuccessTitle,
+            description: t.toastSuccessDescription,
+        });
+    } catch (error) {
+        toast({
+            variant: "destructive",
+            title: t.toastErrorTitle,
+            description: t.toastErrorDescription,
+        });
+    } finally {
+        setIsSaving(false);
+    }
   };
 
-  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
+    if (file && session) {
       if (file.size > 2 * 1024 * 1024) { // 2MB limit
         toast({
           variant: "destructive",
@@ -89,8 +114,24 @@ export default function ProfilePage() {
         });
         return;
       }
-      const newAvatarUrl = URL.createObjectURL(file);
-      updatePhotoURL(newAvatarUrl); 
+      setIsUploading(true);
+      try {
+        const newAvatarUrl = await uploadProfilePicture(file);
+        setProfile(p => p ? {...p, photoURL: newAvatarUrl} : null);
+        await updateSession({ photoURL: newAvatarUrl });
+         toast({
+            title: t.toastSuccessTitle,
+            description: "Tu foto de perfil ha sido actualizada.",
+        });
+      } catch (error) {
+         toast({
+            variant: "destructive",
+            title: t.toastErrorTitle,
+            description: "No se pudo subir la imagen.",
+        });
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -98,12 +139,13 @@ export default function ProfilePage() {
     fileInputRef.current?.click();
   };
 
-  const handleSignOut = () => {
-    logout();
-    router.push('/auth/login');
+  const handleSignOut = async () => {
+    await logoutAction();
   }
 
-  if (loading) {
+  const isLoading = sessionLoading || !profile;
+
+  if (isLoading) {
     return (
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="max-w-2xl mx-auto space-y-8">
@@ -147,26 +189,30 @@ export default function ProfilePage() {
           <CardContent className="space-y-6">
             <div className="flex items-center space-x-4">
               <Avatar className="h-20 w-20">
-                <AvatarImage src={photoURL ?? undefined} alt={t.avatarAlt} />
+                <AvatarImage src={profile.photoURL ?? undefined} alt={t.avatarAlt} />
                 <AvatarFallback>
                   <UserIcon className="text-muted-foreground" />
                 </AvatarFallback>
               </Avatar>
-              <Button variant="outline" onClick={handleAvatarButtonClick}>{t.changePhoto}</Button>
+              <Button variant="outline" onClick={handleAvatarButtonClick} disabled={isUploading}>
+                {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                {isUploading ? t.savingPhoto : t.changePhoto}
+              </Button>
               <input
                 type="file"
                 ref={fileInputRef}
                 onChange={handleAvatarChange}
                 className="hidden"
                 accept="image/png, image/jpeg, image/gif"
+                disabled={isUploading}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="name">{t.nameLabel}</Label>
               <Input 
                 id="name" 
-                value={name} 
-                onChange={(e) => setName(e.target.value)} 
+                value={profile.displayName} 
+                onChange={(e) => setProfile(p => p ? {...p, displayName: e.target.value} : null)} 
               />
             </div>
             <div className="space-y-2">
@@ -174,14 +220,19 @@ export default function ProfilePage() {
               <Input 
                 id="email" 
                 type="email" 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={profile.email}
+                disabled // Email is not editable
               />
             </div>
-            <Button onClick={handleSaveChanges}>{t.saveChanges}</Button>
+            <Button onClick={handleSaveChanges} disabled={isSaving}>
+              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+              {isSaving ? t.savingChanges : t.saveChanges}
+            </Button>
           </CardContent>
           <CardFooter className="flex justify-end">
-             <Button variant="destructive" onClick={handleSignOut}>{t.signOut}</Button>
+             <form action={handleSignOut}>
+                <Button variant="destructive" type="submit">{t.signOut}</Button>
+             </form>
           </CardFooter>
         </Card>
       </div>

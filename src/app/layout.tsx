@@ -4,19 +4,23 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from '@/context/theme-provider';
 import { LanguageProvider } from '@/context/language-provider';
-import { AuthProvider } from '@/context/auth-provider';
 import { ProgressProvider } from '@/context/progress-provider';
+import { getSession } from '@/lib/firebase/auth';
+import { SessionProvider } from '@/context/session-provider';
+
 
 export const metadata: Metadata = {
-  title: 'Zenith',
+  title: 'AppMeditacion',
   description: 'A serene interface for guided meditation and habit tracking.',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await getSession();
+
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
@@ -31,12 +35,12 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <LanguageProvider>
-            <AuthProvider>
+            <SessionProvider value={session}>
               <ProgressProvider>
                 {children}
                 <Toaster />
               </ProgressProvider>
-            </AuthProvider>
+            </SessionProvider>
           </LanguageProvider>
         </ThemeProvider>
       </body>

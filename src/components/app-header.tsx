@@ -2,13 +2,13 @@
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useAuth } from "@/context/auth-provider";
 import { BrainCircuit } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
 import { UserIcon } from "./user-icon";
+import { useSession } from "@/context/session-provider";
 
 export function AppHeader() {
-  const { userData, photoURL, loading } = useAuth();
+  const { session, loading } = useSession();
 
   return (
     <header className="flex items-center justify-between p-4 border-b bg-background/80 backdrop-blur-sm sticky top-0 z-10">
@@ -19,14 +19,14 @@ export function AppHeader() {
        <div className="flex items-center gap-3">
         {loading ? (
             <Skeleton className="h-6 w-24" />
-        ) : userData?.displayName && (
-            <span className="text-sm font-medium text-foreground">{userData.displayName}</span>
+        ) : session?.displayName && (
+            <span className="text-sm font-medium text-foreground">{session.displayName}</span>
         )}
         {loading ? (
             <Skeleton className="h-10 w-10 rounded-full" />
         ) : (
             <Avatar>
-            <AvatarImage src={photoURL ?? undefined} alt="Perfil de usuario" />
+            <AvatarImage src={session?.photoURL ?? undefined} alt="Perfil de usuario" />
             <AvatarFallback>
                 <UserIcon className="text-muted-foreground" />
             </AvatarFallback>

@@ -14,6 +14,8 @@ import { BookHeart, History, Loader2, LockKeyhole, Trash2, Unlock } from "lucide
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { getJournalEntries, saveJournalEntry, deleteJournalEntry, type JournalEntry } from "@/lib/firebase/journal";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const translations = {
   es: {
@@ -28,6 +30,8 @@ const translations = {
     toastSuccessDescription: "Tu reflexión ha sido guardada.",
     toastErrorTitle: "Error",
     toastErrorDescription: "La entrada no puede estar vacía.",
+    toastDeleteSuccess: "Entrada eliminada exitosamente.",
+    toastDeleteError: "No se pudo eliminar la entrada.",
     entryTimeFormat: "p",
     setPassword: "Fijar Contraseña (Opcional)",
     passwordPlaceholder: "Contraseña para esta entrada",
@@ -45,6 +49,7 @@ const translations = {
     wrongPassword: "La contraseña es incorrecta.",
     entryUnlocked: "Entrada desbloqueada.",
     entryLocked: "Entrada protegida por contraseña.",
+    loading: "Cargando historial...",
   },
   en: {
     title: "Your Personal Journal",
@@ -58,6 +63,8 @@ const translations = {
     toastSuccessDescription: "Your reflection has been saved.",
     toastErrorTitle: "Error",
     toastErrorDescription: "Entry cannot be empty.",
+    toastDeleteSuccess: "Entry deleted successfully.",
+    toastDeleteError: "Could not delete entry.",
     entryTimeFormat: "p",
     setPassword: "Set Password (Optional)",
     passwordPlaceholder: "Password for this entry",
@@ -75,16 +82,10 @@ const translations = {
     wrongPassword: "The password is incorrect.",
     entryUnlocked: "Entry unlocked.",
     entryLocked: "Entry is password protected.",
+    loading: "Loading history...",
   }
 };
 
-type JournalEntry = {
-  id: number;
-  content: string;
-  timestamp: Date;
-  password?: string;
-  isUnlocked?: boolean;
-};
 
 type GroupedEntries = {
   [key: string]: JournalEntry[];
@@ -99,19 +100,29 @@ export default function JournalPage() {
   const [password, setPassword] = React.useState("");
   const [showPasswordInput, setShowPasswordInput] = React.useState(false);
   const [history, setHistory] = React.useState<JournalEntry[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
   
-  // State for deletion
   const [entryToDelete, setEntryToDelete] = React.useState<JournalEntry | null>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
 
-  // State for unlocking
   const [entryToUnlock, setEntryToUnlock] = React.useState<JournalEntry | null>(null);
   const [unlockAttempt, setUnlockAttempt] = React.useState("");
   const [isUnlocking, setIsUnlocking] = React.useState(false);
 
+  React.useEffect(() => {
+    setIsLoading(true);
+    getJournalEntries()
+      .then(entries => setHistory(entries))
+      .catch(err => {
+        console.error(err);
+        toast({ variant: "destructive", title: t.toastErrorTitle, description: "Could not fetch journal history." });
+      })
+      .finally(() => setIsLoading(false));
+  }, [toast, t]);
 
-  const handleSaveEntry = () => {
+
+  const handleSaveEntry = async () => {
     if (entry.trim() === "") {
       toast({
         variant: "destructive",
@@ -122,53 +133,61 @@ export default function JournalPage() {
     }
 
     setIsSaving(true);
-    const newEntry: JournalEntry = {
-      id: Date.now(),
+    const newEntryData: Omit<JournalEntry, 'id'> = {
       content: entry,
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
       ...(password && { password: password, isUnlocked: false }),
     };
 
-    // Simulate async operation
-    setTimeout(() => {
-      setHistory(prev => [newEntry, ...prev]);
-      setEntry("");
-      setPassword("");
-      setShowPasswordInput(false);
-      setIsSaving(false);
-      toast({
-        title: t.toastSuccessTitle,
-        description: t.toastSuccessDescription,
-      });
-    }, 500);
+    try {
+        const savedEntry = await saveJournalEntry(newEntryData);
+        setHistory(prev => [savedEntry, ...prev]);
+        setEntry("");
+        setPassword("");
+        setShowPasswordInput(false);
+        toast({
+            title: t.toastSuccessTitle,
+            description: t.toastSuccessDescription,
+        });
+    } catch(e) {
+        toast({ variant: "destructive", title: t.toastErrorTitle, description: "Could not save entry." });
+    } finally {
+        setIsSaving(false);
+    }
   };
   
-  const handleDeleteEntry = () => {
+  const handleDeleteEntry = async () => {
       if (!entryToDelete) return;
 
       setIsDeleting(true);
-      setTimeout(() => {
-          setHistory(prev => prev.filter(e => e.id !== entryToDelete.id));
-          setIsDeleting(false);
-          setEntryToDelete(null);
-      }, 500);
+      try {
+        await deleteJournalEntry(entryToDelete.id);
+        setHistory(prev => prev.filter(e => e.id !== entryToDelete.id));
+        toast({ title: t.toastDeleteSuccess });
+      } catch (error) {
+        toast({ variant: "destructive", title: t.toastDeleteError });
+      } finally {
+        setIsDeleting(false);
+        setEntryToDelete(null);
+      }
   };
 
   const handleUnlockAttempt = () => {
     if (!entryToUnlock) return;
 
     setIsUnlocking(true);
-    setTimeout(() => {
-        if (unlockAttempt === entryToUnlock.password) {
-            setHistory(prev => prev.map(e => e.id === entryToUnlock.id ? { ...e, isUnlocked: true } : e));
-            setEntryToUnlock(null);
-            setUnlockAttempt("");
-            toast({ title: t.entryUnlocked });
-        } else {
-            toast({ variant: "destructive", title: t.wrongPassword });
-        }
-        setIsUnlocking(false);
-    }, 500);
+    // Locally check password. In a real scenario, this check might be done on a backend
+    // but for simplicity, we do it here. Storing raw passwords is not secure.
+    // This is for demonstration purposes only.
+    if (unlockAttempt === entryToUnlock.password) {
+        setHistory(prev => prev.map(e => e.id === entryToUnlock.id ? { ...e, isUnlocked: true } : e));
+        setEntryToUnlock(null);
+        setUnlockAttempt("");
+        toast({ title: t.entryUnlocked });
+    } else {
+        toast({ variant: "destructive", title: t.wrongPassword });
+    }
+    setIsUnlocking(false);
   };
 
   const formatDate = (d: Date) => language === 'es'
@@ -177,7 +196,7 @@ export default function JournalPage() {
 
   const groupedEntries = React.useMemo(() => {
     return history.reduce((acc: GroupedEntries, currentEntry) => {
-      const dateKey = format(currentEntry.timestamp, "yyyy-MM-dd");
+      const dateKey = format(new Date(currentEntry.timestamp), "yyyy-MM-dd");
       if (!acc[dateKey]) {
         acc[dateKey] = [];
       }
@@ -236,7 +255,13 @@ export default function JournalPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {history.length === 0 ? (
+            {isLoading ? (
+                <div className="space-y-4">
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                </div>
+            ) : history.length === 0 ? (
               <p className="text-muted-foreground text-center py-4">{t.noEntries}</p>
             ) : (
               <Accordion type="single" collapsible className="w-full">
@@ -250,7 +275,7 @@ export default function JournalPage() {
                                 <div className="flex justify-between items-start">
                                     <div>
                                         <p className="text-sm text-muted-foreground font-medium">
-                                            {format(item.timestamp, t.entryTimeFormat, { locale: language === 'es' ? es : undefined })}
+                                            {format(new Date(item.timestamp), t.entryTimeFormat, { locale: language === 'es' ? es : undefined })}
                                         </p>
                                         {item.password && !item.isUnlocked ? (
                                              <div className="flex items-center gap-2 text-muted-foreground italic mt-2 cursor-pointer" onClick={() => setEntryToUnlock(item)}>
@@ -339,5 +364,3 @@ export default function JournalPage() {
     </>
   );
 }
-
-    

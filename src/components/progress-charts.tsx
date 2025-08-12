@@ -8,8 +8,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from "
 import { TrendingUp } from "lucide-react";
 import { useLanguage } from "@/context/language-provider";
 import { useProgress } from "@/context/progress-provider";
-import { eachDayOfInterval, startOfWeek, format } from "date-fns";
-import { es } from 'date-fns/locale';
+import { startOfWeek, format } from "date-fns";
 
 const translations = {
   es: {
@@ -19,7 +18,6 @@ const translations = {
     habitsCompleted: "Hábitos Completados",
     chartMinutes: "Minutos",
     chartHabits: "Hábitos",
-    days: { mon: "Lun", tue: "Mar", wed: "Mié", thu: "Jue", fri: "Vie", sat: "Sáb", sun: "Dom" },
   },
   en: {
     title: "Weekly Progress",
@@ -28,7 +26,6 @@ const translations = {
     habitsCompleted: "Habits Completed",
     chartMinutes: "Minutes",
     chartHabits: "Habits",
-    days: { mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri", sat: "Sat", sun: "Sun" },
   }
 };
 
@@ -41,7 +38,6 @@ export function ProgressCharts() {
   const chartData = React.useMemo(() => {
     const today = new Date();
     const weekStart = startOfWeek(today, { weekStartsOn: 1 }); // Monday
-    const weekDays = eachDayOfInterval({ start: weekStart, end: today });
     
     const dayLabels = {
         en: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
@@ -55,6 +51,7 @@ export function ProgressCharts() {
         date.setDate(date.getDate() + index);
         const dateKey = format(date, 'yyyy-MM-dd');
         const dayData = progressData[dateKey] || { minutes: 0, habits: 0 };
+
         return {
             day: dayLabel,
             minutes: dayData.minutes,

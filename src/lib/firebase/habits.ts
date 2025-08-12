@@ -4,6 +4,7 @@
 import { ref, get, set } from "firebase/database";
 import { db } from "./config";
 import { revalidatePath } from "next/cache";
+import { getSession } from "./auth";
 
 // Type for storing in the database
 export type Habit = {
@@ -16,34 +17,28 @@ export type Habit = {
 const getHabitDateRef = (userId: string, dateKey: string) => {
     // Path: /users/{userId}/habitDates/{yyyy-MM-dd}
     const path = `users/${userId}/habitDates/${dateKey}`;
-    console.log("[getHabitDateRef] Generated path:", path);
     return ref(db, path);
 }
 
 /**
  * Retrieves the list of habits for a user on a specific date.
  * @param dateKey - The date in 'yyyy-MM-dd' format.
- * @param userId - The ID of the authenticated user.
  * @returns A promise that resolves to an array of Habit objects.
  */
-export async function getHabitsForDate(dateKey: string, userId: string): Promise<Habit[]> {
-    if (!userId) {
-        console.warn("[getHabitsForDate] Called without a userId. Returning empty array.");
-        return [];
-    }
-    console.log(`[getHabitsForDate] Fetching for userId: ${userId}, dateKey: ${dateKey}`);
+export async function getHabitsForDate(dateKey: string): Promise<Habit[]> {
+    const session = await getSession();
+    if (!session) return [];
+
     try {
-        const dateRef = getHabitDateRef(userId, dateKey);
+        const dateRef = getHabitDateRef(session.uid, dateKey);
         const snapshot = await get(dateRef);
 
         if (snapshot.exists()) {
             const data = snapshot.val();
             // Realtime DB stores arrays as objects if keys are not 0,1,2..., so we convert it back
             const habits = data.habits ? Object.values(data.habits) as Habit[] : [];
-            console.log(`[getHabitsForDate] Found ${habits.length} habits.`);
             return habits;
         } else {
-            console.log(`[getHabitsForDate] No habits found for this date. Returning empty array.`);
             return [];
         }
     } catch (error) {
@@ -56,22 +51,19 @@ export async function getHabitsForDate(dateKey: string, userId: string): Promise
  * Overwrites the entire list of habits for a user on a specific date.
  * @param habits - The complete, updated array of habits for the day.
  * @param dateKey - The date in 'yyyy-MM-dd' format.
- * @param userId - The ID of the authenticated user.
  */
-export async function updateHabitsForDate(habits: Habit[], dateKey: string, userId: string): Promise<void> {
-    if (!userId) {
-        console.error("[updateHabitsForDate] User is not authenticated. Aborting.");
+export async function updateHabitsForDate(habits: Habit[], dateKey: string): Promise<void> {
+    const session = await getSession();
+    if (!session) {
         throw new Error("User is not authenticated.");
     }
-    console.log(`[updateHabitsForDate] Updating habits for userId: ${userId}, dateKey: ${dateKey}`);
+    
     try {
-        const dateRef = getHabitDateRef(userId, dateKey);
-        // We save the habits and a timestamp.
+        const dateRef = getHabitDateRef(session.uid, dateKey);
         await set(dateRef, {
             habits: habits,
             lastUpdated: new Date().toISOString()
         });
-        console.log("[updateHabitsForDate] Successfully set data in Realtime Database.");
 
         revalidatePath("/dashboard/habits");
     } catch (error) {

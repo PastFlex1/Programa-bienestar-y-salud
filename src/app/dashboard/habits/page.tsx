@@ -8,16 +8,16 @@ import { useLanguage } from "@/context/language-provider";
 import { format } from "date-fns";
 import { es } from 'date-fns/locale';
 import { Droplets, Footprints, Brain, BookOpen, CheckCircle2, Plus, Loader2 } from "lucide-react";
-import type { Habit as HabitDB } from "@/lib/firebase/habits";
+import type { Habit } from "@/lib/firebase/habits";
+import { getHabitsForDate, updateHabitsForDate } from "@/lib/firebase/habits";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { HabitTracker, type Habit as HabitUI } from "@/components/habit-tracker";
+import { HabitTracker } from "@/components/habit-tracker";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProgress } from "@/context/progress-provider";
-
 
 const translations = {
   es: {
@@ -70,7 +70,7 @@ const translations = {
   }
 };
 
-const mapHabitsForUI = (dbHabits: HabitDB[]): HabitUI[] => {
+const mapHabitsForUI = (dbHabits: Habit[]) => {
     const iconMapping: { [key: string]: React.ReactNode } = {
         hydrate: <Droplets className="h-5 w-5 text-primary" />,
         walk: <Footprints className="h-5 w-5 text-primary" />,
@@ -99,27 +99,32 @@ export default function HabitsPage() {
     const { language } = useLanguage();
     const t = translations[language];
     const { toast } = useToast();
-    const { logHabit } = useProgress();
+    const { logHabit, setInitialHabits } = useProgress();
 
     const [date, setDate] = React.useState<Date | undefined>(new Date());
+    const [habits, setHabits] = React.useState<Habit[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
     const [newHabitName, setNewHabitName] = React.useState("");
     const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
     const [isCompletionModalOpen, setIsCompletionModalOpen] = React.useState(false);
-    
-    // Store habits locally per day
-    const [habitsByDate, setHabitsByDate] = React.useState<{ [key: string]: HabitDB[] }>({});
-    
+
     const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
-    const habits = habitsByDate[dateKey] || [];
-    
+
     React.useEffect(() => {
+        if (!dateKey) return;
         setIsLoading(true);
-        // This effect now simply reacts to date changes.
-        // The `habits` variable is derived directly from `habitsByDate` and the `dateKey`.
-        setIsLoading(false);
-    }, [dateKey]);
+        getHabitsForDate(dateKey)
+            .then(fetchedHabits => {
+                setHabits(fetchedHabits);
+                setInitialHabits(dateKey, fetchedHabits.filter(h => h.completed).length);
+            })
+            .catch(err => {
+                console.error(err);
+                toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastErrorDescription });
+            })
+            .finally(() => setIsLoading(false));
+    }, [dateKey, toast, t, setInitialHabits]);
 
 
     const handleAddHabit = async () => {
@@ -130,22 +135,25 @@ export default function HabitsPage() {
             return;
         }
 
-        const newHabit: HabitDB = {
+        const newHabit: Habit = {
             id: `custom-${Date.now()}`,
             label: newHabitName,
             completed: false,
         };
-        
+
         const newHabitsList = [...habits, newHabit];
         
-        // Simulate async operation
-        setTimeout(() => {
-            setHabitsByDate(prev => ({...prev, [dateKey]: newHabitsList}));
+        try {
+            await updateHabitsForDate(newHabitsList, dateKey);
+            setHabits(newHabitsList);
             toast({ title: t.toastSuccessTitle, description: t.toastHabitAdded });
             setNewHabitName(""); 
             setIsAddDialogOpen(false);
+        } catch (error) {
+            toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastErrorDescription });
+        } finally {
             setIsSaving(false);
-        }, 500);
+        }
     };
 
 
@@ -156,21 +164,25 @@ export default function HabitsPage() {
         const toggledHabits = habits.map(habit => {
             if (habit.id === id) {
                 const updatedHabit = { ...habit, completed: !habit.completed };
-                if (updatedHabit.completed) {
+                 if (updatedHabit.completed) {
                     habitJustCompleted = true;
-                    logHabit(date, true); // Log completion
+                    logHabit(date, true);
                 } else {
-                    logHabit(date, false); // Log incompletion (decrement)
+                    logHabit(date, false);
                 }
                 return updatedHabit;
             }
             return habit;
         });
         
-        setHabitsByDate(prev => ({...prev, [dateKey]: toggledHabits}));
-        
-        if (habitJustCompleted) {
-            setIsCompletionModalOpen(true);
+        try {
+            await updateHabitsForDate(toggledHabits, dateKey);
+            setHabits(toggledHabits);
+            if (habitJustCompleted) {
+                setIsCompletionModalOpen(true);
+            }
+        } catch (error) {
+            toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastErrorDescription });
         }
     };
 
@@ -201,7 +213,7 @@ export default function HabitsPage() {
                                     selected={date}
                                     onSelect={setDate}
                                     className="rounded-md border p-0"
-                                    disabled={isSaving}
+                                    disabled={isSaving || isLoading}
                                 />
                             </CardContent>
                         </Card>
@@ -214,7 +226,7 @@ export default function HabitsPage() {
                                 </div>
                                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                                     <DialogTrigger asChild>
-                                        <Button size="icon" variant="outline">
+                                        <Button size="icon" variant="outline" disabled={isLoading}>
                                             <Plus className="h-4 w-4" />
                                             <span className="sr-only">{t.addHabit}</span>
                                         </Button>
