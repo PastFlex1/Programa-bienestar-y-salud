@@ -23,33 +23,31 @@ const defaultUserNames = {
 
 export function UserProvider({ children }: { children: ReactNode }) {
   const { language } = useLanguage();
-  const { user } = useAuth(); // Get user from AuthContext
+  const { user, loading } = useAuth(); // Get user from AuthContext
 
-  const [userData, setUserData] = useState<UserData>({
-    userName: "",
-    avatarUrl: "https://placehold.co/100x100.png"
-  });
+  const [userName, setUserName] = useState(defaultUserNames[language]);
+  const [avatarUrl, setAvatarUrl] = useState("https://placehold.co/100x100.png");
 
   useEffect(() => {
     // This effect runs on the client and syncs the user's display name
-    // from Firebase Auth to the local state.
-    if (user) {
-      setUserData(prev => ({ 
-        ...prev, 
-        userName: user.displayName || defaultUserNames[language] 
-      }));
-    } else {
-      // Handle case where user logs out
-      setUserData(prev => ({ 
-        ...prev, 
-        userName: defaultUserNames[language] 
-      }));
+    // from Firebase Auth to the local state, once auth is no longer loading.
+    if (!loading && user) {
+        setUserName(user.displayName || defaultUserNames[language]);
+        // Here you could also sync user.photoURL if you were storing it in Firebase Auth
+    } else if (!loading && !user) {
+      // Handle case where user logs out or session is invalid
+      setUserName(defaultUserNames[language]);
     }
-  }, [user, language]);
+  }, [user, loading, language]);
 
 
   const updateUser = (data: Partial<UserData>) => {
-    setUserData(prev => ({ ...prev, ...data }));
+    if(data.userName) {
+      setUserName(data.userName);
+    }
+    if (data.avatarUrl) {
+      setAvatarUrl(data.avatarUrl);
+    }
     // Here you would also update the user profile in Firebase if needed, e.g.
     // if (user && data.userName) {
     //   updateProfile(user, { displayName: data.userName });
@@ -57,10 +55,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
   };
 
   const value = useMemo(() => ({
-    userName: userData.userName,
-    avatarUrl: userData.avatarUrl,
+    userName,
+    avatarUrl,
     updateUser
-  }), [userData.userName, userData.avatarUrl]);
+  }), [userName, avatarUrl]);
 
   return (
     <UserContext.Provider value={value}>
