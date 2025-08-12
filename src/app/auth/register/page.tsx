@@ -1,10 +1,10 @@
 
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useActionState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation";
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -70,7 +70,7 @@ export default function RegisterPage() {
     const t = translations[language];
     const router = useRouter();
     
-    const [state, formAction] = useFormState(signUpAction, { success: false, message: "" });
+    const [state, formAction] = useActionState(signUpAction, { success: false, message: "" });
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {

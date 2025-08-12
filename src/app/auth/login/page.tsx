@@ -1,10 +1,10 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useActionState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
 import { BrainCircuit, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -67,7 +67,7 @@ export default function LoginPage() {
   const t = translations[language];
   const router = useRouter();
 
-  const [state, formAction] = useFormState(loginAction, { success: false, message: ""});
+  const [state, formAction] = useActionState(loginAction, { success: false, message: ""});
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   
