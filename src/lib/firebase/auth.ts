@@ -28,8 +28,7 @@ async function createSession(user: User) {
         photoURL: user.photoURL
     };
 
-    // Use `await` here as a good practice, though set is synchronous
-    await cookies().set('session', JSON.stringify(session), {
+    cookies().set('session', JSON.stringify(session), {
         expires,
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -44,8 +43,7 @@ export async function updateSessionCookie(data: Partial<SessionPayload>) {
     const updatedSession = { ...session, ...data };
 
     const expires = new Date(session.expires);
-     // Use `await` here as a good practice
-     await cookies().set('session', JSON.stringify(updatedSession), {
+     cookies().set('session', JSON.stringify(updatedSession), {
         expires,
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -119,23 +117,32 @@ export async function signUpAction(previousState: any, formData: FormData) {
 
 
 export async function logoutAction() {
-    // Use `await` here as a good practice
-    await cookies().set('session', '', { expires: new Date(0) });
+    cookies().set('session', '', { expires: new Date(0) });
     redirect('/auth/login');
 }
 
-export async function getSession() {
-    const sessionCookie = await cookies().get('session')?.value;
+export async function getSession(): Promise<SessionPayload | null> {
+    const sessionCookie = cookies().get('session')?.value;
     if (!sessionCookie) {
         return null;
     }
+
     try {
         const parsed: SessionPayload = JSON.parse(sessionCookie);
-        if (new Date(parsed.expires) > new Date()) {
-            return parsed;
+        const sessionExpires = new Date(parsed.expires);
+
+        // If the session is expired, clear the cookie and return null
+        if (sessionExpires < new Date()) {
+            cookies().set('session', '', { expires: new Date(0) });
+            return null;
         }
-        return null;
+
+        // It's a valid session
+        return parsed;
+
     } catch (error) {
+        // If parsing fails, the cookie is invalid. Clear it.
+        cookies().set('session', '', { expires: new Date(0) });
         return null;
     }
 }
