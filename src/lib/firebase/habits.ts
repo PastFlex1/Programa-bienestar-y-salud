@@ -27,7 +27,11 @@ const getHabitDateRef = (userId: string, dateKey: string) => {
  */
 export async function getHabitsForDate(dateKey: string): Promise<Habit[]> {
     const session = await getSession();
-    if (!session) return [];
+    if (!session) {
+        // Return an empty array if there's no session, instead of throwing an error.
+        // This allows viewing the UI in a logged-out state if ever needed, and is safer.
+        return [];
+    }
 
     try {
         const dateRef = getHabitDateRef(session.uid, dateKey);
