@@ -15,6 +15,7 @@ export type JournalEntry = {
 
 // Gets a reference to the 'journal' subcollection for a specific user.
 const getJournalCollectionRef = (userId: string) => {
+    // This path is correct: /users/{userId}/journal
     return collection(db, 'users', userId, 'journal');
 }
 
@@ -25,7 +26,6 @@ const getJournalCollectionRef = (userId: string) => {
 export async function getJournalEntries(): Promise<JournalEntry[]> {
     const session = await getSession();
     if (!session?.uid) {
-        console.log("No session found, returning empty journal.");
         return [];
     }
 
@@ -63,7 +63,7 @@ export async function saveJournalEntry(entryData: { content: string, password?: 
     const session = await getSession();
     if (!session?.uid) {
         console.log("No session found, skipping Firestore save for journal entry.");
-        return null; // Return null to indicate no save occurred
+        return null;
     }
     
     try {
@@ -95,7 +95,6 @@ export async function saveJournalEntry(entryData: { content: string, password?: 
 
     } catch (error) {
         console.error("[saveJournalEntry] Error saving entry:", error);
-        // We don't re-throw, as the client handles optimistic updates.
         return null;
     }
 }
@@ -116,6 +115,5 @@ export async function deleteJournalEntry(entryId: string): Promise<void> {
         await deleteDoc(entryRef);
     } catch(error) {
         console.error("[deleteJournalEntry] Error deleting entry:", error);
-        // Do not throw to avoid crashing the app on a failed delete.
     }
 }

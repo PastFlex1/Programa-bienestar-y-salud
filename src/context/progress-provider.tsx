@@ -41,21 +41,19 @@ export function ProgressProvider({ children, ...props }: ProgressProviderProps) 
   const [progressData, setProgressData] = React.useState<ProgressData>({});
   const { session } = useSession();
   
-  // This effect will run when progressData changes and sync it with Firebase
-  // We use a ref to prevent it from running on the initial render.
-  const isMounted = React.useRef(false);
-  React.useEffect(() => {
-    if (isMounted.current && session?.uid) {
-        // Find the latest updated day to sync
-        const latestDateKey = Object.keys(progressData).sort().pop();
-        if (latestDateKey && progressData[latestDateKey]) {
-           updateProgressData(latestDateKey, progressData[latestDateKey]);
-        }
-    } else {
-        isMounted.current = true;
-    }
-  }, [progressData, session]);
+  const debouncedUpdates = React.useRef<{[key: string]: NodeJS.Timeout}>({});
 
+  const syncToFirebase = (dateKey: string, data: DayProgress) => {
+    if (session?.uid) {
+      // Debounce the update to prevent too many writes in a short time
+      if (debouncedUpdates.current[dateKey]) {
+        clearTimeout(debouncedUpdates.current[dateKey]);
+      }
+      debouncedUpdates.current[dateKey] = setTimeout(() => {
+        updateProgressData(dateKey, data);
+      }, 1000); // Wait 1 second after the last change before saving
+    }
+  }
 
   const setInitialProgress = React.useCallback((data: ProgressData) => {
     setProgressData(data);
@@ -76,24 +74,28 @@ export function ProgressProvider({ children, ...props }: ProgressProviderProps) 
     setProgressData(prev => {
       const dayData = prev[dateKey] || { minutes: 0, habits: 0 };
       const newMinutes = dayData.minutes + minutes;
+      const updatedData = { ...dayData, minutes: newMinutes };
+      syncToFirebase(dateKey, updatedData);
       return {
         ...prev,
-        [dateKey]: { ...dayData, minutes: newMinutes },
+        [dateKey]: updatedData,
       };
     });
-  }, []);
+  }, [session]);
 
   const logHabit = React.useCallback((date: Date, completed: boolean) => {
     const dateKey = format(date, "yyyy-MM-dd");
     setProgressData(prev => {
       const dayData = prev[dateKey] || { minutes: 0, habits: 0 };
       const newHabitCount = completed ? dayData.habits + 1 : Math.max(0, dayData.habits - 1);
+      const updatedData = { ...dayData, habits: newHabitCount };
+      syncToFirebase(dateKey, updatedData);
       return {
         ...prev,
-        [dateKey]: { ...dayData, habits: newHabitCount },
+        [dateKey]: updatedData,
       };
     });
-  }, []);
+  }, [session]);
 
 
   const value = {
