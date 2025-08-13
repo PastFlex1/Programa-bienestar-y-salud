@@ -1,7 +1,7 @@
 
 "use server";
 
-import { collection, doc, getDocs, setDoc, addDoc, deleteDoc, query, orderBy, serverTimestamp } from "firebase/firestore";
+import { collection, doc, getDocs, addDoc, deleteDoc, query, orderBy } from "firebase/firestore";
 import { db } from "./config";
 import { revalidatePath } from "next/cache";
 import { getSession } from "./auth";
@@ -33,11 +33,13 @@ export async function getJournalEntries(): Promise<JournalEntry[]> {
         const entries: JournalEntry[] = [];
         querySnapshot.forEach((doc) => {
             const data = doc.data();
+            const timestamp = data.timestamp?.toDate ? data.timestamp.toDate().toISOString() : new Date().toISOString();
             entries.push({
                 id: doc.id,
                 content: data.content,
-                timestamp: data.timestamp.toDate().toISOString(),
+                timestamp: timestamp,
                 password: data.password,
+                isUnlocked: !!data.password ? false : true,
             });
         });
         
@@ -48,7 +50,7 @@ export async function getJournalEntries(): Promise<JournalEntry[]> {
     }
 }
 
-export async function saveJournalEntry(entryData: Omit<JournalEntry, 'id'>): Promise<JournalEntry> {
+export async function saveJournalEntry(entryData: Omit<JournalEntry, 'id' | 'isUnlocked'>): Promise<JournalEntry> {
     const session = await getSession();
     if (!session) {
         throw new Error("User not authenticated. Cannot save entry.");
@@ -68,7 +70,16 @@ export async function saveJournalEntry(entryData: Omit<JournalEntry, 'id'>): Pro
 
         const docRef = await addDoc(journalCollection, newEntry);
         revalidatePath("/dashboard/journal");
-        return { ...entryData, id: docRef.id };
+        
+        const savedEntry: JournalEntry = {
+          id: docRef.id,
+          content: newEntry.content,
+          timestamp: newEntry.timestamp.toISOString(),
+          password: newEntry.password,
+          isUnlocked: !!newEntry.password ? false : true,
+        };
+        
+        return savedEntry;
 
     } catch (error) {
         console.error("[saveJournalEntry] Error saving entry:", error);

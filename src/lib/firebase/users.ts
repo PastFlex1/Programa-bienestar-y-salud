@@ -7,6 +7,7 @@ import { db, storage } from "./config";
 import { getSession, updateSessionCookie } from "./auth";
 
 export type UserProfile = {
+    uid: string;
     displayName: string;
     email: string;
     photoURL?: string | null;
@@ -72,3 +73,4 @@ export async function createUserDocument(user: { uid: string, email?: string | n
     };
     await setDoc(userDocRef, userData);
 }
+

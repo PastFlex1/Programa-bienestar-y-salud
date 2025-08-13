@@ -1,7 +1,7 @@
 
 "use server";
 
-import { doc, getDoc, setDoc, collection, updateDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "./config";
 import { revalidatePath } from "next/cache";
 import { getSession } from "./auth";
@@ -55,6 +55,7 @@ export async function getHabitsForDate(dateKey: string): Promise<Habit[]> {
 export async function updateHabitsForDate(habits: Habit[], dateKey: string): Promise<void> {
     const session = await getSession();
     if (!session) {
+        console.log("No session found, skipping Firestore update.");
         return;
     }
     
@@ -63,7 +64,7 @@ export async function updateHabitsForDate(habits: Habit[], dateKey: string): Pro
         await setDoc(dateDocRef, {
             habits: habits,
             lastUpdated: new Date().toISOString()
-        }, { merge: true });
+        });
 
         revalidatePath("/dashboard/habits");
     } catch (error) {
