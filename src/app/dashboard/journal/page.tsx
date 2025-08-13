@@ -144,30 +144,42 @@ export default function JournalPage() {
 
     setIsSaving(true);
     
-    try {
-        let savedEntry: JournalEntry;
-        const newEntryData: Omit<JournalEntry, 'id'> = {
-            content: entry,
-            timestamp: new Date().toISOString(),
-            ...(password && { password: password, isUnlocked: false }),
-        };
+    const newEntryData: Omit<JournalEntry, 'id'> = {
+        content: entry,
+        timestamp: new Date().toISOString(),
+        ...(password && { password: password, isUnlocked: false }),
+    };
 
+    // Create a temporary entry for immediate UI update
+    const tempEntry: JournalEntry = {
+        ...newEntryData,
+        id: `temp-${Date.now()}`,
+        isUnlocked: !!password ? false : undefined,
+    };
+    
+    // Update UI immediately
+    setHistory(prev => [tempEntry, ...prev]);
+    setEntry("");
+    setPassword("");
+    setShowPasswordInput(false);
+
+    try {
+        // Sync with Firebase only if logged in
         if (session) {
-            savedEntry = await saveJournalEntry(newEntryData);
+            const savedEntry = await saveJournalEntry(newEntryData);
+            // Replace temporary entry with the real one from Firebase
+            setHistory(prev => prev.map(e => e.id === tempEntry.id ? savedEntry : e));
         } else {
-            // Offline mode
-            savedEntry = { ...newEntryData, id: `local-${Date.now()}`, isUnlocked: !!password ? false : true };
+             setHistory(prev => prev.map(e => e.id === tempEntry.id ? { ...tempEntry, id: `local-${Date.now()}`, isUnlocked: !!password ? false : true } : e));
         }
-        
-        setHistory(prev => [savedEntry, ...prev]);
-        setEntry("");
-        setPassword("");
-        setShowPasswordInput(false);
+
         toast({
             title: t.toastSuccessTitle,
             description: t.toastSuccessDescription,
         });
     } catch(e) {
+        // Revert on failure
+        setHistory(prev => prev.filter(e => e.id !== tempEntry.id));
         toast({ variant: "destructive", title: t.toastErrorTitle, description: "Could not save entry." });
     } finally {
         setIsSaving(false);
@@ -178,18 +190,24 @@ export default function JournalPage() {
       if (!entryToDelete) return;
 
       setIsDeleting(true);
+      const originalHistory = [...history];
+      
+      // Update UI immediately
+      setHistory(prev => prev.filter(e => e.id !== entryToDelete.id));
+      setEntryToDelete(null);
+
       try {
-        if (session) {
+        // Sync with Firebase only if logged in
+        if (session && !entryToDelete.id.startsWith('local-')) {
             await deleteJournalEntry(entryToDelete.id);
         }
-        // In both online and offline mode, we just remove it from the local state
-        setHistory(prev => prev.filter(e => e.id !== entryToDelete.id));
         toast({ title: t.toastDeleteSuccess });
       } catch (error) {
+        // Revert on failure
+        setHistory(originalHistory);
         toast({ variant: "destructive", title: t.toastDeleteError });
       } finally {
         setIsDeleting(false);
-        setEntryToDelete(null);
       }
   };
 

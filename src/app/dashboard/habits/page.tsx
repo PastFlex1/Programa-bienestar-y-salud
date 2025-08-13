@@ -143,16 +143,21 @@ export default function HabitsPage() {
         const currentHabits = habits || [];
         const newHabitsList = [...currentHabits, newHabit];
         
+        // Update local state immediately
+        setHabits(newHabitsList);
+        setNewHabitName(""); 
+        setIsAddDialogOpen(false);
+        
         try {
+            // Sync with Firebase only if logged in
             if (session) {
                 await updateHabitsForDate(newHabitsList, dateKey);
             }
-            setHabits(newHabitsList);
             toast({ title: t.toastSuccessTitle, description: t.toastHabitAdded });
-            setNewHabitName(""); 
-            setIsAddDialogOpen(false);
         } catch (error) {
             console.error(error);
+            // If sync fails, revert local state
+            setHabits(currentHabits);
             toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastErrorDescription });
         } finally {
             setIsSaving(false);
@@ -164,6 +169,7 @@ export default function HabitsPage() {
         if (!date) return;
         let habitJustCompleted = false;
         
+        const originalHabits = [...habits];
         const toggledHabits = habits.map(habit => {
             if (habit.id === id) {
                 const updatedHabit = { ...habit, completed: !habit.completed };
@@ -178,15 +184,20 @@ export default function HabitsPage() {
             return habit;
         });
         
+        // Update local state immediately
+        setHabits(toggledHabits);
+        if (habitJustCompleted) {
+            setIsCompletionModalOpen(true);
+        }
+
         try {
+            // Sync with Firebase only if logged in
             if (session) {
                 await updateHabitsForDate(toggledHabits, dateKey);
             }
-            setHabits(toggledHabits);
-            if (habitJustCompleted) {
-                setIsCompletionModalOpen(true);
-            }
         } catch (error) {
+            // If sync fails, revert local state
+            setHabits(originalHabits);
             toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastErrorDescription });
         }
     };

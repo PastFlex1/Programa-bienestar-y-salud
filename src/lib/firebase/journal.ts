@@ -52,9 +52,8 @@ export async function getJournalEntries(): Promise<JournalEntry[]> {
 export async function saveJournalEntry(entryData: Omit<JournalEntry, 'id'>): Promise<JournalEntry> {
     const session = await getSession();
     if (!session) {
-        // This function should not be called in offline mode from the component,
-        // but as a safeguard, we prevent it from throwing an error.
-        // We'll return a locally-crafted object, though the component creates its own.
+        // This should not be called if there's no session, but as a safeguard,
+        // we'll return a locally-crafted object. The component will handle it.
         return { ...entryData, id: `local-${Date.now()}` };
     }
     
@@ -62,7 +61,7 @@ export async function saveJournalEntry(entryData: Omit<JournalEntry, 'id'>): Pro
         const journalRef = getJournalRef(session.uid);
         const newEntryRef = push(journalRef); // Generate a new unique key
         
-        const newEntry: Omit<JournalEntry, 'id'> = {
+        const newEntry: Omit<JournalEntry, 'id' | 'isUnlocked'> = {
             content: entryData.content,
             timestamp: entryData.timestamp,
         };
