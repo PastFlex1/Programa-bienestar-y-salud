@@ -22,23 +22,27 @@ const getDefaultHabits = (): Habit[] => [
 export async function getHabitsForDate(dateKey: string): Promise<Habit[]> {
     const session = await getSession();
     if (!session?.uid) {
+        // For non-logged-in users, return default habits without hitting DB
         return getDefaultHabits();
     }
 
     try {
-        const dateDocRef = doc(db, 'users', session.uid, 'habitDates', dateKey);
+        // Use 'Habitos' subcollection as requested
+        const dateDocRef = doc(db, 'users', session.uid, 'Habitos', dateKey);
         const docSnap = await getDoc(dateDocRef);
 
         if (docSnap.exists()) {
             const data = docSnap.data();
-            return data.habits || [];
+            // Ensure we return a valid habits array
+            return data.habits && Array.isArray(data.habits) ? data.habits : getDefaultHabits();
         } else {
-            const defaultHabits = getDefaultHabits();
-            // No need to write here, it will be written on first update.
-            return defaultHabits;
+            // If document for the date doesn't exist, return defaults.
+            // It will be created on the first update.
+            return getDefaultHabits();
         }
     } catch (error) {
         console.error("[getHabitsForDate] Error getting habits:", error);
+        // On error, return defaults to avoid crashing the UI
         return getDefaultHabits();
     }
 }
@@ -47,16 +51,18 @@ export async function getHabitsForDate(dateKey: string): Promise<Habit[]> {
 export async function updateHabitsForDate(habits: Habit[], dateKey: string): Promise<void> {
     const session = await getSession();
     if (!session?.uid) {
+        // Silently ignore if there is no user session
         console.log("No session found, skipping Firestore update for habits.");
         return;
     }
     
     try {
-        const dateDocRef = doc(db, 'users', session.uid, 'habitDates', dateKey);
+        // Use 'Habitos' subcollection as requested
+        const dateDocRef = doc(db, 'users', session.uid, 'Habitos', dateKey);
         await setDoc(dateDocRef, {
             habits: habits,
             lastUpdated: new Date().toISOString()
-        });
+        }, { merge: true }); // Use merge to avoid overwriting other potential fields
     } catch (error) {
         console.error("[updateHabitsForDate] Error updating habits for date:", dateKey, error);
         // Do not throw an error to prevent crashing the app.
