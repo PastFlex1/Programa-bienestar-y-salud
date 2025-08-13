@@ -147,6 +147,7 @@ export default function HabitsPage() {
         const currentHabits = habits || [];
         const newHabitsList = [...currentHabits, newHabit];
         
+        // Optimistic UI Update
         setHabits(newHabitsList);
         
         try {
@@ -183,6 +184,7 @@ export default function HabitsPage() {
             return habit;
         });
         
+        // Optimistic UI Update
         setHabits(toggledHabits);
         
         try {
@@ -191,7 +193,8 @@ export default function HabitsPage() {
                 setIsCompletionModalOpen(true);
             }
         } catch (error) {
-            setHabits(originalHabits); // Revert on error
+            // Revert on error
+            setHabits(originalHabits); 
             logHabit(date, !toggledHabits.find(h => h.id === id)?.completed); // Revert progress log
             toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastErrorDescription });
         }
@@ -315,3 +318,5 @@ export default function HabitsPage() {
         </div>
     );
 }
+
+    
