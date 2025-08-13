@@ -52,7 +52,7 @@ export async function updateSessionCookie(data: Partial<SessionPayload>) {
 }
 
 
-export async function loginAction(previousState: any, formData: FormData) {
+export async function loginAction(previousState: any, formData: FormData): Promise<{success: boolean, message: string}> {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
 
@@ -71,7 +71,7 @@ export async function loginAction(previousState: any, formData: FormData) {
         return { success: false, message };
     }
     
-    redirect('/dashboard');
+    return { success: true, message: "Login successful!" };
 }
 
 export async function signUpAction(previousState: any, formData: FormData) {
