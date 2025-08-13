@@ -12,7 +12,11 @@ export type DayProgress = {
 };
 
 const getProgressCollectionRef = (userId: string) => {
-    return collection(db, `users/${userId}/progress`);
+    return collection(db, 'users', userId, 'progress');
+}
+
+const getProgressDocRef = (userId: string, dateKey: string) => {
+    return doc(db, 'users', userId, 'progress', dateKey);
 }
 
 export async function updateProgressData(dateKey: string, data: DayProgress): Promise<void> {
@@ -20,7 +24,7 @@ export async function updateProgressData(dateKey: string, data: DayProgress): Pr
     if (!session?.uid) return;
     
     try {
-        const progressDocRef = doc(db, `users/${session.uid}/progress/${dateKey}`);
+        const progressDocRef = getProgressDocRef(session.uid, dateKey);
         await setDoc(progressDocRef, data, { merge: true });
     } catch (error) {
         console.error(`Error updating progress for ${dateKey}:`, error);

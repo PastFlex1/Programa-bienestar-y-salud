@@ -15,8 +15,7 @@ export type JournalEntry = {
 };
 
 const getJournalCollectionRef = (userId: string) => {
-    const path = `users/${userId}/journal`;
-    return collection(db, path);
+    return collection(db, 'users', userId, 'journal');
 }
 
 export async function getJournalEntries(): Promise<JournalEntry[]> {
@@ -103,7 +102,7 @@ export async function deleteJournalEntry(entryId: string): Promise<void> {
     }
 
     try {
-        const entryRef = doc(db, `users/${session.uid}/journal/${entryId}`);
+        const entryRef = doc(db, 'users', session.uid, 'journal', entryId);
         await deleteDoc(entryRef);
         revalidatePath("/dashboard/journal");
     } catch(error) {

@@ -1,7 +1,7 @@
 
 "use server";
 
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection } from "firebase/firestore";
 import { db } from "./config";
 import { revalidatePath } from "next/cache";
 import { getSession } from "./auth";
@@ -16,8 +16,7 @@ export type Habit = {
 // Gets a reference to a specific habit date for a user
 const getHabitDateRef = (userId: string, dateKey: string) => {
     // Path: /users/{userId}/habitDates/{yyyy-MM-dd}
-    const path = `users/${userId}/habitDates/${dateKey}`;
-    return doc(db, path);
+    return doc(db, 'users', userId, 'habitDates', dateKey);
 }
 
 /**
