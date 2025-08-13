@@ -164,13 +164,14 @@ export default function JournalPage() {
     setShowPasswordInput(false);
 
     try {
-        // Sync with Firebase only if logged in
         if (session) {
+            // If logged in, save to Firebase and get the real ID
             const savedEntry = await saveJournalEntry(newEntryData);
             // Replace temporary entry with the real one from Firebase
             setHistory(prev => prev.map(e => e.id === tempEntry.id ? savedEntry : e));
         } else {
-             setHistory(prev => prev.map(e => e.id === tempEntry.id ? { ...tempEntry, id: `local-${Date.now()}`, isUnlocked: !!password ? false : true } : e));
+            // If offline, just finalize the local entry
+            setHistory(prev => prev.map(e => e.id === tempEntry.id ? { ...tempEntry, id: `local-${Date.now()}`, isUnlocked: !!password ? false : true } : e));
         }
 
         toast({
@@ -197,7 +198,7 @@ export default function JournalPage() {
       setEntryToDelete(null);
 
       try {
-        // Sync with Firebase only if logged in
+        // Sync with Firebase only if logged in and not a local-only entry
         if (session && !entryToDelete.id.startsWith('local-')) {
             await deleteJournalEntry(entryToDelete.id);
         }

@@ -112,11 +112,10 @@ export default function HabitsPage() {
                     setInitialHabits(dateKey, fetchedHabits.filter(h => h.completed).length);
                 } catch (err) {
                     console.error(err);
-                    setHabits([]);
+                    setHabits([]); // On error, reset to empty
                 }
             } else {
-                // Offline mode: load from local state (which is just the component's state)
-                // We reset habits when date changes if offline
+                // Offline mode: reset habits when date changes if offline
                 setHabits([]);
             }
             setIsLoading(false);

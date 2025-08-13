@@ -54,7 +54,7 @@ export async function saveJournalEntry(entryData: Omit<JournalEntry, 'id'>): Pro
     if (!session) {
         // This should not be called if there's no session, but as a safeguard,
         // we'll return a locally-crafted object. The component will handle it.
-        return { ...entryData, id: `local-${Date.now()}` };
+        throw new Error("User not authenticated. Cannot save entry.");
     }
     
     try {
