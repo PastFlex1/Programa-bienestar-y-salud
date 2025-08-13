@@ -14,14 +14,14 @@ export type JournalEntry = {
   isUnlocked?: boolean; // Client-side state, not stored in DB
 };
 
+// This function gets a reference to the 'journal' subcollection for a specific user.
 const getJournalCollectionRef = (userId: string) => {
-    // This is a subcollection under a user document
     // Path: users/{userId}/journal
     return collection(db, 'users', userId, 'journal');
 }
 
+// This function gets a reference to a specific entry document within the journal subcollection.
 const getJournalDocRef = (userId: string, entryId: string) => {
-    // Path: users/{userId}/journal/{entryId}
     return doc(db, 'users', userId, 'journal', entryId);
 }
 
@@ -40,7 +40,6 @@ export async function getJournalEntries(): Promise<JournalEntry[]> {
         const entries: JournalEntry[] = [];
         querySnapshot.forEach((doc) => {
             const data = doc.data();
-            // Firestore returns timestamps, convert them to ISO strings
             const timestamp = data.timestamp instanceof Timestamp 
                 ? data.timestamp.toDate().toISOString() 
                 : new Date().toISOString();
@@ -49,8 +48,8 @@ export async function getJournalEntries(): Promise<JournalEntry[]> {
                 id: doc.id,
                 content: data.content,
                 timestamp: timestamp,
-                password: data.password, // Only present if set
-                isUnlocked: !!data.password ? false : true, // Logic to handle locked entries
+                password: data.password,
+                isUnlocked: !data.password,
             });
         });
         
@@ -70,27 +69,30 @@ export async function saveJournalEntry(entryData: Omit<JournalEntry, 'id' | 'isU
     try {
         const journalCollection = getJournalCollectionRef(session.uid);
         
-        const newEntry: any = {
+        const newEntryPayload: {
+            content: string;
+            timestamp: Timestamp;
+            password?: string;
+        } = {
             content: entryData.content,
             timestamp: Timestamp.fromDate(new Date(entryData.timestamp)),
         };
 
         if (entryData.password) {
-            newEntry.password = entryData.password;
+            newEntryPayload.password = entryData.password;
         }
 
-        const docRef = await addDoc(journalCollection, newEntry);
+        const docRef = await addDoc(journalCollection, newEntryPayload);
+        
         revalidatePath("/dashboard/journal");
         
-        const savedEntry: JournalEntry = {
+        return {
           id: docRef.id,
           content: entryData.content,
-          timestamp: new Date(entryData.timestamp).toISOString(),
-          password: newEntry.password,
-          isUnlocked: !newEntry.password,
+          timestamp: entryData.timestamp,
+          password: entryData.password,
+          isUnlocked: !entryData.password,
         };
-        
-        return savedEntry;
 
     } catch (error) {
         console.error("[saveJournalEntry] Error saving entry:", error);
@@ -101,7 +103,7 @@ export async function saveJournalEntry(entryData: Omit<JournalEntry, 'id' | 'isU
 export async function deleteJournalEntry(entryId: string): Promise<void> {
     const session = await getSession();
     if (!session?.uid) {
-        throw new Error("User not authenticated.");
+        throw new Error("User not authenticated. Cannot delete entry.");
     }
 
     try {
