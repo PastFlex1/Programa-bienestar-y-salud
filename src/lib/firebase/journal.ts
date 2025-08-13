@@ -80,10 +80,10 @@ export async function saveJournalEntry(entryData: Omit<JournalEntry, 'id' | 'isU
         // Return a complete JournalEntry object for client-side state updates
         const savedEntry: JournalEntry = {
           id: docRef.id,
-          content: newEntry.content,
+          content: entryData.content,
           timestamp: new Date(entryData.timestamp).toISOString(),
           password: newEntry.password,
-          isUnlocked: !!newEntry.password ? false : true,
+          isUnlocked: !newEntry.password ? false : true,
         };
         
         return savedEntry;
