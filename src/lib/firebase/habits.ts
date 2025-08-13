@@ -47,6 +47,5 @@ export async function updateHabitsForDate(dateKey: string, habits: Habit[]): Pro
         });
     } catch (error) {
         console.error(`[updateHabitsForDate] Error updating habits for ${dateKey}:`, error);
-        throw new Error("Could not update habits in Firestore.");
     }
 }
