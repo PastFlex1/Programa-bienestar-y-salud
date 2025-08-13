@@ -43,10 +43,6 @@ const translations = {
     habitCompleted: "¡Hábito Completado!",
     habitCompletedDescription: "¡Sigue así!",
     close: "Cerrar",
-    defaultHabit1: "Beber 2L de agua",
-    defaultHabit2: "Caminar 30 minutos",
-    defaultHabit3: "Meditar 10 minutos",
-    defaultHabit4: "Leer 15 minutos",
   },
   en: {
     title: "Habit Tracking",
@@ -71,35 +67,13 @@ const translations = {
     habitCompleted: "Habit Completed!",
     habitCompletedDescription: "Keep up the great work!",
     close: "Close",
-    defaultHabit1: "Drink 2L of water",
-    defaultHabit2: "Walk for 30 minutes",
-    defaultHabit3: "Meditate for 10 minutes",
-    defaultHabit4: "Read for 15 minutes",
   }
 };
 
-const mapHabitsForUI = (dbHabits: Habit[], t: typeof translations.es) => {
-    const iconMapping: { [key: string]: React.ReactNode } = {
-        hydrate: <Droplets className="h-5 w-5 text-primary" />,
-        walk: <Footprints className="h-5 w-5 text-primary" />,
-        mindful: <Brain className="h-5 w-5 text-primary" />,
-        read: <BookOpen className="h-5 w-5 text-primary" />
-    };
-    const habitTranslations : {[key: string]: string} = {
-        'Beber 2L de agua': t.defaultHabit1,
-        'Drink 2L of water': t.defaultHabit1,
-        'Caminar 30 minutos': t.defaultHabit2,
-        'Walk for 30 minutes': t.defaultHabit2,
-        'Meditar 10 minutos': t.defaultHabit3,
-        'Meditate for 10 minutes': t.defaultHabit3,
-        'Leer 15 minutos': t.defaultHabit4,
-        'Read for 15 minutes': t.defaultHabit4,
-    }
-
+const mapHabitsForUI = (dbHabits: Habit[]) => {
     return dbHabits.map(h => ({
         ...h,
-        label: habitTranslations[h.label] || h.label,
-        icon: iconMapping[h.id] || <CheckCircle2 className="h-5 w-5 text-primary" />
+        icon: <CheckCircle2 className="h-5 w-5 text-primary" />
     }));
 };
 
@@ -121,7 +95,7 @@ export default function HabitsPage() {
     const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
 
     React.useEffect(() => {
-        if (!dateKey) return;
+        if (!dateKey || sessionLoading) return;
         
         let isMounted = true;
 
@@ -172,7 +146,7 @@ export default function HabitsPage() {
             toast({ title: t.toastSuccessTitle, description: t.toastHabitAdded });
         } catch (error) {
             console.error(error);
-            setHabits(currentHabits);
+            setHabits(currentHabits); // Revert on error
             toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastErrorDescription });
         } finally {
             setIsSaving(false);
@@ -207,7 +181,7 @@ export default function HabitsPage() {
         try {
             await updateHabitsForDate(toggledHabits, dateKey);
         } catch (error) {
-            setHabits(originalHabits);
+            setHabits(originalHabits); // Revert on error
             toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastErrorDescription });
         }
     };
@@ -301,9 +275,9 @@ export default function HabitsPage() {
                                     </div>
                                 ) : (
                                     <HabitTracker
-                                        habits={mapHabitsForUI(habits || [], t)}
+                                        habits={mapHabitsForUI(habits || [])}
                                         onToggleHabit={handleToggleHabit}
-                                        isInteractive={true}
+                                        isInteractive={!!session}
                                     />
                                 )}
                             </CardContent>

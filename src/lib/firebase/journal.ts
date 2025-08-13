@@ -13,7 +13,6 @@ export type JournalEntry = {
   isUnlocked?: boolean; // Client-side state, not stored in DB
 };
 
-// This function correctly gets a reference to the 'journal' subcollection for a given user
 const getJournalCollectionRef = (userId: string) => {
     return collection(db, 'users', userId, 'Diario');
 }
@@ -21,7 +20,6 @@ const getJournalCollectionRef = (userId: string) => {
 export async function getJournalEntries(): Promise<JournalEntry[]> {
     const session = await getSession();
     if (!session?.uid) {
-        // Return empty array for non-logged-in users.
         return [];
     }
 
@@ -34,7 +32,7 @@ export async function getJournalEntries(): Promise<JournalEntry[]> {
             const data = doc.data();
             const timestamp = data.timestamp instanceof Timestamp 
                 ? data.timestamp.toDate().toISOString() 
-                : new Date().toISOString(); // Fallback for any unexpected format
+                : new Date().toISOString(); 
 
             return {
                 id: doc.id,
@@ -54,7 +52,6 @@ export async function saveJournalEntry(entryData: { content: string, password?: 
     const session = await getSession();
     if (!session?.uid) {
         console.log("No session found, skipping Firestore save for journal entry.");
-        // Return null to indicate that the entry was not saved to the DB
         return null;
     }
     
@@ -75,10 +72,8 @@ export async function saveJournalEntry(entryData: { content: string, password?: 
             newEntryPayload.password = entryData.password;
         }
 
-        // addDoc correctly adds a new document with an auto-generated ID to the subcollection
         const docRef = await addDoc(journalCollectionRef, newEntryPayload);
         
-        // Return the full entry object, including the new ID from Firestore
         return {
           id: docRef.id,
           content: entryData.content,
@@ -101,7 +96,6 @@ export async function deleteJournalEntry(entryId: string): Promise<void> {
     }
 
     try {
-        // Correctly reference the document to delete within the user's subcollection
         const entryRef = doc(db, 'users', session.uid, 'Diario', entryId);
         await deleteDoc(entryRef);
     } catch(error) {

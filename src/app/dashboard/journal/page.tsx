@@ -116,6 +116,11 @@ export default function JournalPage() {
   const [isUnlocking, setIsUnlocking] = React.useState(false);
 
   const loadEntries = React.useCallback(async () => {
+    if (!session) {
+      setHistory([]);
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
         const entries = await getJournalEntries();
@@ -125,7 +130,7 @@ export default function JournalPage() {
         setHistory([]);
     }
     setIsLoading(false);
-  }, []);
+  }, [session]);
 
   React.useEffect(() => {
     if (!sessionLoading) {
@@ -142,6 +147,7 @@ export default function JournalPage() {
 
     setIsSaving(true);
     
+    // Optimistically update UI
     const localId = `local-${Date.now()}`;
     const newEntry: JournalEntry = {
         id: localId,
@@ -151,7 +157,7 @@ export default function JournalPage() {
         isUnlocked: !password,
     };
 
-    setHistory(prev => [newEntry, ...prev]);
+    setHistory(prev => [newEntry, ...prev].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
     setEntry("");
     setPassword("");
     setShowPasswordInput(false);
@@ -162,14 +168,20 @@ export default function JournalPage() {
             ...(newEntry.password && { password: newEntry.password }),
         });
 
+        // If saved to DB, update local entry with real ID
         if (savedEntry) {
             setHistory(prev => prev.map(e => e.id === localId ? savedEntry : e));
             toast({ title: t.toastSuccessTitle, description: t.toastSuccessDescription });
         } else if (session) {
+            // It was supposed to save but failed
             toast({ variant: "destructive", title: t.toastSaveError });
+            // Revert optimistic update
+            setHistory(prev => prev.filter(item => item.id !== localId));
         }
+        // If no session, do nothing, just keep local state
     } catch(e) {
         console.error("Error saving entry:", e);
+        // Revert optimistic update
         setHistory(prev => prev.filter(item => item.id !== localId));
         toast({ variant: "destructive", title: t.toastSaveError });
     } finally {
