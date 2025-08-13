@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/context/language-provider";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { BookHeart, History, Loader2, LockKeyhole, Trash2, Unlock } from "lucide-react";
+import { BookHeart, History, Loader2, LockKeyhole, Trash2, Unlock, LogIn } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -28,8 +28,8 @@ const translations = {
     noEntries: "Aún no tienes entradas en tu diario.",
     toastSuccessTitle: "Entrada Guardada",
     toastSuccessDescription: "Tu reflexión ha sido guardada.",
-    toastErrorTitle: "Error",
-    toastErrorDescription: "La entrada no puede estar vacía.",
+    toastSaveError: "No se pudo guardar la entrada. Inténtalo de nuevo.",
+    toastEmptyError: "La entrada no puede estar vacía.",
     toastDeleteSuccess: "Entrada eliminada exitosamente.",
     toastDeleteError: "No se pudo eliminar la entrada.",
     entryTimeFormat: "p",
@@ -50,6 +50,8 @@ const translations = {
     entryUnlocked: "Entrada desbloqueada.",
     entryLocked: "Entrada protegida por contraseña.",
     loading: "Cargando historial...",
+    notLoggedInTitle: "Diario no disponible",
+    notLoggedInDescription: "Inicia sesión para escribir y ver tus entradas."
   },
   en: {
     title: "Your Personal Journal",
@@ -61,15 +63,15 @@ const translations = {
     noEntries: "You don't have any journal entries yet.",
     toastSuccessTitle: "Entry Saved",
     toastSuccessDescription: "Your reflection has been saved.",
-    toastErrorTitle: "Error",
-    toastErrorDescription: "Entry cannot be empty.",
+    toastSaveError: "Could not save entry. Please try again.",
+    toastEmptyError: "Entry cannot be empty.",
     toastDeleteSuccess: "Entry deleted successfully.",
     toastDeleteError: "Could not delete entry.",
     entryTimeFormat: "p",
     setPassword: "Set Password (Optional)",
     passwordPlaceholder: "Password for this entry",
     deleteEntry: "Delete Entry",
-    deleteConfirmationTitle: "Are you sure?",
+deleteConfirmationTitle: "Are you sure?",
     deleteConfirmationDescription: "This action cannot be undone. Are you sure you want to permanently delete this entry?",
     cancel: "Cancel",
     delete: "Delete",
@@ -83,6 +85,8 @@ const translations = {
     entryUnlocked: "Entry unlocked.",
     entryLocked: "Entry is password protected.",
     loading: "Loading history...",
+    notLoggedInTitle: "Journal Unavailable",
+    notLoggedInDescription: "Log in to write and view your entries."
   }
 };
 
@@ -117,18 +121,20 @@ export default function JournalPage() {
       return;
     }
 
+    if (!session) {
+      setIsLoading(false);
+      setHistory([]);
+      return;
+    }
+
     let isMounted = true;
     async function loadEntries() {
         setIsLoading(true);
-        if (session) {
-            try {
-                const entries = await getJournalEntries();
-                if (isMounted) setHistory(entries);
-            } catch (err) {
-                console.error(err);
-                if (isMounted) setHistory([]);
-            }
-        } else {
+        try {
+            const entries = await getJournalEntries();
+            if (isMounted) setHistory(entries);
+        } catch (err) {
+            console.error(err);
             if (isMounted) setHistory([]);
         }
         if (isMounted) setIsLoading(false);
@@ -143,45 +149,32 @@ export default function JournalPage() {
     if (entry.trim() === "") {
       toast({
         variant: "destructive",
-        title: t.toastErrorTitle,
-        description: t.toastErrorDescription,
+        title: t.toastEmptyError,
       });
       return;
     }
 
     setIsSaving(true);
     
-    const newEntryData: Omit<JournalEntry, 'id' | 'isUnlocked'> = {
-        content: entry,
-        timestamp: new Date().toISOString(),
-        ...(password && { password: password }),
-    };
-    
-    // Optimistically update the UI
-    const tempId = `temp-${Date.now()}`;
-    const tempEntry: JournalEntry = {
-        ...newEntryData,
-        id: tempId,
-        isUnlocked: !password,
-    };
-    
-    setHistory(prev => [tempEntry, ...prev]);
-    setEntry("");
-    setPassword("");
-    setShowPasswordInput(false);
-
     try {
-        const savedEntry = await saveJournalEntry(newEntryData);
-        // Replace temp entry with the real one from the database
-        setHistory(prev => prev.map(e => (e.id === tempId ? savedEntry : e)));
+        const newEntry = await saveJournalEntry({
+          content: entry,
+          ...(password && { password: password }),
+        });
+        
+        // Add the new entry to the top of the history
+        setHistory(prev => [newEntry, ...prev]);
+        
+        setEntry("");
+        setPassword("");
+        setShowPasswordInput(false);
         toast({
             title: t.toastSuccessTitle,
             description: t.toastSuccessDescription,
         });
     } catch(e) {
-        // Rollback on failure
-        setHistory(prev => prev.filter(e => e.id !== tempId));
-        toast({ variant: "destructive", title: t.toastErrorTitle, description: "Could not save entry." });
+        console.error("Error saving entry:", e);
+        toast({ variant: "destructive", title: t.toastSaveError });
     } finally {
         setIsSaving(false);
     }
@@ -193,7 +186,6 @@ export default function JournalPage() {
       setIsDeleting(true);
       const originalHistory = [...history];
       
-      // Optimistic update
       setHistory(prev => prev.filter(e => e.id !== entryToDelete.id));
       setEntryToDelete(null);
 
@@ -201,7 +193,6 @@ export default function JournalPage() {
         await deleteJournalEntry(entryToDelete.id);
         toast({ title: t.toastDeleteSuccess });
       } catch (error) {
-        // Rollback
         setHistory(originalHistory);
         toast({ variant: "destructive", title: t.toastDeleteError });
       } finally {
@@ -241,6 +232,13 @@ export default function JournalPage() {
 
   const sortedDateKeys = Object.keys(groupedEntries).sort((a, b) => b.localeCompare(a));
 
+  if (sessionLoading) {
+      return (
+        <div className="flex justify-center items-center h-full p-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      )
+  }
 
   return (
     <>
@@ -254,30 +252,40 @@ export default function JournalPage() {
             </CardTitle>
             <CardDescription>{t.description}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <Textarea
-              placeholder={t.placeholder}
-              value={entry}
-              onChange={(e) => setEntry(e.target.value)}
-              rows={6}
-            />
-             {showPasswordInput && (
-                <Input 
-                    type="password"
-                    placeholder={t.passwordPlaceholder}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+          <CardContent>
+            {session ? (
+              <div className="space-y-4">
+                <Textarea
+                  placeholder={t.placeholder}
+                  value={entry}
+                  onChange={(e) => setEntry(e.target.value)}
+                  rows={6}
                 />
-             )}
-            <div className="flex items-center gap-4">
-                <Button onClick={handleSaveEntry} disabled={isSaving}>
-                  {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isSaving ? t.savingButton : t.saveButton}
-                </Button>
-                <Button variant="outline" size="icon" onClick={() => setShowPasswordInput(!showPasswordInput)} title={t.setPassword}>
-                    <LockKeyhole className="h-4 w-4" />
-                </Button>
-            </div>
+                 {showPasswordInput && (
+                    <Input 
+                        type="password"
+                        placeholder={t.passwordPlaceholder}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                    />
+                 )}
+                <div className="flex items-center gap-4">
+                    <Button onClick={handleSaveEntry} disabled={isSaving || !entry.trim()}>
+                      {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {isSaving ? t.savingButton : t.saveButton}
+                    </Button>
+                    <Button variant="outline" size="icon" onClick={() => setShowPasswordInput(!showPasswordInput)} title={t.setPassword}>
+                        <LockKeyhole className="h-4 w-4" />
+                    </Button>
+                </div>
+              </div>
+            ) : (
+                <div className="text-center py-10">
+                    <LogIn className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <h3 className="mt-4 text-lg font-semibold">{t.notLoggedInTitle}</h3>
+                    <p className="mt-2 text-sm text-muted-foreground">{t.notLoggedInDescription}</p>
+                </div>
+            )}
           </CardContent>
         </Card>
 
@@ -293,7 +301,7 @@ export default function JournalPage() {
                  <div className="flex justify-center items-center h-40">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-            ) : history.length === 0 ? (
+            ) : !session || history.length === 0 ? (
               <p className="text-muted-foreground text-center py-4">{t.noEntries}</p>
             ) : (
               <Accordion type="single" collapsible className="w-full">
