@@ -11,11 +11,6 @@ export type DayProgress = {
     habits: number;
 };
 
-const getProgressCollectionRef = (userId: string) => {
-    // users/{userId}/progress
-    return collection(db, 'users', userId, 'progress');
-}
-
 const getProgressDocRef = (userId: string, dateKey: string) => {
     // users/{userId}/progress/{yyyy-MM-dd}
     return doc(db, 'users', userId, 'progress', dateKey);
@@ -30,50 +25,41 @@ export async function updateProgressData(dateKey: string, data: DayProgress): Pr
     
     try {
         const progressDocRef = getProgressDocRef(session.uid, dateKey);
-        // Using merge: true will create the document if it doesn't exist,
-        // or update it if it does.
         await setDoc(progressDocRef, data, { merge: true });
     } catch (error) {
         console.error(`Error updating progress for ${dateKey}:`, error);
-        throw new Error("Could not update progress data.");
     }
 }
 
 export async function getProgressDataForPastWeek(): Promise<{ [dateKey: string]: DayProgress }> {
     const session = await getSession();
-    if (!session?.uid) return {};
-
     const today = new Date();
-    // Monday as the start of the week
-    const weekStart = startOfWeek(today, { weekStartsOn: 1 }); 
-    
+    const weekStart = startOfWeek(today, { weekStartsOn: 1 });
     const progressData: { [dateKey: string]: DayProgress } = {};
 
+    // Initialize with empty data first to ensure chart has all days
+    for(let i=0; i<7; i++) {
+        const date = addDays(weekStart, i);
+        const dateKey = format(date, 'yyyy-MM-dd');
+        progressData[dateKey] = { minutes: 0, habits: 0 };
+    }
+    
+    if (!session?.uid) {
+        return progressData; // Return empty data for non-logged in users
+    }
+
     try {
-        const progressCollection = getProgressCollectionRef(session.uid);
-        const q = query(progressCollection);
-        const querySnapshot = await getDocs(q);
+        const progressCollectionRef = collection(db, 'users', session.uid, 'progress');
+        const querySnapshot = await getDocs(query(progressCollectionRef));
         
-        const dbData: { [key: string]: DayProgress } = {};
         querySnapshot.forEach(doc => {
-            dbData[doc.id] = doc.data() as DayProgress;
+            if (progressData.hasOwnProperty(doc.id)) {
+                progressData[doc.id] = doc.data() as DayProgress;
+            }
         });
-        
-        // Initialize data for every day of the current week to ensure the chart is complete
-        for(let i=0; i<7; i++) {
-            const date = addDays(weekStart, i);
-            const dateKey = format(date, 'yyyy-MM-dd');
-            progressData[dateKey] = dbData[dateKey] || { minutes: 0, habits: 0 };
-        }
 
     } catch (error) {
         console.error("Error fetching progress data:", error);
-         // If fetching fails, initialize with empty data to prevent crashes
-        for(let i=0; i<7; i++) {
-            const date = addDays(weekStart, i);
-            const dateKey = format(date, 'yyyy-MM-dd');
-            progressData[dateKey] = { minutes: 0, habits: 0 };
-        }
     }
 
     return progressData;

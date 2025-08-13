@@ -1,9 +1,8 @@
 
 "use server";
 
-import { doc, getDoc, setDoc, collection } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "./config";
-import { revalidatePath } from "next/cache";
 import { getSession } from "./auth";
 
 // Type for storing in the database
@@ -28,7 +27,13 @@ export async function getHabitsForDate(dateKey: string): Promise<Habit[]> {
     const session = await getSession();
     if (!session?.uid) {
         console.log("No session found, can't get habits.");
-        return [];
+        // Return default habits for non-logged-in users so the UI isn't empty
+        return [
+            { id: 'hydrate', label: 'Beber 2L de agua', completed: false },
+            { id: 'walk', label: 'Caminar 30 minutos', completed: false },
+            { id: 'mindful', label: 'Meditar 10 minutos', completed: false },
+            { id: 'read', label: 'Leer 15 minutos', completed: false },
+        ];
     }
 
     try {
@@ -40,14 +45,15 @@ export async function getHabitsForDate(dateKey: string): Promise<Habit[]> {
             // Ensure we return an array, even if data.habits is undefined
             return data.habits || [];
         } else {
-            // No document for this date, so no habits
-            // Let's create a default set for a better first-time user experience
+            // No document for this date, so no habits.
+            // Create a default set for a better first-time user experience.
             const defaultHabits: Habit[] = [
                 { id: 'hydrate', label: 'Beber 2L de agua', completed: false },
                 { id: 'walk', label: 'Caminar 30 minutos', completed: false },
                 { id: 'mindful', label: 'Meditar 10 minutos', completed: false },
                 { id: 'read', label: 'Leer 15 minutos', completed: false },
             ];
+             // Silently create the document for the user for next time.
              await updateHabitsForDate(defaultHabits, dateKey);
             return defaultHabits;
         }
@@ -66,7 +72,9 @@ export async function getHabitsForDate(dateKey: string): Promise<Habit[]> {
 export async function updateHabitsForDate(habits: Habit[], dateKey: string): Promise<void> {
     const session = await getSession();
     if (!session?.uid) {
-        console.log("No session found, skipping Firestore update.");
+        // If there's no user session, we don't save to the database.
+        // The state will be kept on the client-side for the duration of the session.
+        console.log("No session found, skipping Firestore update for habits.");
         return;
     }
     
@@ -77,11 +85,8 @@ export async function updateHabitsForDate(habits: Habit[], dateKey: string): Pro
             habits: habits,
             lastUpdated: new Date().toISOString()
         });
-
-        // Revalidate the path to ensure the UI updates if data is fetched server-side
-        revalidatePath("/dashboard/habits");
     } catch (error) {
         console.error("[updateHabitsForDate] Error updating habits for date:", dateKey, error);
-        throw new Error("Could not update habits in the database.");
+        // We don't throw an error to prevent crashing the app on a background save failure.
     }
 }

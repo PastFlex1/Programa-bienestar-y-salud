@@ -115,50 +115,42 @@ export default function JournalPage() {
   const [unlockAttempt, setUnlockAttempt] = React.useState("");
   const [isUnlocking, setIsUnlocking] = React.useState(false);
 
-  React.useEffect(() => {
-    if (sessionLoading) {
-      setIsLoading(true);
-      return;
-    }
-
+  const loadEntries = React.useCallback(async () => {
     if (!session) {
       setIsLoading(false);
-      // We don't clear history here so offline entries persist for the session
+      setHistory([]); // Clear history if user logs out
       return;
     }
-
-    let isMounted = true;
-    async function loadEntries() {
-        setIsLoading(true);
-        try {
-            const entries = await getJournalEntries();
-            if (isMounted) setHistory(entries);
-        } catch (err) {
-            console.error(err);
-            if (isMounted) setHistory([]);
-        }
-        if (isMounted) setIsLoading(false);
+    setIsLoading(true);
+    try {
+        const entries = await getJournalEntries();
+        setHistory(entries);
+    } catch (err) {
+        console.error(err);
+        setHistory([]);
     }
-    loadEntries();
+    setIsLoading(false);
+  }, [session]);
 
-    return () => { isMounted = false; }
-  }, [session, sessionLoading]);
+  React.useEffect(() => {
+    // Initial load and when session changes
+    if (!sessionLoading) {
+      loadEntries();
+    }
+  }, [session, sessionLoading, loadEntries]);
 
 
   const handleSaveEntry = async () => {
     if (entry.trim() === "") {
-      toast({
-        variant: "destructive",
-        title: t.toastEmptyError,
-      });
+      toast({ variant: "destructive", title: t.toastEmptyError });
       return;
     }
 
     setIsSaving(true);
     
-    // Optimistic UI update: add to history immediately.
+    const tempId = `local-${Date.now()}`;
     const optimisticEntry: JournalEntry = {
-        id: `local-${Date.now()}`,
+        id: tempId,
         content: entry,
         timestamp: new Date().toISOString(),
         ...(password && { password: password }),
@@ -166,33 +158,28 @@ export default function JournalPage() {
     };
 
     setHistory(prev => [optimisticEntry, ...prev]);
-    
     setEntry("");
     setPassword("");
     setShowPasswordInput(false);
+    
+    // Save to DB in the background
+    const savedEntry = await saveJournalEntry({
+      content: optimisticEntry.content,
+      ...(optimisticEntry.password && { password: optimisticEntry.password }),
+    });
+
     setIsSaving(false);
 
-    toast({
-        title: t.toastSuccessTitle,
-        description: t.toastSuccessDescription,
-    });
-    
-    try {
-        // Attempt to save to Firebase in the background.
-        // It will silently fail if the user is not logged in, but the UI is already updated.
-        await saveJournalEntry({
-          content: optimisticEntry.content,
-          ...(optimisticEntry.password && { password: optimisticEntry.password }),
-        });
-        
-        // Optional: you could refresh the history from DB after successful save
-        // to get the real ID, but for simplicity, we'll leave it as is.
-        
-    } catch(e) {
-        console.error("Background save failed:", e);
-        // We don't need to show an error toast here as the user already sees the entry.
-        // We could implement a more complex logic to show an "unsaved" state if needed.
+    if (savedEntry) {
+        // If save was successful, replace local entry with real one from DB
+        setHistory(prev => prev.map(e => e.id === tempId ? savedEntry : e));
+        toast({ title: t.toastSuccessTitle, description: t.toastSuccessDescription });
+    } else if (session) {
+        // If there was a session but save failed, show error and remove optimistic entry
+        setHistory(prev => prev.filter(e => e.id !== tempId));
+        toast({ variant: "destructive", title: t.toastSaveError });
     }
+    // If there was no session, the entry remains in local state until page reload.
   };
   
   const handleDeleteEntry = async () => {
@@ -202,16 +189,20 @@ export default function JournalPage() {
       const originalHistory = [...history];
       
       setHistory(prev => prev.filter(e => e.id !== entryToDelete.id));
-      setEntryToDelete(null);
-
+      
       try {
-        await deleteJournalEntry(entryToDelete.id);
+        if(entryToDelete.id.startsWith('local-')){
+             // It's just a local entry, no need to call DB
+        } else {
+            await deleteJournalEntry(entryToDelete.id);
+        }
         toast({ title: t.toastDeleteSuccess });
       } catch (error) {
         setHistory(originalHistory);
         toast({ variant: "destructive", title: t.toastDeleteError });
       } finally {
         setIsDeleting(false);
+        setEntryToDelete(null);
       }
   };
 
@@ -419,5 +410,3 @@ export default function JournalPage() {
     </>
   );
 }
-
-    
