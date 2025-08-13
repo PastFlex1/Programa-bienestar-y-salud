@@ -51,7 +51,7 @@ const translations = {
     entryLocked: "Entrada protegida por contraseña.",
     loading: "Cargando historial...",
     notLoggedInTitle: "Inicia Sesión para Guardar",
-    notLoggedInDescription: "Las entradas se guardarán localmente. Inicia sesión para sincronizarlas."
+    notLoggedInDescription: "Las entradas no se guardarán sin iniciar sesión."
   },
   en: {
     title: "Your Personal Journal",
@@ -86,7 +86,7 @@ const translations = {
     entryLocked: "Entry is password protected.",
     loading: "Loading history...",
     notLoggedInTitle: "Log In to Save",
-    notLoggedInDescription: "Entries will be saved locally. Log in to sync them."
+    notLoggedInDescription: "Entries will not be saved without logging in."
   }
 };
 
@@ -117,21 +117,14 @@ export default function JournalPage() {
   
   const loadEntries = React.useCallback(async () => {
     if (!session) {
-      // If there's no session, we don't clear local history.
-      // This allows local-only entries to persist for the session.
       setIsLoading(false);
+      setHistory([]);
       return;
     }
     setIsLoading(true);
     try {
         const entries = await getJournalEntries();
-        // We merge server entries with any potential local-only entries.
-        // This is a simplistic merge, a real-world app might need a more robust strategy.
-        setHistory(prev => {
-            const serverIds = new Set(entries.map(e => e.id));
-            const localOnly = prev.filter(p => !serverIds.has(p.id) && p.id.startsWith('temp-'));
-            return [...entries, ...localOnly].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-        });
+        setHistory(entries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
     } catch (err) {
         console.error(err);
         toast({ variant: "destructive", title: "Error", description: "Could not load journal entries."});
@@ -153,9 +146,20 @@ export default function JournalPage() {
       return;
     }
 
+    if (!session) {
+        toast({ variant: "destructive", title: t.notLoggedInTitle, description: t.notLoggedInDescription });
+        return;
+    }
+
     setIsSaving(true);
     
-    // Optimistic UI update
+    // Create the data payload for Firestore
+    const entryDataToSave = {
+        content: entry,
+        ...(password && { password: password }),
+    };
+    
+    // Create a temporary entry for optimistic UI update
     const tempId = `temp-${Date.now()}`;
     const timestamp = new Date().toISOString();
     const newEntry: JournalEntry = {
@@ -165,35 +169,19 @@ export default function JournalPage() {
       password: password || undefined,
       isUnlocked: !password,
     };
-
+    
+    // Optimistic UI update
     setHistory(prev => [newEntry, ...prev].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
     setEntry("");
     setPassword("");
     setShowPasswordInput(false);
 
-    // If user is not logged in, we skip the firebase part.
-    if (!session) {
-        setIsSaving(false);
-        toast({ title: t.notLoggedInTitle, description: t.notLoggedInDescription });
-        return;
-    }
-
     try {
-      const savedEntry = await saveJournalEntry({
-        content: newEntry.content,
-        ...(newEntry.password && { password: newEntry.password }),
-      });
+      const savedEntry = await saveJournalEntry(entryDataToSave);
       
-      if (savedEntry) {
-        // Replace temporary entry with the one from the database
-        setHistory(prev => prev.map(e => e.id === tempId ? savedEntry : e));
-        toast({ title: t.toastSuccessTitle, description: t.toastSuccessDescription });
-      } else {
-         // This case might happen if the session is lost just before saving
-         toast({ variant: "destructive", title: t.toastSaveError });
-         // Revert optimistic update on failure
-         setHistory(prev => prev.filter(item => item.id !== tempId));
-      }
+      // Replace temporary entry with the one from the database
+      setHistory(prev => prev.map(e => e.id === tempId ? savedEntry : e));
+      toast({ title: t.toastSuccessTitle, description: t.toastSuccessDescription });
 
     } catch (e) {
       console.error("Error saving entry:", e);
@@ -206,19 +194,13 @@ export default function JournalPage() {
   };
   
   const handleDeleteEntry = async () => {
-      if (!entryToDelete) return;
+      if (!entryToDelete || !session) return;
 
       setIsDeleting(true);
       const originalHistory = [...history];
       
       setHistory(prev => prev.filter(e => e.id !== entryToDelete.id));
       setEntryToDelete(null);
-
-      // No need to try deleting from DB if it's a local-only entry
-      if (entryToDelete.id.startsWith('temp-') || !session) {
-          setIsDeleting(false);
-          return;
-      }
 
       try {
         await deleteJournalEntry(entryToDelete.id);
@@ -235,6 +217,8 @@ export default function JournalPage() {
     if (!entryToUnlock) return;
 
     setIsUnlocking(true);
+    // Note: In a real app, password checking should be done on a backend.
+    // This is a client-side check for demonstration.
     if (unlockAttempt === entryToUnlock.password) {
         setHistory(prev => prev.map(e => e.id === entryToUnlock.id ? { ...e, isUnlocked: true } : e));
         setEntryToUnlock(null);
@@ -282,6 +266,7 @@ export default function JournalPage() {
                   value={entry}
                   onChange={(e) => setEntry(e.target.value)}
                   rows={6}
+                  disabled={!session}
                 />
                  {showPasswordInput && (
                     <Input 
@@ -289,15 +274,16 @@ export default function JournalPage() {
                         placeholder={t.passwordPlaceholder}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
+                        disabled={!session}
                     />
                  )}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <Button onClick={handleSaveEntry} disabled={isSaving || !entry.trim()}>
+                        <Button onClick={handleSaveEntry} disabled={isSaving || !entry.trim() || !session}>
                           {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                           {isSaving ? t.savingButton : t.saveButton}
                         </Button>
-                        <Button variant="outline" size="icon" onClick={() => setShowPasswordInput(!showPasswordInput)} title={t.setPassword}>
+                        <Button variant="outline" size="icon" onClick={() => setShowPasswordInput(!showPasswordInput)} title={t.setPassword} disabled={!session}>
                             <LockKeyhole className="h-4 w-4" />
                         </Button>
                     </div>

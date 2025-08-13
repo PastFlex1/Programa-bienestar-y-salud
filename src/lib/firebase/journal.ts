@@ -48,11 +48,11 @@ export async function getJournalEntries(): Promise<JournalEntry[]> {
     }
 }
 
-export async function saveJournalEntry(entryData: { content: string, password?: string }): Promise<JournalEntry | null> {
+export async function saveJournalEntry(entryData: { content: string, password?: string }): Promise<JournalEntry> {
     const session = await getSession();
     if (!session?.uid) {
-        console.log("No session found, skipping Firestore save for journal entry.");
-        return null;
+        console.error("No session found, cannot save journal entry.");
+        throw new Error("User not authenticated.");
     }
     
     try {
@@ -104,3 +104,5 @@ export async function deleteJournalEntry(entryId: string): Promise<void> {
         throw new Error("Could not delete journal entry from Firestore.");
     }
 }
+
+    

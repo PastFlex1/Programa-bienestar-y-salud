@@ -13,8 +13,8 @@ export type Habit = {
 
 // Gets the reference to the collection of daily habit documents for a specific user
 const getHabitDatesCollectionRef = (userId: string) => {
-    // Path: /Habitos/{userId}/habitDates
-    return collection(db, 'Habitos', userId, 'habitDates');
+    // Path: /users/{userId}/Habitos
+    return collection(db, 'users', userId, 'Habitos');
 }
 
 export async function getHabitsForDate(dateKey: string): Promise<Habit[]> {
@@ -56,7 +56,7 @@ export async function updateHabitsForDate(habits: Habit[], dateKey: string): Pro
     try {
         // Get a reference to the document for the specific date.
         // This will live inside the user's document in the 'Habitos' collection.
-        // Path: /Habitos/{userId}/habitDates/{dateKey}
+        // Path: /users/{userId}/Habitos/{dateKey}
         const dateDocRef = doc(getHabitDatesCollectionRef(session.uid), dateKey);
         
         // Set the document with the new list of habits.
@@ -71,3 +71,5 @@ export async function updateHabitsForDate(habits: Habit[], dateKey: string): Pro
         throw new Error("Could not update habits in Firestore.");
     }
 }
+
+    
