@@ -115,8 +115,6 @@ export default function JournalPage() {
   const [unlockAttempt, setUnlockAttempt] = React.useState("");
   const [isUnlocking, setIsUnlocking] = React.useState(false);
   
-  // This is the key change for data persistence.
-  // We use a callback to avoid re-running the effect unnecessarily.
   const loadEntries = React.useCallback(async () => {
     if (!session) {
       setHistory([]);
@@ -136,7 +134,6 @@ export default function JournalPage() {
     }
   }, [session, toast]);
 
-  // We now trigger the loadEntries effect based on the session and loading state.
   React.useEffect(() => {
     if (!sessionLoading) {
       loadEntries();
@@ -145,37 +142,55 @@ export default function JournalPage() {
 
 
   const handleSaveEntry = async () => {
-    if (!session) {
-        toast({ variant: "destructive", title: t.notLoggedInTitle, description: t.notLoggedInDescription });
-        return;
-    }
     if (entry.trim() === "") {
-        toast({ variant: "destructive", title: t.toastEmptyError });
-        return;
+      toast({ variant: "destructive", title: t.toastEmptyError });
+      return;
     }
-    setIsSaving(true);
-    try {
-        // The saveJournalEntry function now returns the full saved entry with its new ID
-        const newEntry = await saveJournalEntry({
-            content: entry,
-            ...(password && { password }),
-        });
+    if (!session) {
+      toast({ variant: "destructive", title: t.notLoggedInTitle, description: t.notLoggedInDescription });
+      return;
+    }
 
-        if (newEntry) {
-            // Add the new entry to the top of the list and re-sort
-            setHistory(prev => [newEntry, ...prev].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
-            setEntry("");
-            setPassword("");
-            setShowPasswordInput(false);
-            toast({ title: t.toastSuccessTitle, description: t.toastSuccessDescription });
-        } else {
-             toast({ variant: "destructive", title: t.toastSaveError });
-        }
-    } catch(e) {
-        console.error("Error saving entry:", e);
-        toast({ variant: "destructive", title: t.toastSaveError });
+    setIsSaving(true);
+    
+    // Optimistic UI update
+    const tempId = `temp-${Date.now()}`;
+    const timestamp = new Date().toISOString();
+    const newEntry: JournalEntry = {
+      id: tempId,
+      content: entry,
+      timestamp: timestamp,
+      password: password || undefined,
+      isUnlocked: !password,
+    };
+
+    setHistory(prev => [newEntry, ...prev].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+    setEntry("");
+    setPassword("");
+    setShowPasswordInput(false);
+
+    try {
+      const savedEntry = await saveJournalEntry({
+        content: newEntry.content,
+        ...(newEntry.password && { password: newEntry.password }),
+      });
+      
+      if (savedEntry) {
+        // Replace temporary entry with the one from the database
+        setHistory(prev => prev.map(e => e.id === tempId ? savedEntry : e));
+        toast({ title: t.toastSuccessTitle, description: t.toastSuccessDescription });
+      } else {
+         // This case might happen if the session is lost just before saving
+         throw new Error("Failed to save: No session or server error.");
+      }
+
+    } catch (e) {
+      console.error("Error saving entry:", e);
+      toast({ variant: "destructive", title: t.toastSaveError });
+      // Revert optimistic update on failure
+      setHistory(prev => prev.filter(item => item.id !== tempId));
     } finally {
-        setIsSaving(false);
+      setIsSaving(false);
     }
   };
   
@@ -397,3 +412,5 @@ export default function JournalPage() {
     </>
   );
 }
+
+    
