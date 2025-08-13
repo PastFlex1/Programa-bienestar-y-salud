@@ -27,7 +27,8 @@ const getHabitDateRef = (userId: string, dateKey: string) => {
  */
 export async function getHabitsForDate(dateKey: string): Promise<Habit[]> {
     const session = await getSession();
-    if (!session) {
+    if (!session?.uid) {
+        console.log("No session found, can't get habits.");
         return [];
     }
 
@@ -37,12 +38,15 @@ export async function getHabitsForDate(dateKey: string): Promise<Habit[]> {
 
         if (docSnap.exists()) {
             const data = docSnap.data();
+            // Ensure we return an array, even if data.habits is undefined
             return data.habits || [];
         } else {
+            // No document for this date, so no habits
             return [];
         }
     } catch (error) {
         console.error("[getHabitsForDate] Error getting habits for date:", dateKey, error);
+        // Return empty array on error to prevent app crash
         return [];
     }
 }
@@ -54,18 +58,20 @@ export async function getHabitsForDate(dateKey: string): Promise<Habit[]> {
  */
 export async function updateHabitsForDate(habits: Habit[], dateKey: string): Promise<void> {
     const session = await getSession();
-    if (!session) {
+    if (!session?.uid) {
         console.log("No session found, skipping Firestore update.");
         return;
     }
     
     try {
         const dateDocRef = getHabitDateRef(session.uid, dateKey);
+        // Use setDoc which creates the document if it doesn't exist, or overwrites it if it does.
         await setDoc(dateDocRef, {
             habits: habits,
             lastUpdated: new Date().toISOString()
         });
 
+        // Revalidate the path to ensure the UI updates if data is fetched server-side
         revalidatePath("/dashboard/habits");
     } catch (error) {
         console.error("[updateHabitsForDate] Error updating habits for date:", dateKey, error);

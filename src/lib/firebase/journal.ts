@@ -1,7 +1,7 @@
 
 "use server";
 
-import { collection, doc, getDocs, addDoc, deleteDoc, query, orderBy } from "firebase/firestore";
+import { collection, doc, getDocs, addDoc, deleteDoc, query, orderBy, Timestamp } from "firebase/firestore";
 import { db } from "./config";
 import { revalidatePath } from "next/cache";
 import { getSession } from "./auth";
@@ -21,7 +21,8 @@ const getJournalCollectionRef = (userId: string) => {
 
 export async function getJournalEntries(): Promise<JournalEntry[]> {
     const session = await getSession();
-    if (!session) {
+    if (!session?.uid) {
+        console.log("No session found, can't get journal entries.");
         return [];
     }
 
@@ -33,13 +34,17 @@ export async function getJournalEntries(): Promise<JournalEntry[]> {
         const entries: JournalEntry[] = [];
         querySnapshot.forEach((doc) => {
             const data = doc.data();
-            const timestamp = data.timestamp?.toDate ? data.timestamp.toDate().toISOString() : new Date().toISOString();
+            // Firestore returns timestamps, convert them to ISO strings
+            const timestamp = data.timestamp instanceof Timestamp 
+                ? data.timestamp.toDate().toISOString() 
+                : new Date().toISOString();
+
             entries.push({
                 id: doc.id,
                 content: data.content,
                 timestamp: timestamp,
-                password: data.password,
-                isUnlocked: !!data.password ? false : true,
+                password: data.password, // Only present if set
+                isUnlocked: !!data.password ? false : true, // Logic to handle locked entries
             });
         });
         
@@ -52,18 +57,20 @@ export async function getJournalEntries(): Promise<JournalEntry[]> {
 
 export async function saveJournalEntry(entryData: Omit<JournalEntry, 'id' | 'isUnlocked'>): Promise<JournalEntry> {
     const session = await getSession();
-    if (!session) {
+    if (!session?.uid) {
         throw new Error("User not authenticated. Cannot save entry.");
     }
     
     try {
         const journalCollection = getJournalCollectionRef(session.uid);
         
+        // Prepare data for Firestore, converting ISO string back to Timestamp
         const newEntry: any = {
             content: entryData.content,
-            timestamp: new Date(entryData.timestamp),
+            timestamp: Timestamp.fromDate(new Date(entryData.timestamp)),
         };
 
+        // Only include password if it was provided
         if (entryData.password) {
             newEntry.password = entryData.password;
         }
@@ -71,10 +78,11 @@ export async function saveJournalEntry(entryData: Omit<JournalEntry, 'id' | 'isU
         const docRef = await addDoc(journalCollection, newEntry);
         revalidatePath("/dashboard/journal");
         
+        // Return a complete JournalEntry object for client-side state updates
         const savedEntry: JournalEntry = {
           id: docRef.id,
           content: newEntry.content,
-          timestamp: newEntry.timestamp.toISOString(),
+          timestamp: new Date(entryData.timestamp).toISOString(),
           password: newEntry.password,
           isUnlocked: !!newEntry.password ? false : true,
         };
@@ -89,7 +97,8 @@ export async function saveJournalEntry(entryData: Omit<JournalEntry, 'id' | 'isU
 
 export async function deleteJournalEntry(entryId: string): Promise<void> {
     const session = await getSession();
-    if (!session) {
+    if (!session?.uid) {
+        console.log("No session found, can't delete entry.");
         return;
     }
 
