@@ -1,7 +1,7 @@
 
 "use server";
 
-import { doc, getDoc, setDoc, collection, getDocs, query, where } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, getDocs, query } from "firebase/firestore";
 import { db } from "./config";
 import { getSession } from "./auth";
 import { startOfWeek, format, addDays } from "date-fns";
@@ -51,10 +51,6 @@ export async function getProgressDataForPastWeek(): Promise<{ [dateKey: string]:
 
     try {
         const progressCollection = getProgressCollectionRef(session.uid);
-        
-        // We can query for documents within the week, but it's often simpler
-        // to just fetch all and filter client-side if the dataset is small.
-        // For larger datasets, a query with 'where' clauses would be better.
         const q = query(progressCollection);
         const querySnapshot = await getDocs(q);
         

@@ -41,7 +41,15 @@ export async function getHabitsForDate(dateKey: string): Promise<Habit[]> {
             return data.habits || [];
         } else {
             // No document for this date, so no habits
-            return [];
+            // Let's create a default set for a better first-time user experience
+            const defaultHabits: Habit[] = [
+                { id: 'hydrate', label: 'Beber 2L de agua', completed: false },
+                { id: 'walk', label: 'Caminar 30 minutos', completed: false },
+                { id: 'mindful', label: 'Meditar 10 minutos', completed: false },
+                { id: 'read', label: 'Leer 15 minutos', completed: false },
+            ];
+             await updateHabitsForDate(defaultHabits, dateKey);
+            return defaultHabits;
         }
     } catch (error) {
         console.error("[getHabitsForDate] Error getting habits for date:", dateKey, error);

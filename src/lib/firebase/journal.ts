@@ -16,10 +16,12 @@ export type JournalEntry = {
 
 const getJournalCollectionRef = (userId: string) => {
     // This is a subcollection under a user document
+    // Path: users/{userId}/journal
     return collection(db, 'users', userId, 'journal');
 }
 
 const getJournalDocRef = (userId: string, entryId: string) => {
+    // Path: users/{userId}/journal/{entryId}
     return doc(db, 'users', userId, 'journal', entryId);
 }
 

@@ -43,6 +43,10 @@ const translations = {
     habitCompleted: "¡Hábito Completado!",
     habitCompletedDescription: "¡Sigue así!",
     close: "Cerrar",
+    defaultHabit1: "Beber 2L de agua",
+    defaultHabit2: "Caminar 30 minutos",
+    defaultHabit3: "Meditar 10 minutos",
+    defaultHabit4: "Leer 15 minutos",
   },
   en: {
     title: "Habit Tracking",
@@ -67,18 +71,34 @@ const translations = {
     habitCompleted: "Habit Completed!",
     habitCompletedDescription: "Keep up the great work!",
     close: "Close",
+    defaultHabit1: "Drink 2L of water",
+    defaultHabit2: "Walk for 30 minutes",
+    defaultHabit3: "Meditate for 10 minutes",
+    defaultHabit4: "Read for 15 minutes",
   }
 };
 
-const mapHabitsForUI = (dbHabits: Habit[]) => {
+const mapHabitsForUI = (dbHabits: Habit[], t: typeof translations.es) => {
     const iconMapping: { [key: string]: React.ReactNode } = {
         hydrate: <Droplets className="h-5 w-5 text-primary" />,
         walk: <Footprints className="h-5 w-5 text-primary" />,
         mindful: <Brain className="h-5 w-5 text-primary" />,
         read: <BookOpen className="h-5 w-5 text-primary" />
     };
+    const habitTranslations : {[key: string]: string} = {
+        'Beber 2L de agua': t.defaultHabit1,
+        'Drink 2L of water': t.defaultHabit1,
+        'Caminar 30 minutos': t.defaultHabit2,
+        'Walk for 30 minutes': t.defaultHabit2,
+        'Meditar 10 minutos': t.defaultHabit3,
+        'Meditate for 10 minutes': t.defaultHabit3,
+        'Leer 15 minutos': t.defaultHabit4,
+        'Read for 15 minutes': t.defaultHabit4,
+    }
+
     return dbHabits.map(h => ({
         ...h,
+        label: habitTranslations[h.label] || h.label,
         icon: iconMapping[h.id] || <CheckCircle2 className="h-5 w-5 text-primary" />
     }));
 };
@@ -105,25 +125,26 @@ export default function HabitsPage() {
             setIsLoading(true);
             return;
         }
+        if (!session) {
+            setIsLoading(false);
+            setHabits([]);
+            return;
+        }
         if (!dateKey) return;
         
         let isMounted = true;
 
         async function loadHabits() {
             setIsLoading(true);
-            if (session) {
-                try {
-                    const fetchedHabits = await getHabitsForDate(dateKey);
-                    if (isMounted) {
-                        setHabits(fetchedHabits || []);
-                        setInitialHabits(dateKey, (fetchedHabits || []).filter(h => h.completed).length);
-                    }
-                } catch (err) {
-                    console.error(err);
-                    if (isMounted) setHabits([]);
+            try {
+                const fetchedHabits = await getHabitsForDate(dateKey);
+                if (isMounted) {
+                    setHabits(fetchedHabits || []);
+                    setInitialHabits(dateKey, (fetchedHabits || []).filter(h => h.completed).length);
                 }
-            } else {
-                 if (isMounted) setHabits([]);
+            } catch (err) {
+                console.error(err);
+                if (isMounted) setHabits([]);
             }
             if (isMounted) setIsLoading(false);
         }
@@ -227,7 +248,7 @@ export default function HabitsPage() {
                                     selected={date}
                                     onSelect={setDate}
                                     className="rounded-md border p-0"
-                                    disabled={isSaving || isLoading}
+                                    disabled={isSaving || isLoading || !session}
                                 />
                             </CardContent>
                         </Card>
@@ -240,7 +261,7 @@ export default function HabitsPage() {
                                 </div>
                                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                                     <DialogTrigger asChild>
-                                        <Button size="icon" variant="outline" disabled={isLoading}>
+                                        <Button size="icon" variant="outline" disabled={isLoading || !session}>
                                             <Plus className="h-4 w-4" />
                                             <span className="sr-only">{t.addHabit}</span>
                                         </Button>
@@ -289,8 +310,9 @@ export default function HabitsPage() {
                                     </div>
                                 ) : (
                                     <HabitTracker
-                                        habits={mapHabitsForUI(habits || [])}
+                                        habits={mapHabitsForUI(habits || [], t)}
                                         onToggleHabit={handleToggleHabit}
+                                        isInteractive={!!session}
                                     />
                                 )}
                             </CardContent>
@@ -317,5 +339,3 @@ export default function HabitsPage() {
         </div>
     );
 }
-
-    
