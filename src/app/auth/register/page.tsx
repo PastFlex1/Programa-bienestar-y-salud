@@ -3,7 +3,6 @@
 
 import { useEffect, useState, useActionState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation";
 import { useFormStatus } from 'react-dom';
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { useLanguage } from "@/context/language-provider"
-import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { XCircle, Loader2 } from "lucide-react";
 import { signUpAction } from "@/lib/firebase/auth";
 
 const translations = {
@@ -29,7 +28,6 @@ const translations = {
         successTitle: "Registro Exitoso",
         successDescription: "¡Tu cuenta ha sido creada! Serás redirigido al dashboard.",
         closeButton: "Cerrar",
-        continueButton: "Continuar",
     },
     en: {
         title: "Create an account",
@@ -45,7 +43,6 @@ const translations = {
         successTitle: "Registration Successful",
         successDescription: "Your account has been created! You will be redirected to the dashboard.",
         closeButton: "Close",
-        continueButton: "Continue",
     }
 }
 
@@ -68,23 +65,21 @@ function SignUpButton({t}: {t: typeof translations['en']}) {
 export default function RegisterPage() {
     const { language } = useLanguage();
     const t = translations[language];
-    const router = useRouter();
     
     const [state, formAction] = useActionState(signUpAction, { success: false, message: "" });
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
 
     useEffect(() => {
-        if (!state.message) return;
-
-        if (state.success) {
-            router.push('/dashboard');
-        } else {
-            setIsModalOpen(true);
+        // Only show the modal if the form submission was NOT successful
+        // and there's an error message to display.
+        // Successful submissions are handled by the server action redirect.
+        if (!state.success && state.message) {
+            setIsErrorModalOpen(true);
         }
-    }, [state, router]);
+    }, [state]);
 
     const handleCloseModal = () => {
-        setIsModalOpen(false);
+        setIsErrorModalOpen(false);
     }
 
 
@@ -120,7 +115,7 @@ export default function RegisterPage() {
                 </CardContent>
             </Card>
 
-            <Dialog open={isModalOpen} onOpenChange={(isOpen) => !isOpen && handleCloseModal()}>
+            <Dialog open={isErrorModalOpen} onOpenChange={(isOpen) => !isOpen && handleCloseModal()}>
                 <DialogContent>
                     <DialogHeader>
                         <div className={`flex justify-center items-center h-16 w-16 rounded-full bg-opacity-20 mx-auto mb-4 bg-destructive`}>

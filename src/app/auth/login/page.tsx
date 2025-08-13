@@ -3,7 +3,6 @@
 
 import { useEffect, useState, useActionState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useFormStatus } from 'react-dom';
 import { BrainCircuit, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -65,7 +64,6 @@ function LoginButton({t}: {t: typeof translations['en']}) {
 export default function LoginPage() {
   const { language } = useLanguage();
   const t = translations[language];
-  const router = useRouter();
 
   const [state, formAction] = useActionState(loginAction, { success: false, message: ""});
   
@@ -73,17 +71,18 @@ export default function LoginPage() {
   const [modalContent, setModalContent] = useState({ title: "", description: "", isError: false });
   
   useEffect(() => {
+    // Only show a modal if there is a message from the action
     if (!state.message) return;
 
     if (state.success) {
       // The redirection is now handled by the server action.
-      // We can still show a modal if we want, but it will be brief.
+      // A success modal here might be too brief, but we can show it.
       setModalContent({ title: t.successTitle, description: t.successDescription, isError: false });
-      setIsModalOpen(true);
     } else {
+      // For errors, we always want to show the modal.
       setModalContent({ title: t.errorTitle, description: state.message, isError: true });
-      setIsModalOpen(true);
     }
+    setIsModalOpen(true);
   }, [state, t]);
 
   const handleCloseModal = () => {
