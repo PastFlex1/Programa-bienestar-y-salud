@@ -28,8 +28,7 @@ const getHabitDateRef = (userId: string, dateKey: string) => {
 export async function getHabitsForDate(dateKey: string): Promise<Habit[]> {
     const session = await getSession();
     if (!session) {
-        // Return an empty array if there's no session, instead of throwing an error.
-        // This allows viewing the UI in a logged-out state if ever needed, and is safer.
+        // For offline mode, we don't fetch from DB. The component will handle it.
         return [];
     }
 
@@ -61,7 +60,9 @@ export async function getHabitsForDate(dateKey: string): Promise<Habit[]> {
 export async function updateHabitsForDate(habits: Habit[], dateKey: string): Promise<void> {
     const session = await getSession();
     if (!session) {
-        throw new Error("User is not authenticated.");
+        // In offline mode, this function shouldn't throw an error, just do nothing.
+        // The component state handles the updates visually.
+        return;
     }
     
     try {
@@ -79,3 +80,5 @@ export async function updateHabitsForDate(habits: Habit[], dateKey: string): Pro
         throw new Error("Could not update habits in the database.");
     }
 }
+
+    

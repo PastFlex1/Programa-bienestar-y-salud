@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { HabitTracker } from "@/components/habit-tracker";
 import { useProgress } from "@/context/progress-provider";
+import { useSession } from "@/context/session-provider";
 
 const translations = {
   es: {
@@ -87,6 +88,7 @@ export default function HabitsPage() {
     const t = translations[language];
     const { toast } = useToast();
     const { logHabit, setInitialHabits } = useProgress();
+    const { session } = useSession();
 
     const [date, setDate] = React.useState<Date | undefined>(new Date());
     const [habits, setHabits] = React.useState<Habit[]>([]);
@@ -100,18 +102,28 @@ export default function HabitsPage() {
 
     React.useEffect(() => {
         if (!dateKey) return;
-        setIsLoading(true);
-        getHabitsForDate(dateKey)
-            .then(fetchedHabits => {
-                setHabits(fetchedHabits || []);
-                setInitialHabits(dateKey, fetchedHabits.filter(h => h.completed).length);
-            })
-            .catch(err => {
-                console.error(err);
-                setHabits([]); // Ensure habits is an array on error
-            })
-            .finally(() => setIsLoading(false));
-    }, [dateKey, setInitialHabits]);
+        
+        async function loadHabits() {
+            setIsLoading(true);
+            if (session) {
+                try {
+                    const fetchedHabits = await getHabitsForDate(dateKey);
+                    setHabits(fetchedHabits || []);
+                    setInitialHabits(dateKey, fetchedHabits.filter(h => h.completed).length);
+                } catch (err) {
+                    console.error(err);
+                    setHabits([]);
+                }
+            } else {
+                // Offline mode: load from local state (which is just the component's state)
+                // We reset habits when date changes if offline
+                setHabits([]);
+            }
+            setIsLoading(false);
+        }
+
+        loadHabits();
+    }, [dateKey, session, setInitialHabits]);
 
 
     const handleAddHabit = async () => {
@@ -132,7 +144,9 @@ export default function HabitsPage() {
         const newHabitsList = [...currentHabits, newHabit];
         
         try {
-            await updateHabitsForDate(newHabitsList, dateKey);
+            if (session) {
+                await updateHabitsForDate(newHabitsList, dateKey);
+            }
             setHabits(newHabitsList);
             toast({ title: t.toastSuccessTitle, description: t.toastHabitAdded });
             setNewHabitName(""); 
@@ -165,7 +179,9 @@ export default function HabitsPage() {
         });
         
         try {
-            await updateHabitsForDate(toggledHabits, dateKey);
+            if (session) {
+                await updateHabitsForDate(toggledHabits, dateKey);
+            }
             setHabits(toggledHabits);
             if (habitJustCompleted) {
                 setIsCompletionModalOpen(true);
@@ -202,7 +218,7 @@ export default function HabitsPage() {
                                     selected={date}
                                     onSelect={setDate}
                                     className="rounded-md border p-0"
-                                    disabled={isSaving || isLoading}
+                                    disabled={isSaving || (isLoading && !!session)}
                                 />
                             </CardContent>
                         </Card>
@@ -215,7 +231,7 @@ export default function HabitsPage() {
                                 </div>
                                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                                     <DialogTrigger asChild>
-                                        <Button size="icon" variant="outline" disabled={isLoading}>
+                                        <Button size="icon" variant="outline" disabled={isLoading && !!session}>
                                             <Plus className="h-4 w-4" />
                                             <span className="sr-only">{t.addHabit}</span>
                                         </Button>
@@ -258,7 +274,7 @@ export default function HabitsPage() {
                                 </Dialog>
                             </CardHeader>
                             <CardContent>
-                                {isLoading ? (
+                                {(isLoading && !!session) ? (
                                     <div className="flex justify-center items-center h-40">
                                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                                     </div>
@@ -292,3 +308,5 @@ export default function HabitsPage() {
         </div>
     );
 }
+
+    

@@ -22,7 +22,10 @@ const getJournalRef = (userId: string) => {
 
 export async function getJournalEntries(): Promise<JournalEntry[]> {
     const session = await getSession();
-    if (!session) return [];
+    if (!session) {
+        // For offline mode, we don't fetch from DB.
+        return [];
+    }
 
     try {
         const journalRef = getJournalRef(session.uid);
@@ -49,7 +52,10 @@ export async function getJournalEntries(): Promise<JournalEntry[]> {
 export async function saveJournalEntry(entryData: Omit<JournalEntry, 'id'>): Promise<JournalEntry> {
     const session = await getSession();
     if (!session) {
-        throw new Error("User is not authenticated.");
+        // This function should not be called in offline mode from the component,
+        // but as a safeguard, we prevent it from throwing an error.
+        // We'll return a locally-crafted object, though the component creates its own.
+        return { ...entryData, id: `local-${Date.now()}` };
     }
     
     try {
@@ -80,7 +86,8 @@ export async function saveJournalEntry(entryData: Omit<JournalEntry, 'id'>): Pro
 export async function deleteJournalEntry(entryId: string): Promise<void> {
     const session = await getSession();
     if (!session) {
-        throw new Error("User is not authenticated.");
+         // In offline mode, this function shouldn't throw an error, just do nothing.
+        return;
     }
 
     try {
@@ -92,3 +99,5 @@ export async function deleteJournalEntry(entryId: string): Promise<void> {
         throw new Error("Could not delete journal entry.");
     }
 }
+
+    

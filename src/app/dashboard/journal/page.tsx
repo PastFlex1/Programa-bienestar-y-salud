@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { getJournalEntries, saveJournalEntry, deleteJournalEntry, type JournalEntry } from "@/lib/firebase/journal";
+import { useSession } from "@/context/session-provider";
 
 const translations = {
   es: {
@@ -94,6 +95,7 @@ export default function JournalPage() {
   const { language } = useLanguage();
   const t = translations[language];
   const { toast } = useToast();
+  const { session } = useSession();
 
   const [entry, setEntry] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -110,14 +112,24 @@ export default function JournalPage() {
   const [isUnlocking, setIsUnlocking] = React.useState(false);
 
   React.useEffect(() => {
-    setIsLoading(true);
-    getJournalEntries()
-      .then(entries => setHistory(entries))
-      .catch(err => {
-        console.error(err);
-      })
-      .finally(() => setIsLoading(false));
-  }, []);
+    async function loadEntries() {
+        setIsLoading(true);
+        if (session) {
+            try {
+                const entries = await getJournalEntries();
+                setHistory(entries);
+            } catch (err) {
+                console.error(err);
+                setHistory([]);
+            }
+        } else {
+            // Offline mode: just finish loading. History is already an empty array.
+            setHistory([]);
+        }
+        setIsLoading(false);
+    }
+    loadEntries();
+  }, [session]);
 
 
   const handleSaveEntry = async () => {
@@ -131,14 +143,22 @@ export default function JournalPage() {
     }
 
     setIsSaving(true);
-    const newEntryData: Omit<JournalEntry, 'id'> = {
-      content: entry,
-      timestamp: new Date().toISOString(),
-      ...(password && { password: password, isUnlocked: false }),
-    };
-
+    
     try {
-        const savedEntry = await saveJournalEntry(newEntryData);
+        let savedEntry: JournalEntry;
+        const newEntryData: Omit<JournalEntry, 'id'> = {
+            content: entry,
+            timestamp: new Date().toISOString(),
+            ...(password && { password: password, isUnlocked: false }),
+        };
+
+        if (session) {
+            savedEntry = await saveJournalEntry(newEntryData);
+        } else {
+            // Offline mode
+            savedEntry = { ...newEntryData, id: `local-${Date.now()}`, isUnlocked: !!password ? false : true };
+        }
+        
         setHistory(prev => [savedEntry, ...prev]);
         setEntry("");
         setPassword("");
@@ -159,7 +179,10 @@ export default function JournalPage() {
 
       setIsDeleting(true);
       try {
-        await deleteJournalEntry(entryToDelete.id);
+        if (session) {
+            await deleteJournalEntry(entryToDelete.id);
+        }
+        // In both online and offline mode, we just remove it from the local state
         setHistory(prev => prev.filter(e => e.id !== entryToDelete.id));
         toast({ title: t.toastDeleteSuccess });
       } catch (error) {
@@ -174,9 +197,7 @@ export default function JournalPage() {
     if (!entryToUnlock) return;
 
     setIsUnlocking(true);
-    // Locally check password. In a real scenario, this check might be done on a backend
-    // but for simplicity, we do it here. Storing raw passwords is not secure.
-    // This is for demonstration purposes only.
+    // Locally check password.
     if (unlockAttempt === entryToUnlock.password) {
         setHistory(prev => prev.map(e => e.id === entryToUnlock.id ? { ...e, isUnlocked: true } : e));
         setEntryToUnlock(null);
@@ -253,7 +274,7 @@ export default function JournalPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {(isLoading && !!session) ? (
                  <div className="flex justify-center items-center h-40">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
@@ -360,3 +381,5 @@ export default function JournalPage() {
     </>
   );
 }
+
+    

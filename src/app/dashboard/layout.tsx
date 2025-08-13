@@ -12,9 +12,11 @@ export default async function DashboardLayout({
 }) {
   const session = await getSession();
 
-  if (!session?.isLoggedIn) {
-    redirect('/auth/login');
-  }
+  // We no longer redirect if the user is not logged in.
+  // The pages themselves will handle online/offline state.
+  // if (!session?.isLoggedIn) {
+  //   redirect('/auth/login');
+  // }
 
   return (
       <div className="bg-background min-h-screen text-foreground font-body">
@@ -25,3 +27,5 @@ export default async function DashboardLayout({
       </div>
   );
 }
+
+    
