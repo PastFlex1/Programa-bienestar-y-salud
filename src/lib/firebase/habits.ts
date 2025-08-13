@@ -38,8 +38,8 @@ export async function updateHabitsForDate(dateKey: string, habits: Habit[]): Pro
     const session = await getSession();
     if (!session?.uid) {
         console.log("No session found, skipping Firestore update for habits.");
-        // We throw an error so the frontend knows the save failed.
-        throw new Error("User not authenticated.");
+        // We return silently instead of throwing an error to prevent crashing.
+        return;
     }
     
     try {
