@@ -3,35 +3,31 @@
 
 import { collection, doc, getDocs, addDoc, deleteDoc, query, orderBy, Timestamp } from "firebase/firestore";
 import { db } from "./config";
-import { getSession } from "./auth";
 
 export type JournalEntry = {
   id: string;
   content: string;
   timestamp: string; // ISO 8601 format
-  password?: string;
-  isUnlocked?: boolean; // Client-side state, not stored in DB
 };
 
-// This function correctly gets the reference to the "Diario" subcollection for a given user.
-const getJournalCollectionRef = (userId: string) => {
-    return collection(db, 'users', userId, 'Diario');
+// Data is now public, so we reference a root "Diario" collection.
+const getJournalCollectionRef = () => {
+    return collection(db, 'Diario');
 }
 
 export async function getJournalEntries(): Promise<JournalEntry[]> {
-    const session = await getSession();
-    if (!session?.uid) {
+    if (!db) {
+        console.warn("Firebase not configured, returning empty journal entries.");
         return [];
     }
 
     try {
-        const journalCollection = getJournalCollectionRef(session.uid);
+        const journalCollection = getJournalCollectionRef();
         const q = query(journalCollection, orderBy("timestamp", "desc"));
         const querySnapshot = await getDocs(q);
         
         return querySnapshot.docs.map((doc) => {
             const data = doc.data();
-            // Firestore timestamps need to be converted to JS Dates, then to ISO strings
             const timestamp = data.timestamp instanceof Timestamp 
                 ? data.timestamp.toDate().toISOString() 
                 : new Date().toISOString(); 
@@ -40,8 +36,6 @@ export async function getJournalEntries(): Promise<JournalEntry[]> {
                 id: doc.id,
                 content: data.content,
                 timestamp: timestamp,
-                password: data.password, // Keep password for client-side check
-                isUnlocked: !data.password, // Auto-unlock if no password
             };
         });
     } catch (error) {
@@ -50,40 +44,27 @@ export async function getJournalEntries(): Promise<JournalEntry[]> {
     }
 }
 
-export async function saveJournalEntry(entryData: { content: string, password?: string }): Promise<JournalEntry> {
-    const session = await getSession();
-    if (!session?.uid) {
-        console.error("No session found, cannot save journal entry.");
-        throw new Error("User not authenticated.");
+export async function saveJournalEntry(entryData: { content: string }): Promise<JournalEntry> {
+    if (!db) {
+        console.warn("Firebase not configured, cannot save journal entry.");
+        throw new Error("Database not available.");
     }
     
     try {
-        // Correctly reference the subcollection for the authenticated user.
-        const journalCollectionRef = getJournalCollectionRef(session.uid);
+        const journalCollectionRef = getJournalCollectionRef();
         const timestamp = new Date();
 
-        const newEntryPayload: {
-            content: string;
-            timestamp: Timestamp;
-            password?: string;
-        } = {
+        const newEntryPayload = {
             content: entryData.content,
             timestamp: Timestamp.fromDate(timestamp),
         };
 
-        if (entryData.password) {
-            newEntryPayload.password = entryData.password;
-        }
-
         const docRef = await addDoc(journalCollectionRef, newEntryPayload);
         
-        // Return the full entry object, including the new ID from Firestore
         return {
           id: docRef.id,
           content: entryData.content,
           timestamp: timestamp.toISOString(),
-          password: entryData.password,
-          isUnlocked: !entryData.password,
         };
 
     } catch (error) {
@@ -93,14 +74,13 @@ export async function saveJournalEntry(entryData: { content: string, password?: 
 }
 
 export async function deleteJournalEntry(entryId: string): Promise<void> {
-    const session = await getSession();
-    if (!session?.uid) {
-         console.error("No session found, skipping Firestore delete.");
-         throw new Error("User not authenticated.");
+    if (!db) {
+         console.warn("Firebase not configured, cannot delete journal entry.");
+         throw new Error("Database not available.");
     }
 
     try {
-        const entryRef = doc(db, 'users', session.uid, 'Diario', entryId);
+        const entryRef = doc(db, 'Diario', entryId);
         await deleteDoc(entryRef);
     } catch(error) {
         console.error("[deleteJournalEntry] Error deleting entry:", error);

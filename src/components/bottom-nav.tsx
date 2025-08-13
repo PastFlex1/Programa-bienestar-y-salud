@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, ListTodo, BarChart3, User, BookHeart } from "lucide-react";
+import { Home, ListTodo, BarChart3, BookHeart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/language-provider";
 
@@ -12,14 +12,12 @@ const translations = {
     meditation: "Meditación",
     habits: "Hábitos",
     progress: "Progreso",
-    profile: "Perfil",
     journal: "Diario",
   },
   en: {
     meditation: "Meditation",
     habits: "Habits",
     progress: "Progress",
-    profile: "Profile",
     journal: "Journal",
   },
 };
@@ -34,7 +32,6 @@ export function BottomNav() {
     { href: "/dashboard/habits", icon: ListTodo, label: t.habits },
     { href: "/dashboard/journal", icon: BookHeart, label: t.journal },
     { href: "/dashboard/progress", icon: BarChart3, label: t.progress },
-    { href: "/dashboard/profile", icon: User, label: t.profile },
   ];
 
 

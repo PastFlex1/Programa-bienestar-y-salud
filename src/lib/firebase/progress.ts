@@ -3,7 +3,6 @@
 
 import { doc, setDoc, getDoc, collection, getDocs, query } from "firebase/firestore";
 import { db } from "./config";
-import { getSession } from "./auth";
 import { startOfWeek, format, addDays } from "date-fns";
 
 export type DayProgress = {
@@ -11,16 +10,15 @@ export type DayProgress = {
     habits: number;
 };
 
+// Data is public, so it's stored in a root "Progreso" collection.
 export async function updateProgressData(dateKey: string, data: Partial<DayProgress>): Promise<void> {
-    const session = await getSession();
-    if (!session?.uid) {
-        console.log("No session found. Cannot update progress data.");
+    if (!db) {
+        console.warn("Firebase not configured, skipping progress update.");
         return;
     };
     
     try {
-        const progressDocRef = doc(db, 'users', session.uid, 'Progreso', dateKey);
-        // Use { merge: true } to update fields without overwriting the whole document
+        const progressDocRef = doc(db, 'Progreso', dateKey);
         await setDoc(progressDocRef, data, { merge: true });
     } catch (error) {
         console.error(`Error updating progress for ${dateKey}:`, error);
@@ -30,11 +28,9 @@ export async function updateProgressData(dateKey: string, data: Partial<DayProgr
 
 export async function getProgressDataForPastWeek(): Promise<{ [dateKey: string]: DayProgress }> {
     const today = new Date();
-    // Monday as the start of the week
     const weekStart = startOfWeek(today, { weekStartsOn: 1 }); 
     const progressData: { [dateKey: string]: DayProgress } = {};
 
-    // Initialize the structure for the whole week
     const dateKeys: string[] = [];
     for(let i=0; i<7; i++) {
         const date = addDays(weekStart, i);
@@ -43,18 +39,14 @@ export async function getProgressDataForPastWeek(): Promise<{ [dateKey: string]:
         dateKeys.push(dateKey);
     }
     
-    const session = await getSession();
-    if (!session?.uid) {
-        // Return the empty initialized structure for non-logged-in users
+    if (!db) {
+        console.warn("Firebase not configured, returning empty progress data.");
         return progressData;
     }
 
     try {
-        // Reference the "Progreso" subcollection
-        const progressCollectionRef = collection(db, 'users', session.uid, 'Progreso');
+        const progressCollectionRef = collection(db, 'Progreso');
         
-        // Fetch all documents for the past week in a more optimized way if needed,
-        // but fetching one by one is fine for 7 documents.
         for (const dateKey of dateKeys) {
             const docRef = doc(progressCollectionRef, dateKey);
             const docSnap = await getDoc(docRef);

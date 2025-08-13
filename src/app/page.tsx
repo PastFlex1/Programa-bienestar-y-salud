@@ -21,8 +21,8 @@ export default function Home() {
     const router = useRouter();
 
     useEffect(() => {
-        // Redirect to the login page by default
-        router.replace('/auth/login');
+        // Redirect to the dashboard page by default
+        router.replace('/dashboard');
     }, [router]);
 
     return <LoadingScreen />;

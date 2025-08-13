@@ -17,7 +17,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { HabitTracker } from "@/components/habit-tracker";
 import { useProgress } from "@/context/progress-provider";
-import { useSession } from "@/context/session-provider";
 
 const translations = {
   es: {
@@ -43,7 +42,6 @@ const translations = {
     habitCompleted: "¡Hábito Completado!",
     habitCompletedDescription: "¡Sigue así!",
     close: "Cerrar",
-    notAuthenticatedError: "Debes iniciar sesión para guardar tus hábitos."
   },
   en: {
     title: "Habit Tracking",
@@ -68,7 +66,6 @@ const translations = {
     habitCompleted: "Habit Completed!",
     habitCompletedDescription: "Keep up the great work!",
     close: "Close",
-    notAuthenticatedError: "You must be logged in to save your habits."
   }
 };
 
@@ -84,7 +81,6 @@ export default function HabitsPage() {
     const t = translations[language];
     const { toast } = useToast();
     const { logHabit, setInitialHabits } = useProgress();
-    const { session, loading: sessionLoading } = useSession();
 
     const [date, setDate] = React.useState<Date | undefined>(new Date());
     const [habits, setHabits] = React.useState<Habit[]>([]);
@@ -97,26 +93,15 @@ export default function HabitsPage() {
     const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
 
     React.useEffect(() => {
-        if (sessionLoading) {
-            setIsLoading(true);
-            return;
-        }
-
         let isMounted = true;
         async function loadHabits() {
-            if (!dateKey || !session) {
-                if (isMounted) {
-                    setHabits([]);
-                    setIsLoading(false);
-                }
-                return;
-            };
+            if (!dateKey) return;
+            
             setIsLoading(true);
             try {
                 const fetchedHabits = await getHabitsForDate(dateKey);
                 if (isMounted) {
                     setHabits(fetchedHabits);
-                    // Sync progress provider with fetched data
                     setInitialHabits(dateKey, fetchedHabits.filter(h => h.completed).length);
                 }
             } catch (err) {
@@ -130,14 +115,10 @@ export default function HabitsPage() {
         loadHabits();
 
         return () => { isMounted = false };
-    }, [dateKey, session, sessionLoading, setInitialHabits]);
+    }, [dateKey, setInitialHabits]);
 
 
     const handleAddHabit = async () => {
-        if (!session) {
-            toast({ variant: "destructive", title: t.toastErrorTitle, description: t.notAuthenticatedError });
-            return;
-        }
         if (newHabitName.trim() === "" || !dateKey) {
              toast({ variant: "destructive", title: "Error", description: "El nombre del hábito no puede estar vacío." });
             return;
@@ -153,14 +134,14 @@ export default function HabitsPage() {
         const currentHabits = habits || [];
         const newHabitsList = [...currentHabits, newHabit];
         
-        setHabits(newHabitsList); // Optimistic UI Update
+        setHabits(newHabitsList);
         
         try {
             await updateHabitsForDate(dateKey, newHabitsList);
             toast({ title: t.toastSuccessTitle, description: t.toastHabitAdded });
         } catch (error) {
             console.error(error);
-            setHabits(currentHabits); // Revert on error
+            setHabits(currentHabits);
             toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastErrorDescription });
         } finally {
             setIsSaving(false);
@@ -171,10 +152,8 @@ export default function HabitsPage() {
 
 
     const handleToggleHabit = async (id: string) => {
-        if (!date || !session) {
-             if (!session) toast({ variant: "destructive", title: t.toastErrorTitle, description: t.notAuthenticatedError });
-             return;
-        }
+        if (!date) return;
+
         let habitJustCompleted = false;
         
         const originalHabits = [...habits];
@@ -192,7 +171,7 @@ export default function HabitsPage() {
             return habit;
         });
         
-        setHabits(toggledHabits); // Optimistic UI Update
+        setHabits(toggledHabits);
         
         try {
             await updateHabitsForDate(dateKey, toggledHabits);
@@ -201,8 +180,8 @@ export default function HabitsPage() {
             }
         } catch (error) {
             console.error("Error toggling habit:", error);
-            setHabits(originalHabits); // Revert on error
-            logHabit(date, !toggledHabits.find(h => h.id === id)?.completed); // Revert progress log
+            setHabits(originalHabits);
+            logHabit(date, !toggledHabits.find(h => h.id === id)?.completed);
             toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastErrorDescription });
         }
     };
@@ -234,7 +213,7 @@ export default function HabitsPage() {
                                     selected={date}
                                     onSelect={setDate}
                                     className="rounded-md border p-0"
-                                    disabled={isSaving || isLoading || !session}
+                                    disabled={isSaving || isLoading}
                                 />
                             </CardContent>
                         </Card>
@@ -247,7 +226,7 @@ export default function HabitsPage() {
                                 </div>
                                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                                     <DialogTrigger asChild>
-                                        <Button size="icon" variant="outline" disabled={isLoading || !session}>
+                                        <Button size="icon" variant="outline" disabled={isLoading}>
                                             <Plus className="h-4 w-4" />
                                             <span className="sr-only">{t.addHabit}</span>
                                         </Button>
@@ -298,7 +277,6 @@ export default function HabitsPage() {
                                     <HabitTracker
                                         habits={mapHabitsForUI(habits || [])}
                                         onToggleHabit={handleToggleHabit}
-                                        isInteractive={!!session}
                                     />
                                 )}
                             </CardContent>
@@ -325,5 +303,3 @@ export default function HabitsPage() {
         </div>
     );
 }
-
-    

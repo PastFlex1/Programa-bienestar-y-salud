@@ -57,7 +57,6 @@ export function ProgressProvider({ children, ...props }: ProgressProviderProps) 
   const setInitialHabits = React.useCallback((dateKey: string, count: number) => {
      setProgressData(prev => {
         const currentDayData = prev[dateKey] || { minutes: 0, habits: 0 };
-        // Only update if the new count is different
         if (currentDayData.habits !== count) {
             return {
                 ...prev,

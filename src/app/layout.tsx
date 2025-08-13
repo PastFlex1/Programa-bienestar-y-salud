@@ -5,8 +5,6 @@ import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from '@/context/theme-provider';
 import { LanguageProvider } from '@/context/language-provider';
 import { ProgressProvider } from '@/context/progress-provider';
-import { getSession } from '@/lib/firebase/auth';
-import { SessionProvider } from '@/context/session-provider';
 
 
 export const metadata: Metadata = {
@@ -19,7 +17,6 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await getSession();
 
   return (
     <html lang="es" suppressHydrationWarning>
@@ -35,12 +32,10 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <LanguageProvider>
-            <SessionProvider value={session}>
               <ProgressProvider>
                 {children}
                 <Toaster />
               </ProgressProvider>
-            </SessionProvider>
           </LanguageProvider>
         </ThemeProvider>
       </body>

@@ -7,7 +7,6 @@ import { useLanguage } from "@/context/language-provider";
 import { useProgress } from "@/context/progress-provider";
 import { useEffect, useState } from "react";
 import { getProgressDataForPastWeek, type DayProgress } from "@/lib/firebase/progress";
-import { useSession } from "@/context/session-provider";
 import { Loader2 } from "lucide-react";
 
 const translations = {
@@ -29,15 +28,10 @@ const translations = {
 export default function ProgressPage() {
   const { language } = useLanguage();
   const t = translations[language];
-  const { session, loading: sessionLoading } = useSession();
   const { progressData, setInitialProgress } = useProgress();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (sessionLoading) {
-      return; 
-    }
-    
     let isMounted = true;
 
     async function loadData() {
@@ -58,7 +52,7 @@ export default function ProgressPage() {
     loadData();
 
     return () => { isMounted = false; }
-  }, [session, sessionLoading, setInitialProgress]);
+  }, [setInitialProgress]);
 
 
   return (

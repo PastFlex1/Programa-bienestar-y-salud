@@ -10,12 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/context/language-provider";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { BookHeart, History, Loader2, LockKeyhole, Trash2, Unlock, LogIn } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { BookHeart, History, Loader2, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { getJournalEntries, saveJournalEntry, deleteJournalEntry, type JournalEntry } from "@/lib/firebase/journal";
-import { useSession } from "@/context/session-provider";
 
 const translations = {
   es: {
@@ -33,25 +30,13 @@ const translations = {
     toastDeleteSuccess: "Entrada eliminada exitosamente.",
     toastDeleteError: "No se pudo eliminar la entrada.",
     entryTimeFormat: "p",
-    setPassword: "Fijar Contraseña (Opcional)",
-    passwordPlaceholder: "Contraseña para esta entrada",
     deleteEntry: "Eliminar Entrada",
     deleteConfirmationTitle: "¿Estás seguro?",
     deleteConfirmationDescription: "Esta acción no se puede deshacer. ¿Quieres eliminar esta entrada permanentemente?",
     cancel: "Cancelar",
     delete: "Eliminar",
     deleting: "Eliminando...",
-    unlockEntry: "Desbloquear Entrada",
-    unlockDescription: "Esta entrada está protegida. Ingresa la contraseña para verla.",
-    passwordLabel: "Contraseña",
-    unlockButton: "Desbloquear",
-    unlockingButton: "Desbloqueando...",
-    wrongPassword: "La contraseña es incorrecta.",
-    entryUnlocked: "Entrada desbloqueada.",
-    entryLocked: "Entrada protegida por contraseña.",
     loading: "Cargando historial...",
-    notLoggedInTitle: "Inicia Sesión para Guardar",
-    notLoggedInDescription: "Las entradas no se guardarán sin iniciar sesión."
   },
   en: {
     title: "Your Personal Journal",
@@ -68,25 +53,13 @@ const translations = {
     toastDeleteSuccess: "Entry deleted successfully.",
     toastDeleteError: "Could not delete entry.",
     entryTimeFormat: "p",
-    setPassword: "Set Password (Optional)",
-    passwordPlaceholder: "Password for this entry",
     deleteEntry: "Delete Entry",
     deleteConfirmationTitle: "Are you sure?",
     deleteConfirmationDescription: "This action cannot be undone. Are you sure you want to permanently delete this entry?",
     cancel: "Cancel",
     delete: "Delete",
     deleting: "Deleting...",
-    unlockEntry: "Unlock Entry",
-    unlockDescription: "This entry is password protected. Please enter the password to view it.",
-    passwordLabel: "Password",
-    unlockButton: "Unlock",
-    unlockingButton: "Unlocking...",
-    wrongPassword: "The password is incorrect.",
-    entryUnlocked: "Entry unlocked.",
-    entryLocked: "Entry is password protected.",
     loading: "Loading history...",
-    notLoggedInTitle: "Log In to Save",
-    notLoggedInDescription: "Entries will not be saved without logging in."
   }
 };
 
@@ -99,11 +72,8 @@ export default function JournalPage() {
   const { language } = useLanguage();
   const t = translations[language];
   const { toast } = useToast();
-  const { session, loading: sessionLoading } = useSession();
 
   const [entry, setEntry] = React.useState("");
-  const [password, setPassword] = React.useState("");
-  const [showPasswordInput, setShowPasswordInput] = React.useState(false);
   const [history, setHistory] = React.useState<JournalEntry[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
@@ -111,16 +81,7 @@ export default function JournalPage() {
   const [entryToDelete, setEntryToDelete] = React.useState<JournalEntry | null>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
 
-  const [entryToUnlock, setEntryToUnlock] = React.useState<JournalEntry | null>(null);
-  const [unlockAttempt, setUnlockAttempt] = React.useState("");
-  const [isUnlocking, setIsUnlocking] = React.useState(false);
-  
   const loadEntries = React.useCallback(async () => {
-    if (!session) {
-      setIsLoading(false);
-      setHistory([]);
-      return;
-    }
     setIsLoading(true);
     try {
         const entries = await getJournalEntries();
@@ -131,13 +92,11 @@ export default function JournalPage() {
     } finally {
         setIsLoading(false);
     }
-  }, [session, toast]);
+  }, [toast]);
 
   React.useEffect(() => {
-    if (!sessionLoading) {
-      loadEntries();
-    }
-  }, [session, sessionLoading, loadEntries]);
+    loadEntries();
+  }, [loadEntries]);
 
 
   const handleSaveEntry = async () => {
@@ -145,47 +104,28 @@ export default function JournalPage() {
       toast({ variant: "destructive", title: t.toastEmptyError });
       return;
     }
-
-    if (!session) {
-        toast({ variant: "destructive", title: t.notLoggedInTitle, description: t.notLoggedInDescription });
-        return;
-    }
-
     setIsSaving(true);
     
-    // Create a temporary entry for optimistic UI update
     const tempId = `temp-${Date.now()}`;
     const timestamp = new Date().toISOString();
     const newEntryForUI: JournalEntry = {
       id: tempId,
       content: entry,
       timestamp: timestamp,
-      password: password || undefined,
-      isUnlocked: !password,
     };
     
-    // Optimistic UI update
     setHistory(prev => [newEntryForUI, ...prev]);
     const entryToSave = entry;
-    const passwordToSave = password;
     setEntry("");
-    setPassword("");
-    setShowPasswordInput(false);
 
     try {
-      const savedEntry = await saveJournalEntry({
-          content: entryToSave,
-          password: passwordToSave
-      });
-      
-      // Replace temporary entry with the one from the database
+      const savedEntry = await saveJournalEntry({ content: entryToSave });
       setHistory(prev => prev.map(e => e.id === tempId ? savedEntry : e));
       toast({ title: t.toastSuccessTitle, description: t.toastSuccessDescription });
 
     } catch (e) {
       console.error("Error saving entry:", e);
       toast({ variant: "destructive", title: t.toastSaveError });
-      // Revert optimistic update on failure
       setHistory(prev => prev.filter(item => item.id !== tempId));
     } finally {
       setIsSaving(false);
@@ -193,12 +133,11 @@ export default function JournalPage() {
   };
   
   const handleDeleteEntry = async () => {
-      if (!entryToDelete || !session) return;
+      if (!entryToDelete) return;
 
       setIsDeleting(true);
       const originalHistory = [...history];
       
-      // Optimistic update
       setHistory(prev => prev.filter(e => e.id !== entryToDelete.id));
       setEntryToDelete(null);
 
@@ -211,25 +150,6 @@ export default function JournalPage() {
       } finally {
         setIsDeleting(false);
       }
-  };
-
-  const handleUnlockAttempt = () => {
-    if (!entryToUnlock) return;
-
-    setIsUnlocking(true);
-    // Note: In a real app, password checking should be done on a backend.
-    // This is a client-side check for demonstration.
-    setTimeout(() => {
-        if (unlockAttempt === entryToUnlock.password) {
-            setHistory(prev => prev.map(e => e.id === entryToUnlock.id ? { ...e, isUnlocked: true } : e));
-            setEntryToUnlock(null);
-            setUnlockAttempt("");
-            toast({ title: t.entryUnlocked });
-        } else {
-            toast({ variant: "destructive", title: t.wrongPassword });
-        }
-        setIsUnlocking(false);
-    }, 500); // Simulate network latency
   };
 
   const formatDate = (d: Date) => language === 'es'
@@ -268,33 +188,13 @@ export default function JournalPage() {
                   value={entry}
                   onChange={(e) => setEntry(e.target.value)}
                   rows={6}
-                  disabled={!session || isSaving}
+                  disabled={isSaving}
                 />
-                 {showPasswordInput && (
-                    <Input 
-                        type="password"
-                        placeholder={t.passwordPlaceholder}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        disabled={!session || isSaving}
-                    />
-                 )}
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Button onClick={handleSaveEntry} disabled={isSaving || !entry.trim() || !session}>
-                          {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          {isSaving ? t.savingButton : t.saveButton}
-                        </Button>
-                        <Button variant="outline" size="icon" onClick={() => setShowPasswordInput(!showPasswordInput)} title={t.setPassword} disabled={!session || isSaving}>
-                            <LockKeyhole className="h-4 w-4" />
-                        </Button>
-                    </div>
-                    {!session && !sessionLoading && (
-                        <div className="text-right flex items-center gap-2 text-muted-foreground">
-                            <LogIn className="h-4 w-4"/>
-                           <p className="text-sm font-semibold">{t.notLoggedInTitle}</p>
-                        </div>
-                    )}
+                    <Button onClick={handleSaveEntry} disabled={isSaving || !entry.trim()}>
+                      {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {isSaving ? t.savingButton : t.saveButton}
+                    </Button>
                 </div>
               </div>
           </CardContent>
@@ -328,21 +228,9 @@ export default function JournalPage() {
                                         <p className="text-sm text-muted-foreground font-medium">
                                             {format(new Date(item.timestamp), t.entryTimeFormat, { locale: language === 'es' ? es : undefined })}
                                         </p>
-                                        {item.password && !item.isUnlocked ? (
-                                             <div className="flex items-center gap-2 text-muted-foreground italic mt-2 cursor-pointer" onClick={() => setEntryToUnlock(item)}>
-                                                <LockKeyhole className="h-4 w-4"/>
-                                                <p>{t.entryLocked}</p>
-                                            </div>
-                                        ) : (
-                                            <p className="text-foreground whitespace-pre-wrap">{item.content}</p>
-                                        )}
+                                        <p className="text-foreground whitespace-pre-wrap">{item.content}</p>
                                     </div>
                                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                         {item.password && item.isUnlocked && (
-                                            <Button variant="ghost" size="icon" onClick={() => setHistory(prev => prev.map(e => e.id === item.id ? { ...e, isUnlocked: false } : e))}>
-                                                <Unlock className="h-4 w-4"/>
-                                            </Button>
-                                         )}
                                         <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setEntryToDelete(item)}>
                                             <Trash2 className="h-4 w-4"/>
                                         </Button>
@@ -379,41 +267,6 @@ export default function JournalPage() {
             </DialogFooter>
         </DialogContent>
     </Dialog>
-
-    {/* Unlock Entry Dialog */}
-    <Dialog open={!!entryToUnlock} onOpenChange={() => setEntryToUnlock(null)}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>{t.unlockEntry}</DialogTitle>
-                <DialogDescription>{t.unlockDescription}</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-                <Label htmlFor="unlock-password">{t.passwordLabel}</Label>
-                <Input 
-                    id="unlock-password"
-                    type="password"
-                    value={unlockAttempt}
-                    onChange={(e) => setUnlockAttempt(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !isUnlocking) {
-                            handleUnlockAttempt();
-                        }
-                    }}
-                />
-            </div>
-            <DialogFooter>
-                <DialogClose asChild>
-                    <Button variant="secondary" disabled={isUnlocking}>{t.cancel}</Button>
-                </DialogClose>
-                <Button onClick={handleUnlockAttempt} disabled={isUnlocking || !unlockAttempt}>
-                    {isUnlocking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isUnlocking ? t.unlockingButton : t.unlockButton}
-                </Button>
-            </DialogFooter>
-        </DialogContent>
-    </Dialog>
     </>
   );
 }
-
-    
