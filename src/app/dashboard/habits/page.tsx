@@ -131,12 +131,11 @@ export default function HabitsPage() {
 
 
     const handleAddHabit = async () => {
-        setIsSaving(true);
-        if (newHabitName.trim() === "" || !dateKey) {
-             toast({ variant: "destructive", title: "Error", description: "El nombre del hábito no puede estar vacío." });
-             setIsSaving(false);
+        if (newHabitName.trim() === "" || !dateKey || !session) {
+             toast({ variant: "destructive", title: "Error", description: "El nombre del hábito no puede estar vacío o no hay sesión activa." });
             return;
         }
+        setIsSaving(true);
 
         const newHabit: Habit = {
             id: `custom-${Date.now()}`,
@@ -151,7 +150,7 @@ export default function HabitsPage() {
         setHabits(newHabitsList);
         
         try {
-            await updateHabitsForDate(newHabitsList, dateKey);
+            await updateHabitsForDate(dateKey, newHabitsList);
             toast({ title: t.toastSuccessTitle, description: t.toastHabitAdded });
         } catch (error) {
             console.error(error);
@@ -166,7 +165,7 @@ export default function HabitsPage() {
 
 
     const handleToggleHabit = async (id: string) => {
-        if (!date) return;
+        if (!date || !session) return;
         let habitJustCompleted = false;
         
         const originalHabits = [...habits];
@@ -188,7 +187,7 @@ export default function HabitsPage() {
         setHabits(toggledHabits);
         
         try {
-            await updateHabitsForDate(toggledHabits, dateKey);
+            await updateHabitsForDate(dateKey, toggledHabits);
             if (habitJustCompleted) {
                 setIsCompletionModalOpen(true);
             }

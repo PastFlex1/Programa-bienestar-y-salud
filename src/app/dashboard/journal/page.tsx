@@ -124,7 +124,7 @@ export default function JournalPage() {
     setIsLoading(true);
     try {
         const entries = await getJournalEntries();
-        setHistory(entries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+        setHistory(entries);
     } catch (err) {
         console.error(err);
         toast({ variant: "destructive", title: "Error", description: "Could not load journal entries."});
@@ -153,16 +153,10 @@ export default function JournalPage() {
 
     setIsSaving(true);
     
-    // Create the data payload for Firestore
-    const entryDataToSave = {
-        content: entry,
-        ...(password && { password: password }),
-    };
-    
     // Create a temporary entry for optimistic UI update
     const tempId = `temp-${Date.now()}`;
     const timestamp = new Date().toISOString();
-    const newEntry: JournalEntry = {
+    const newEntryForUI: JournalEntry = {
       id: tempId,
       content: entry,
       timestamp: timestamp,
@@ -171,13 +165,18 @@ export default function JournalPage() {
     };
     
     // Optimistic UI update
-    setHistory(prev => [newEntry, ...prev].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+    setHistory(prev => [newEntryForUI, ...prev]);
+    const entryToSave = entry;
+    const passwordToSave = password;
     setEntry("");
     setPassword("");
     setShowPasswordInput(false);
 
     try {
-      const savedEntry = await saveJournalEntry(entryDataToSave);
+      const savedEntry = await saveJournalEntry({
+          content: entryToSave,
+          password: passwordToSave
+      });
       
       // Replace temporary entry with the one from the database
       setHistory(prev => prev.map(e => e.id === tempId ? savedEntry : e));
@@ -199,6 +198,7 @@ export default function JournalPage() {
       setIsDeleting(true);
       const originalHistory = [...history];
       
+      // Optimistic update
       setHistory(prev => prev.filter(e => e.id !== entryToDelete.id));
       setEntryToDelete(null);
 
@@ -219,15 +219,17 @@ export default function JournalPage() {
     setIsUnlocking(true);
     // Note: In a real app, password checking should be done on a backend.
     // This is a client-side check for demonstration.
-    if (unlockAttempt === entryToUnlock.password) {
-        setHistory(prev => prev.map(e => e.id === entryToUnlock.id ? { ...e, isUnlocked: true } : e));
-        setEntryToUnlock(null);
-        setUnlockAttempt("");
-        toast({ title: t.entryUnlocked });
-    } else {
-        toast({ variant: "destructive", title: t.wrongPassword });
-    }
-    setIsUnlocking(false);
+    setTimeout(() => {
+        if (unlockAttempt === entryToUnlock.password) {
+            setHistory(prev => prev.map(e => e.id === entryToUnlock.id ? { ...e, isUnlocked: true } : e));
+            setEntryToUnlock(null);
+            setUnlockAttempt("");
+            toast({ title: t.entryUnlocked });
+        } else {
+            toast({ variant: "destructive", title: t.wrongPassword });
+        }
+        setIsUnlocking(false);
+    }, 500); // Simulate network latency
   };
 
   const formatDate = (d: Date) => language === 'es'
@@ -266,7 +268,7 @@ export default function JournalPage() {
                   value={entry}
                   onChange={(e) => setEntry(e.target.value)}
                   rows={6}
-                  disabled={!session}
+                  disabled={!session || isSaving}
                 />
                  {showPasswordInput && (
                     <Input 
@@ -274,7 +276,7 @@ export default function JournalPage() {
                         placeholder={t.passwordPlaceholder}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        disabled={!session}
+                        disabled={!session || isSaving}
                     />
                  )}
                 <div className="flex items-center justify-between">
@@ -283,7 +285,7 @@ export default function JournalPage() {
                           {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                           {isSaving ? t.savingButton : t.saveButton}
                         </Button>
-                        <Button variant="outline" size="icon" onClick={() => setShowPasswordInput(!showPasswordInput)} title={t.setPassword} disabled={!session}>
+                        <Button variant="outline" size="icon" onClick={() => setShowPasswordInput(!showPasswordInput)} title={t.setPassword} disabled={!session || isSaving}>
                             <LockKeyhole className="h-4 w-4" />
                         </Button>
                     </div>
@@ -313,10 +315,10 @@ export default function JournalPage() {
             ) : history.length === 0 ? (
               <p className="text-muted-foreground text-center py-4">{t.noEntries}</p>
             ) : (
-              <Accordion type="single" collapsible className="w-full">
+              <Accordion type="single" collapsible className="w-full" defaultValue={sortedDateKeys[0]}>
                 {sortedDateKeys.map(dateKey => (
                   <AccordionItem value={dateKey} key={dateKey}>
-                    <AccordionTrigger>{formatDate(new Date(dateKey))}</AccordionTrigger>
+                    <AccordionTrigger>{formatDate(new Date(dateKey + 'T00:00:00'))}</AccordionTrigger>
                     <AccordionContent>
                       <div className="space-y-4">
                         {groupedEntries[dateKey].map(item => (

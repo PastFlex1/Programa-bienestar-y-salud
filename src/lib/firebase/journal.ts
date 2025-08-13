@@ -30,6 +30,7 @@ export async function getJournalEntries(): Promise<JournalEntry[]> {
         
         return querySnapshot.docs.map((doc) => {
             const data = doc.data();
+            // Firestore timestamps need to be converted to JS Dates, then to ISO strings
             const timestamp = data.timestamp instanceof Timestamp 
                 ? data.timestamp.toDate().toISOString() 
                 : new Date().toISOString(); 
@@ -38,8 +39,8 @@ export async function getJournalEntries(): Promise<JournalEntry[]> {
                 id: doc.id,
                 content: data.content,
                 timestamp: timestamp,
-                password: data.password,
-                isUnlocked: !data.password, 
+                password: data.password, // Keep password for client-side check
+                isUnlocked: !data.password, // Auto-unlock if no password
             };
         });
     } catch (error) {
@@ -93,7 +94,7 @@ export async function deleteJournalEntry(entryId: string): Promise<void> {
     const session = await getSession();
     if (!session?.uid) {
          console.log("No session found, skipping Firestore delete.");
-        return;
+         throw new Error("User not authenticated.");
     }
 
     try {
