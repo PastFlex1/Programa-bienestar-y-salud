@@ -66,14 +66,15 @@ export default function RegisterPage() {
     const { language } = useLanguage();
     const t = translations[language];
     
+    // The redirect on success is handled by the server action.
+    // We only care about the state when there's an error message.
     const [state, formAction] = useActionState(signUpAction, { success: false, message: "" });
     const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
 
     useEffect(() => {
         // Only show the modal if the form submission was NOT successful
-        // and there's an error message to display.
-        // Successful submissions are handled by the server action redirect.
-        if (!state.success && state.message) {
+        // and there's a specific error message to display.
+        if (state && !state.success && state.message) {
             setIsErrorModalOpen(true);
         }
     }, [state]);
@@ -125,7 +126,7 @@ export default function RegisterPage() {
                             {t.errorTitle}
                         </DialogTitle>
                         <DialogDescription className="text-center">
-                             {state.message}
+                             {state?.message}
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
