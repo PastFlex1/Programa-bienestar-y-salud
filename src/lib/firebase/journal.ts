@@ -15,7 +15,12 @@ export type JournalEntry = {
 };
 
 const getJournalCollectionRef = (userId: string) => {
+    // This is a subcollection under a user document
     return collection(db, 'users', userId, 'journal');
+}
+
+const getJournalDocRef = (userId: string, entryId: string) => {
+    return doc(db, 'users', userId, 'journal', entryId);
 }
 
 export async function getJournalEntries(): Promise<JournalEntry[]> {
@@ -94,12 +99,11 @@ export async function saveJournalEntry(entryData: Omit<JournalEntry, 'id' | 'isU
 export async function deleteJournalEntry(entryId: string): Promise<void> {
     const session = await getSession();
     if (!session?.uid) {
-        console.log("No session found, can't delete entry.");
         throw new Error("User not authenticated.");
     }
 
     try {
-        const entryRef = doc(db, 'users', session.uid, 'journal', entryId);
+        const entryRef = getJournalDocRef(session.uid, entryId);
         await deleteDoc(entryRef);
         revalidatePath("/dashboard/journal");
     } catch(error) {
