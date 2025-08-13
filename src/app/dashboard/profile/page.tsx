@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -13,7 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { UserIcon } from '@/components/user-icon';
 import { logoutAction } from '@/lib/firebase/auth';
 import { updateUserProfile, uploadProfilePicture, type UserProfile } from '@/lib/firebase/users';
-import { Loader2 } from 'lucide-react';
+import { Loader2, LogIn } from 'lucide-react';
 import { useSession } from '@/context/session-provider';
 
 
@@ -35,7 +36,10 @@ const translations = {
     toastFileTooLargeTitle: "Archivo muy grande",
     toastFileTooLargeDescription: "Por favor, selecciona una imagen de menos de 2MB.",
     avatarAlt: "Perfil de usuario",
-    loadingProfile: "Cargando perfil..."
+    loadingProfile: "Cargando perfil...",
+    notLoggedInTitle: "Perfil no disponible",
+    notLoggedInDescription: "Inicia sesión para ver y editar tu perfil.",
+    goToLogin: "Ir a Iniciar Sesión"
   },
   en: {
     title: "User Profile",
@@ -54,7 +58,10 @@ const translations = {
     toastFileTooLargeTitle: "File Too Large",
     toastFileTooLargeDescription: "Please select an image smaller than 2MB.",
     avatarAlt: "User profile",
-    loadingProfile: "Loading profile..."
+    loadingProfile: "Loading profile...",
+    notLoggedInTitle: "Profile Unavailable",
+    notLoggedInDescription: "Please log in to view and edit your profile.",
+    goToLogin: "Go to Log In"
   }
 };
 
@@ -78,6 +85,8 @@ export default function ProfilePage() {
             email: session.email || "",
             photoURL: session.photoURL || null
         });
+    } else {
+        setProfile(null);
     }
   }, [session]);
 
@@ -143,9 +152,7 @@ export default function ProfilePage() {
     await logoutAction();
   }
 
-  const isLoading = sessionLoading || !profile;
-
-  if (isLoading) {
+  if (sessionLoading) {
     return (
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="max-w-2xl mx-auto space-y-8">
@@ -172,6 +179,27 @@ export default function ProfilePage() {
             <CardFooter className="flex justify-end">
                 <Skeleton className="h-10 w-28" />
             </CardFooter>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+  
+  if (!session || !profile) {
+    return (
+       <div className="p-4 sm:p-6 lg:p-8">
+        <div className="max-w-2xl mx-auto space-y-8">
+          <Card>
+            <CardHeader className="text-center">
+                <LogIn className="mx-auto h-12 w-12 text-muted-foreground" />
+                <CardTitle>{t.notLoggedInTitle}</CardTitle>
+                <CardDescription>{t.notLoggedInDescription}</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Link href="/auth/login" className="w-full">
+                    <Button className="w-full">{t.goToLogin}</Button>
+                </Link>
+            </CardContent>
           </Card>
         </div>
       </div>
