@@ -71,7 +71,10 @@ export async function loginAction(previousState: any, formData: FormData): Promi
         return { success: false, message };
     }
     
-    return { success: true, message: "Login successful!" };
+    // Although we redirect client-side after the modal,
+    // this server-side redirect is a good fallback.
+    // The client-side logic will intercept and show the modal first.
+    redirect('/dashboard');
 }
 
 export async function signUpAction(previousState: any, formData: FormData) {

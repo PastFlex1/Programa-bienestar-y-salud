@@ -73,6 +73,8 @@ export default function LoginPage() {
   const [modalContent, setModalContent] = useState({ title: "", description: "", isError: false });
   
   useEffect(() => {
+    // A message will only be present if the server action stopped before redirecting.
+    // This means either success or failure that we need to show a modal for.
     if (!state.message) return;
 
     if (state.success) {
@@ -80,7 +82,8 @@ export default function LoginPage() {
       setIsModalOpen(true);
       // Redirect after a short delay to allow the user to see the modal
       const timer = setTimeout(() => {
-        router.push('/dashboard');
+        // We use router.replace to avoid the login page being in the browser history.
+        router.replace('/dashboard'); 
       }, 2000);
       return () => clearTimeout(timer);
     } else {
@@ -92,7 +95,7 @@ export default function LoginPage() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     if (state.success) {
-        router.push('/dashboard');
+        router.replace('/dashboard');
     }
   }
 
