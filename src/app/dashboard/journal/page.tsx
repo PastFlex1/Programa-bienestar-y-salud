@@ -71,7 +71,7 @@ const translations = {
     setPassword: "Set Password (Optional)",
     passwordPlaceholder: "Password for this entry",
     deleteEntry: "Delete Entry",
-deleteConfirmationTitle: "Are you sure?",
+    deleteConfirmationTitle: "Are you sure?",
     deleteConfirmationDescription: "This action cannot be undone. Are you sure you want to permanently delete this entry?",
     cancel: "Cancel",
     delete: "Delete",
@@ -162,16 +162,21 @@ export default function JournalPage() {
           ...(password && { password: password }),
         });
         
-        // Add the new entry to the top of the history
-        setHistory(prev => [newEntry, ...prev]);
-        
-        setEntry("");
-        setPassword("");
-        setShowPasswordInput(false);
-        toast({
-            title: t.toastSuccessTitle,
-            description: t.toastSuccessDescription,
-        });
+        if (newEntry) {
+            // Add the new entry to the top of the history
+            setHistory(prev => [newEntry, ...prev]);
+            
+            setEntry("");
+            setPassword("");
+            setShowPasswordInput(false);
+            toast({
+                title: t.toastSuccessTitle,
+                description: t.toastSuccessDescription,
+            });
+        } else {
+            // This case might happen if the session is lost just before saving
+            throw new Error("Failed to save: No session or server error.");
+        }
     } catch(e) {
         console.error("Error saving entry:", e);
         toast({ variant: "destructive", title: t.toastSaveError });
@@ -404,5 +409,3 @@ export default function JournalPage() {
     </>
   );
 }
-
-    

@@ -65,10 +65,11 @@ export async function getJournalEntries(): Promise<JournalEntry[]> {
  * @param entryData - An object containing the content and optional password for the new entry.
  * @returns A promise that resolves to the newly created JournalEntry object.
  */
-export async function saveJournalEntry(entryData: { content: string, password?: string }): Promise<JournalEntry> {
+export async function saveJournalEntry(entryData: { content: string, password?: string }): Promise<JournalEntry | null> {
     const session = await getSession();
     if (!session?.uid) {
-        throw new Error("User not authenticated. Cannot save entry.");
+        console.log("No session found, skipping Firestore update.");
+        return null;
     }
     
     try {
@@ -113,7 +114,8 @@ export async function saveJournalEntry(entryData: { content: string, password?: 
 export async function deleteJournalEntry(entryId: string): Promise<void> {
     const session = await getSession();
     if (!session?.uid) {
-        throw new Error("User not authenticated. Cannot delete entry.");
+         console.log("No session found, skipping Firestore delete.");
+        return;
     }
 
     try {
@@ -124,5 +126,3 @@ export async function deleteJournalEntry(entryId: string): Promise<void> {
         throw new Error("Could not delete journal entry from the database.");
     }
 }
-
-    
