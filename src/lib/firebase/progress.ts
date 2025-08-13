@@ -1,10 +1,10 @@
 
 "use server";
 
-import { doc, getDoc, setDoc, collection, getDocs, query } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "./config";
 import { getSession } from "./auth";
-import { eachDayOfInterval, format, startOfWeek, endOfWeek, addDays } from "date-fns";
+import { startOfWeek, format, addDays } from "date-fns";
 
 export type DayProgress = {
     minutes: number;
@@ -12,19 +12,26 @@ export type DayProgress = {
 };
 
 const getProgressCollectionRef = (userId: string) => {
+    // users/{userId}/progress
     return collection(db, 'users', userId, 'progress');
 }
 
 const getProgressDocRef = (userId: string, dateKey: string) => {
+    // users/{userId}/progress/{yyyy-MM-dd}
     return doc(db, 'users', userId, 'progress', dateKey);
 }
 
 export async function updateProgressData(dateKey: string, data: DayProgress): Promise<void> {
     const session = await getSession();
-    if (!session?.uid) return;
+    if (!session?.uid) {
+        console.warn("No session found. Cannot update progress data.");
+        return;
+    };
     
     try {
         const progressDocRef = getProgressDocRef(session.uid, dateKey);
+        // Using merge: true will create the document if it doesn't exist,
+        // or update it if it does.
         await setDoc(progressDocRef, data, { merge: true });
     } catch (error) {
         console.error(`Error updating progress for ${dateKey}:`, error);
@@ -37,12 +44,17 @@ export async function getProgressDataForPastWeek(): Promise<{ [dateKey: string]:
     if (!session?.uid) return {};
 
     const today = new Date();
-    const weekStart = startOfWeek(today, { weekStartsOn: 1 }); // Monday
+    // Monday as the start of the week
+    const weekStart = startOfWeek(today, { weekStartsOn: 1 }); 
     
     const progressData: { [dateKey: string]: DayProgress } = {};
 
     try {
         const progressCollection = getProgressCollectionRef(session.uid);
+        
+        // We can query for documents within the week, but it's often simpler
+        // to just fetch all and filter client-side if the dataset is small.
+        // For larger datasets, a query with 'where' clauses would be better.
         const q = query(progressCollection);
         const querySnapshot = await getDocs(q);
         
@@ -51,7 +63,7 @@ export async function getProgressDataForPastWeek(): Promise<{ [dateKey: string]:
             dbData[doc.id] = doc.data() as DayProgress;
         });
         
-        // Initialize data for every day of the week to ensure the chart is complete
+        // Initialize data for every day of the current week to ensure the chart is complete
         for(let i=0; i<7; i++) {
             const date = addDays(weekStart, i);
             const dateKey = format(date, 'yyyy-MM-dd');
@@ -70,5 +82,3 @@ export async function getProgressDataForPastWeek(): Promise<{ [dateKey: string]:
 
     return progressData;
 }
-
-    
