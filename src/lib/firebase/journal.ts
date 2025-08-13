@@ -67,7 +67,7 @@ export async function saveJournalEntry(entryData: Omit<JournalEntry, 'id' | 'isU
     }
     
     try {
-        const journalCollection = getJournalCollectionRef(session.uid);
+        const journalCollectionRef = getJournalCollectionRef(session.uid);
         
         const newEntryPayload: {
             content: string;
@@ -82,7 +82,7 @@ export async function saveJournalEntry(entryData: Omit<JournalEntry, 'id' | 'isU
             newEntryPayload.password = entryData.password;
         }
 
-        const docRef = await addDoc(journalCollection, newEntryPayload);
+        const docRef = await addDoc(journalCollectionRef, newEntryPayload);
         
         revalidatePath("/dashboard/journal");
         
