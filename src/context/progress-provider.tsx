@@ -4,7 +4,6 @@
 import * as React from "react";
 import { format } from "date-fns";
 import { updateProgressData } from "@/lib/firebase/progress";
-import { useSession } from "./session-provider";
 
 export type DayProgress = {
   minutes: number;
@@ -39,34 +38,37 @@ const ProgressProviderContext = React.createContext<ProgressProviderState>(initi
 
 export function ProgressProvider({ children, ...props }: ProgressProviderProps) {
   const [progressData, setProgressData] = React.useState<ProgressData>({});
-  const { session } = useSession();
   
   const debouncedUpdates = React.useRef<{[key: string]: NodeJS.Timeout}>({});
 
-  const syncToFirebase = (dateKey: string, data: DayProgress) => {
-    if (session?.uid) {
-      // Debounce the update to prevent too many writes in a short time
+  const syncToFirebase = React.useCallback((dateKey: string, data: DayProgress) => {
       if (debouncedUpdates.current[dateKey]) {
         clearTimeout(debouncedUpdates.current[dateKey]);
       }
       debouncedUpdates.current[dateKey] = setTimeout(() => {
         updateProgressData(dateKey, data);
-      }, 1000); // Wait 1 second after the last change before saving
-    }
-  }
+      }, 2000); 
+  }, []);
 
   const setInitialProgress = React.useCallback((data: ProgressData) => {
     setProgressData(data);
   }, []);
 
   const setInitialHabits = React.useCallback((dateKey: string, count: number) => {
-     setProgressData(prev => ({
-      ...prev,
-      [dateKey]: {
-        ...(prev[dateKey] || { minutes: 0 }),
-        habits: count,
-      }
-     }));
+     setProgressData(prev => {
+        const currentDayData = prev[dateKey] || { minutes: 0, habits: 0 };
+        // Only update if the new count is different
+        if (currentDayData.habits !== count) {
+            return {
+                ...prev,
+                [dateKey]: {
+                    ...currentDayData,
+                    habits: count,
+                }
+            };
+        }
+        return prev;
+     });
   }, []);
 
   const logMeditation = React.useCallback((date: Date, minutes: number) => {
@@ -81,7 +83,7 @@ export function ProgressProvider({ children, ...props }: ProgressProviderProps) 
         [dateKey]: updatedData,
       };
     });
-  }, [session]);
+  }, [syncToFirebase]);
 
   const logHabit = React.useCallback((date: Date, completed: boolean) => {
     const dateKey = format(date, "yyyy-MM-dd");
@@ -95,7 +97,7 @@ export function ProgressProvider({ children, ...props }: ProgressProviderProps) 
         [dateKey]: updatedData,
       };
     });
-  }, [session]);
+  }, [syncToFirebase]);
 
 
   const value = {

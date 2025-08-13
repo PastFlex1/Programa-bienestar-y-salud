@@ -13,16 +13,12 @@ export type JournalEntry = {
   isUnlocked?: boolean; // Client-side state, not stored in DB
 };
 
-// Gets a reference to the 'journal' subcollection for a specific user.
+
 const getJournalCollectionRef = (userId: string) => {
-    // This path is correct: /users/{userId}/journal
     return collection(db, 'users', userId, 'journal');
 }
 
-/**
- * Fetches all journal entries for the currently authenticated user.
- * @returns A promise that resolves to an array of JournalEntry objects.
- */
+
 export async function getJournalEntries(): Promise<JournalEntry[]> {
     const session = await getSession();
     if (!session?.uid) {
@@ -54,11 +50,7 @@ export async function getJournalEntries(): Promise<JournalEntry[]> {
     }
 }
 
-/**
- * Saves a new journal entry for the authenticated user.
- * @param entryData - An object containing the content and optional password for the new entry.
- * @returns A promise that resolves to the newly created JournalEntry object or null if not logged in.
- */
+
 export async function saveJournalEntry(entryData: { content: string, password?: string }): Promise<JournalEntry | null> {
     const session = await getSession();
     if (!session?.uid) {
@@ -99,10 +91,7 @@ export async function saveJournalEntry(entryData: { content: string, password?: 
     }
 }
 
-/**
- * Deletes a specific journal entry for the authenticated user.
- * @param entryId - The ID of the journal entry to delete.
- */
+
 export async function deleteJournalEntry(entryId: string): Promise<void> {
     const session = await getSession();
     if (!session?.uid) {

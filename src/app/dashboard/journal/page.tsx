@@ -39,7 +39,7 @@ const translations = {
     deleteConfirmationTitle: "¿Estás seguro?",
     deleteConfirmationDescription: "Esta acción no se puede deshacer. ¿Quieres eliminar esta entrada permanentemente?",
     cancel: "Cancelar",
-    delete: "Delete",
+    delete: "Eliminar",
     deleting: "Eliminando...",
     unlockEntry: "Desbloquear Entrada",
     unlockDescription: "Esta entrada está protegida. Ingresa la contraseña para verla.",
@@ -50,8 +50,8 @@ const translations = {
     entryUnlocked: "Entrada desbloqueada.",
     entryLocked: "Entrada protegida por contraseña.",
     loading: "Cargando historial...",
-    notLoggedInTitle: "Diario no disponible",
-    notLoggedInDescription: "Inicia sesión para escribir y ver tus entradas."
+    notLoggedInTitle: "Inicia Sesión para Guardar",
+    notLoggedInDescription: "Las entradas se guardarán localmente. Inicia sesión para sincronizarlas."
   },
   en: {
     title: "Your Personal Journal",
@@ -85,8 +85,8 @@ const translations = {
     entryUnlocked: "Entry unlocked.",
     entryLocked: "Entry is password protected.",
     loading: "Loading history...",
-    notLoggedInTitle: "Journal Unavailable",
-    notLoggedInDescription: "Log in to write and view your entries."
+    notLoggedInTitle: "Log In to Save",
+    notLoggedInDescription: "Entries will be saved locally. Log in to sync them."
   }
 };
 
@@ -116,11 +116,6 @@ export default function JournalPage() {
   const [isUnlocking, setIsUnlocking] = React.useState(false);
 
   const loadEntries = React.useCallback(async () => {
-    if (!session) {
-      setIsLoading(false);
-      setHistory([]); // Clear history if user logs out
-      return;
-    }
     setIsLoading(true);
     try {
         const entries = await getJournalEntries();
@@ -130,10 +125,9 @@ export default function JournalPage() {
         setHistory([]);
     }
     setIsLoading(false);
-  }, [session]);
+  }, []);
 
   React.useEffect(() => {
-    // Initial load and when session changes
     if (!sessionLoading) {
       loadEntries();
     }
@@ -148,38 +142,39 @@ export default function JournalPage() {
 
     setIsSaving(true);
     
-    const tempId = `local-${Date.now()}`;
-    const optimisticEntry: JournalEntry = {
-        id: tempId,
+    const localId = `local-${Date.now()}`;
+    const newEntry: JournalEntry = {
+        id: localId,
         content: entry,
         timestamp: new Date().toISOString(),
         ...(password && { password: password }),
         isUnlocked: !password,
     };
 
-    setHistory(prev => [optimisticEntry, ...prev]);
+    setHistory(prev => [newEntry, ...prev]);
     setEntry("");
     setPassword("");
     setShowPasswordInput(false);
-    
-    // Save to DB in the background
-    const savedEntry = await saveJournalEntry({
-      content: optimisticEntry.content,
-      ...(optimisticEntry.password && { password: optimisticEntry.password }),
-    });
 
-    setIsSaving(false);
+    try {
+        const savedEntry = await saveJournalEntry({
+            content: newEntry.content,
+            ...(newEntry.password && { password: newEntry.password }),
+        });
 
-    if (savedEntry) {
-        // If save was successful, replace local entry with real one from DB
-        setHistory(prev => prev.map(e => e.id === tempId ? savedEntry : e));
-        toast({ title: t.toastSuccessTitle, description: t.toastSuccessDescription });
-    } else if (session) {
-        // If there was a session but save failed, show error and remove optimistic entry
-        setHistory(prev => prev.filter(e => e.id !== tempId));
+        if (savedEntry) {
+            setHistory(prev => prev.map(e => e.id === localId ? savedEntry : e));
+            toast({ title: t.toastSuccessTitle, description: t.toastSuccessDescription });
+        } else if (session) {
+            toast({ variant: "destructive", title: t.toastSaveError });
+        }
+    } catch(e) {
+        console.error("Error saving entry:", e);
+        setHistory(prev => prev.filter(item => item.id !== localId));
         toast({ variant: "destructive", title: t.toastSaveError });
+    } finally {
+        setIsSaving(false);
     }
-    // If there was no session, the entry remains in local state until page reload.
   };
   
   const handleDeleteEntry = async () => {
@@ -189,12 +184,11 @@ export default function JournalPage() {
       const originalHistory = [...history];
       
       setHistory(prev => prev.filter(e => e.id !== entryToDelete.id));
-      
+      setEntryToDelete(null);
+
       try {
-        if(entryToDelete.id.startsWith('local-')){
-             // It's just a local entry, no need to call DB
-        } else {
-            await deleteJournalEntry(entryToDelete.id);
+        if(!entryToDelete.id.startsWith('local-')){
+             await deleteJournalEntry(entryToDelete.id);
         }
         toast({ title: t.toastDeleteSuccess });
       } catch (error) {
@@ -202,7 +196,6 @@ export default function JournalPage() {
         toast({ variant: "destructive", title: t.toastDeleteError });
       } finally {
         setIsDeleting(false);
-        setEntryToDelete(null);
       }
   };
 
@@ -238,14 +231,6 @@ export default function JournalPage() {
 
   const sortedDateKeys = Object.keys(groupedEntries).sort((a, b) => b.localeCompare(a));
 
-  if (sessionLoading) {
-      return (
-        <div className="flex justify-center items-center h-full p-8">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      )
-  }
-
   return (
     <>
     <div className="p-4 sm:p-6 lg:p-8">
@@ -259,7 +244,6 @@ export default function JournalPage() {
             <CardDescription>{t.description}</CardDescription>
           </CardHeader>
           <CardContent>
-            {session ? (
               <div className="space-y-4">
                 <Textarea
                   placeholder={t.placeholder}
@@ -275,23 +259,24 @@ export default function JournalPage() {
                         onChange={(e) => setPassword(e.target.value)}
                     />
                  )}
-                <div className="flex items-center gap-4">
-                    <Button onClick={handleSaveEntry} disabled={isSaving || !entry.trim()}>
-                      {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      {isSaving ? t.savingButton : t.saveButton}
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={() => setShowPasswordInput(!showPasswordInput)} title={t.setPassword}>
-                        <LockKeyhole className="h-4 w-4" />
-                    </Button>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <Button onClick={handleSaveEntry} disabled={isSaving || !entry.trim()}>
+                          {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          {isSaving ? t.savingButton : t.saveButton}
+                        </Button>
+                        <Button variant="outline" size="icon" onClick={() => setShowPasswordInput(!showPasswordInput)} title={t.setPassword}>
+                            <LockKeyhole className="h-4 w-4" />
+                        </Button>
+                    </div>
+                    {!session && !sessionLoading && (
+                        <div className="text-right">
+                           <p className="text-sm font-semibold text-primary">{t.notLoggedInTitle}</p>
+                           <p className="text-xs text-muted-foreground">{t.notLoggedInDescription}</p>
+                        </div>
+                    )}
                 </div>
               </div>
-            ) : (
-                <div className="text-center py-10">
-                    <LogIn className="mx-auto h-12 w-12 text-muted-foreground" />
-                    <h3 className="mt-4 text-lg font-semibold">{t.notLoggedInTitle}</h3>
-                    <p className="mt-2 text-sm text-muted-foreground">{t.notLoggedInDescription}</p>
-                </div>
-            )}
           </CardContent>
         </Card>
 

@@ -121,15 +121,6 @@ export default function HabitsPage() {
     const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
 
     React.useEffect(() => {
-        if (sessionLoading) {
-            setIsLoading(true);
-            return;
-        }
-        if (!session) {
-            setIsLoading(false);
-            setHabits([]);
-            return;
-        }
         if (!dateKey) return;
         
         let isMounted = true;
@@ -152,7 +143,7 @@ export default function HabitsPage() {
         loadHabits();
 
         return () => { isMounted = false };
-    }, [dateKey, session, sessionLoading, setInitialHabits]);
+    }, [dateKey, sessionLoading, setInitialHabits]);
 
 
     const handleAddHabit = async () => {
@@ -248,7 +239,7 @@ export default function HabitsPage() {
                                     selected={date}
                                     onSelect={setDate}
                                     className="rounded-md border p-0"
-                                    disabled={isSaving || isLoading || !session}
+                                    disabled={isSaving || isLoading}
                                 />
                             </CardContent>
                         </Card>
@@ -261,7 +252,7 @@ export default function HabitsPage() {
                                 </div>
                                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                                     <DialogTrigger asChild>
-                                        <Button size="icon" variant="outline" disabled={isLoading || !session}>
+                                        <Button size="icon" variant="outline" disabled={isLoading}>
                                             <Plus className="h-4 w-4" />
                                             <span className="sr-only">{t.addHabit}</span>
                                         </Button>
@@ -312,7 +303,7 @@ export default function HabitsPage() {
                                     <HabitTracker
                                         habits={mapHabitsForUI(habits || [], t)}
                                         onToggleHabit={handleToggleHabit}
-                                        isInteractive={!!session}
+                                        isInteractive={true}
                                     />
                                 )}
                             </CardContent>

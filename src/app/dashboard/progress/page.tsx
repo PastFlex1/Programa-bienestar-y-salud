@@ -35,14 +35,13 @@ export default function ProgressPage() {
 
   useEffect(() => {
     if (sessionLoading) {
-      setIsLoading(true);
-      return;
+      return; 
     }
     
     let isMounted = true;
 
     async function loadData() {
-      if (session) {
+        setIsLoading(true);
         try {
           const data = await getProgressDataForPastWeek();
           if(isMounted) {
@@ -51,10 +50,9 @@ export default function ProgressPage() {
         } catch (error) {
           console.error("Failed to load progress data", error);
         }
-      }
-      if(isMounted) {
-        setIsLoading(false);
-      }
+        if(isMounted) {
+          setIsLoading(false);
+        }
     }
     
     loadData();
@@ -93,5 +91,3 @@ export default function ProgressPage() {
     </div>
   );
 }
-
-    
