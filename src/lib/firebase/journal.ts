@@ -13,11 +13,9 @@ export type JournalEntry = {
   isUnlocked?: boolean; // Client-side state, not stored in DB
 };
 
-
 const getJournalCollectionRef = (userId: string) => {
     return collection(db, 'users', userId, 'journal');
 }
-
 
 export async function getJournalEntries(): Promise<JournalEntry[]> {
     const session = await getSession();
@@ -49,7 +47,6 @@ export async function getJournalEntries(): Promise<JournalEntry[]> {
         return [];
     }
 }
-
 
 export async function saveJournalEntry(entryData: { content: string, password?: string }): Promise<JournalEntry | null> {
     const session = await getSession();
@@ -87,10 +84,9 @@ export async function saveJournalEntry(entryData: { content: string, password?: 
 
     } catch (error) {
         console.error("[saveJournalEntry] Error saving entry:", error);
-        return null;
+        throw new Error("Could not save journal entry to Firestore.");
     }
 }
-
 
 export async function deleteJournalEntry(entryId: string): Promise<void> {
     const session = await getSession();
@@ -104,5 +100,6 @@ export async function deleteJournalEntry(entryId: string): Promise<void> {
         await deleteDoc(entryRef);
     } catch(error) {
         console.error("[deleteJournalEntry] Error deleting entry:", error);
+        throw new Error("Could not delete journal entry from Firestore.");
     }
 }
