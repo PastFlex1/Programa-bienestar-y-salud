@@ -8,8 +8,8 @@ import { useLanguage } from "@/context/language-provider";
 import { format } from "date-fns";
 import { es } from 'date-fns/locale';
 import { CheckCircle2, Plus, Loader2 } from "lucide-react";
-import type { Habit } from "@/lib/firebase/habits";
-import { getHabitsForDate, updateHabitsForDate } from "@/lib/firebase/habits";
+import type { Habit } from "@/lib/local-data/habits";
+import { getHabitsForDate, updateHabitsForDate } from "@/lib/local-data/habits";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
@@ -93,32 +93,18 @@ export default function HabitsPage() {
     const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
 
     React.useEffect(() => {
-        let isMounted = true;
-        async function loadHabits() {
-            if (!dateKey) return;
-            
-            setIsLoading(true);
-            try {
-                const fetchedHabits = await getHabitsForDate(dateKey);
-                if (isMounted) {
-                    setHabits(fetchedHabits);
-                    setInitialHabits(dateKey, fetchedHabits.filter(h => h.completed).length);
-                }
-            } catch (err) {
-                console.error("Failed to load habits:", err);
-                if (isMounted) setHabits([]);
-            } finally {
-                if (isMounted) setIsLoading(false);
-            }
-        }
+        if (!dateKey) return;
+        
+        setIsLoading(true);
+        const fetchedHabits = getHabitsForDate(dateKey);
+        setHabits(fetchedHabits);
+        setInitialHabits(dateKey, fetchedHabits.filter(h => h.completed).length);
+        setIsLoading(false);
 
-        loadHabits();
-
-        return () => { isMounted = false };
     }, [dateKey, setInitialHabits]);
 
 
-    const handleAddHabit = async () => {
+    const handleAddHabit = () => {
         if (newHabitName.trim() === "" || !dateKey) {
              toast({ variant: "destructive", title: "Error", description: "El nombre del hábito no puede estar vacío." });
             return;
@@ -135,28 +121,20 @@ export default function HabitsPage() {
         const newHabitsList = [...currentHabits, newHabit];
         
         setHabits(newHabitsList);
+        updateHabitsForDate(dateKey, newHabitsList);
+        toast({ title: t.toastSuccessTitle, description: t.toastHabitAdded });
         
-        try {
-            await updateHabitsForDate(dateKey, newHabitsList);
-            toast({ title: t.toastSuccessTitle, description: t.toastHabitAdded });
-        } catch (error) {
-            console.error(error);
-            setHabits(currentHabits);
-            toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastErrorDescription });
-        } finally {
-            setIsSaving(false);
-            setNewHabitName(""); 
-            setIsAddDialogOpen(false);
-        }
+        setIsSaving(false);
+        setNewHabitName(""); 
+        setIsAddDialogOpen(false);
     };
 
 
-    const handleToggleHabit = async (id: string) => {
+    const handleToggleHabit = (id: string) => {
         if (!date) return;
 
         let habitJustCompleted = false;
         
-        const originalHabits = [...habits];
         const toggledHabits = habits.map(habit => {
             if (habit.id === id) {
                 const updatedHabit = { ...habit, completed: !habit.completed };
@@ -172,17 +150,10 @@ export default function HabitsPage() {
         });
         
         setHabits(toggledHabits);
+        updateHabitsForDate(dateKey, toggledHabits);
         
-        try {
-            await updateHabitsForDate(dateKey, toggledHabits);
-            if (habitJustCompleted) {
-                setIsCompletionModalOpen(true);
-            }
-        } catch (error) {
-            console.error("Error toggling habit:", error);
-            setHabits(originalHabits);
-            logHabit(date, !toggledHabits.find(h => h.id === id)?.completed);
-            toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastErrorDescription });
+        if (habitJustCompleted) {
+            setIsCompletionModalOpen(true);
         }
     };
 

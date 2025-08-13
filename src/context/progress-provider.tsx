@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import { format } from "date-fns";
-import { updateProgressData } from "@/lib/firebase/progress";
+import { updateProgressData } from "@/lib/local-data/progress";
 
 export type DayProgress = {
   minutes: number;
@@ -41,13 +41,13 @@ export function ProgressProvider({ children, ...props }: ProgressProviderProps) 
   
   const debouncedUpdates = React.useRef<{[key: string]: NodeJS.Timeout}>({});
 
-  const syncToFirebase = React.useCallback((dateKey: string, data: DayProgress) => {
+  const syncToLocalStorage = React.useCallback((dateKey: string, data: DayProgress) => {
       if (debouncedUpdates.current[dateKey]) {
         clearTimeout(debouncedUpdates.current[dateKey]);
       }
       debouncedUpdates.current[dateKey] = setTimeout(() => {
         updateProgressData(dateKey, data);
-      }, 2000); 
+      }, 1000); 
   }, []);
 
   const setInitialProgress = React.useCallback((data: ProgressData) => {
@@ -76,13 +76,13 @@ export function ProgressProvider({ children, ...props }: ProgressProviderProps) 
       const dayData = prev[dateKey] || { minutes: 0, habits: 0 };
       const newMinutes = dayData.minutes + minutes;
       const updatedData = { ...dayData, minutes: newMinutes };
-      syncToFirebase(dateKey, updatedData);
+      syncToLocalStorage(dateKey, updatedData);
       return {
         ...prev,
         [dateKey]: updatedData,
       };
     });
-  }, [syncToFirebase]);
+  }, [syncToLocalStorage]);
 
   const logHabit = React.useCallback((date: Date, completed: boolean) => {
     const dateKey = format(date, "yyyy-MM-dd");
@@ -90,13 +90,13 @@ export function ProgressProvider({ children, ...props }: ProgressProviderProps) 
       const dayData = prev[dateKey] || { minutes: 0, habits: 0 };
       const newHabitCount = completed ? dayData.habits + 1 : Math.max(0, dayData.habits - 1);
       const updatedData = { ...dayData, habits: newHabitCount };
-      syncToFirebase(dateKey, updatedData);
+      syncToLocalStorage(dateKey, updatedData);
       return {
         ...prev,
         [dateKey]: updatedData,
       };
     });
-  }, [syncToFirebase]);
+  }, [syncToLocalStorage]);
 
 
   const value = {

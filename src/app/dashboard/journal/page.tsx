@@ -12,7 +12,7 @@ import { useLanguage } from "@/context/language-provider";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { BookHeart, History, Loader2, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
-import { getJournalEntries, saveJournalEntry, deleteJournalEntry, type JournalEntry } from "@/lib/firebase/journal";
+import { getJournalEntries, saveJournalEntry, deleteJournalEntry, type JournalEntry } from "@/lib/local-data/journal";
 
 const translations = {
   es: {
@@ -81,75 +81,44 @@ export default function JournalPage() {
   const [entryToDelete, setEntryToDelete] = React.useState<JournalEntry | null>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
 
-  const loadEntries = React.useCallback(async () => {
+  const loadEntries = React.useCallback(() => {
     setIsLoading(true);
-    try {
-        const entries = await getJournalEntries();
-        setHistory(entries);
-    } catch (err) {
-        console.error(err);
-        toast({ variant: "destructive", title: "Error", description: "Could not load journal entries."});
-    } finally {
-        setIsLoading(false);
-    }
-  }, [toast]);
+    const entries = getJournalEntries();
+    setHistory(entries);
+    setIsLoading(false);
+  }, []);
 
   React.useEffect(() => {
     loadEntries();
   }, [loadEntries]);
 
 
-  const handleSaveEntry = async () => {
+  const handleSaveEntry = () => {
     if (entry.trim() === "") {
       toast({ variant: "destructive", title: t.toastEmptyError });
       return;
     }
     setIsSaving(true);
     
-    const tempId = `temp-${Date.now()}`;
-    const timestamp = new Date().toISOString();
-    const newEntryForUI: JournalEntry = {
-      id: tempId,
-      content: entry,
-      timestamp: timestamp,
-    };
-    
-    setHistory(prev => [newEntryForUI, ...prev]);
-    const entryToSave = entry;
+    const savedEntry = saveJournalEntry({ content: entry });
+    setHistory(prev => [savedEntry, ...prev]);
     setEntry("");
 
-    try {
-      const savedEntry = await saveJournalEntry({ content: entryToSave });
-      setHistory(prev => prev.map(e => e.id === tempId ? savedEntry : e));
-      toast({ title: t.toastSuccessTitle, description: t.toastSuccessDescription });
-
-    } catch (e) {
-      console.error("Error saving entry:", e);
-      toast({ variant: "destructive", title: t.toastSaveError });
-      setHistory(prev => prev.filter(item => item.id !== tempId));
-    } finally {
-      setIsSaving(false);
-    }
+    toast({ title: t.toastSuccessTitle, description: t.toastSuccessDescription });
+    setIsSaving(false);
   };
   
-  const handleDeleteEntry = async () => {
+  const handleDeleteEntry = () => {
       if (!entryToDelete) return;
 
       setIsDeleting(true);
-      const originalHistory = [...history];
       
+      deleteJournalEntry(entryToDelete.id);
       setHistory(prev => prev.filter(e => e.id !== entryToDelete.id));
       setEntryToDelete(null);
 
-      try {
-        await deleteJournalEntry(entryToDelete.id);
-        toast({ title: t.toastDeleteSuccess });
-      } catch (error) {
-        setHistory(originalHistory);
-        toast({ variant: "destructive", title: t.toastDeleteError });
-      } finally {
-        setIsDeleting(false);
-      }
+      toast({ title: t.toastDeleteSuccess });
+      setIsDeleting(false);
   };
 
   const formatDate = (d: Date) => language === 'es'

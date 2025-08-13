@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useLanguage } from "@/context/language-provider";
 import { useProgress } from "@/context/progress-provider";
 import { useEffect, useState } from "react";
-import { getProgressDataForPastWeek, type DayProgress } from "@/lib/firebase/progress";
+import { getProgressDataForPastWeek } from "@/lib/local-data/progress";
 import { Loader2 } from "lucide-react";
 
 const translations = {
@@ -34,17 +34,11 @@ export default function ProgressPage() {
   useEffect(() => {
     let isMounted = true;
 
-    async function loadData() {
+    function loadData() {
         setIsLoading(true);
-        try {
-          const data = await getProgressDataForPastWeek();
-          if(isMounted) {
-            setInitialProgress(data);
-          }
-        } catch (error) {
-          console.error("Failed to load progress data", error);
-        }
+        const data = getProgressDataForPastWeek();
         if(isMounted) {
+          setInitialProgress(data);
           setIsLoading(false);
         }
     }
