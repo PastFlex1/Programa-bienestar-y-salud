@@ -59,7 +59,11 @@ export async function getProgressDataForPastWeek(): Promise<{ [dateKey: string]:
             const docRef = doc(progressCollectionRef, dateKey);
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
-                 progressData[dateKey] = docSnap.data() as DayProgress;
+                 const data = docSnap.data();
+                 progressData[dateKey] = {
+                     minutes: data.minutes || 0,
+                     habits: data.habits || 0,
+                 };
             }
         }
     } catch (error) {

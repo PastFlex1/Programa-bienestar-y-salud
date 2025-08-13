@@ -13,6 +13,7 @@ export type JournalEntry = {
   isUnlocked?: boolean; // Client-side state, not stored in DB
 };
 
+// This function correctly gets the reference to the "Diario" subcollection for a given user.
 const getJournalCollectionRef = (userId: string) => {
     return collection(db, 'users', userId, 'Diario');
 }
@@ -57,6 +58,7 @@ export async function saveJournalEntry(entryData: { content: string, password?: 
     }
     
     try {
+        // Correctly reference the subcollection for the authenticated user.
         const journalCollectionRef = getJournalCollectionRef(session.uid);
         const timestamp = new Date();
 
@@ -93,7 +95,7 @@ export async function saveJournalEntry(entryData: { content: string, password?: 
 export async function deleteJournalEntry(entryId: string): Promise<void> {
     const session = await getSession();
     if (!session?.uid) {
-         console.log("No session found, skipping Firestore delete.");
+         console.error("No session found, skipping Firestore delete.");
          throw new Error("User not authenticated.");
     }
 
@@ -105,5 +107,3 @@ export async function deleteJournalEntry(entryId: string): Promise<void> {
         throw new Error("Could not delete journal entry from Firestore.");
     }
 }
-
-    
