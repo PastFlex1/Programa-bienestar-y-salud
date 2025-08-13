@@ -43,6 +43,7 @@ const translations = {
     habitCompleted: "¡Hábito Completado!",
     habitCompletedDescription: "¡Sigue así!",
     close: "Cerrar",
+    notAuthenticatedError: "Debes iniciar sesión para guardar tus hábitos."
   },
   en: {
     title: "Habit Tracking",
@@ -67,6 +68,7 @@ const translations = {
     habitCompleted: "Habit Completed!",
     habitCompletedDescription: "Keep up the great work!",
     close: "Close",
+    notAuthenticatedError: "You must be logged in to save your habits."
   }
 };
 
@@ -132,8 +134,12 @@ export default function HabitsPage() {
 
 
     const handleAddHabit = async () => {
-        if (newHabitName.trim() === "" || !dateKey || !session) {
-             toast({ variant: "destructive", title: "Error", description: "El nombre del hábito no puede estar vacío o no hay sesión activa." });
+        if (!session) {
+            toast({ variant: "destructive", title: t.toastErrorTitle, description: t.notAuthenticatedError });
+            return;
+        }
+        if (newHabitName.trim() === "" || !dateKey) {
+             toast({ variant: "destructive", title: "Error", description: "El nombre del hábito no puede estar vacío." });
             return;
         }
         setIsSaving(true);
@@ -165,7 +171,10 @@ export default function HabitsPage() {
 
 
     const handleToggleHabit = async (id: string) => {
-        if (!date || !session) return;
+        if (!date || !session) {
+             if (!session) toast({ variant: "destructive", title: t.toastErrorTitle, description: t.notAuthenticatedError });
+             return;
+        }
         let habitJustCompleted = false;
         
         const originalHabits = [...habits];
