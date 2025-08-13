@@ -1,7 +1,7 @@
 
 "use server";
 
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, Timestamp } from "firebase/firestore";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "./config";
 import { getSession, updateSessionCookie } from "./auth";
@@ -9,7 +9,7 @@ import { getSession, updateSessionCookie } from "./auth";
 export type UserProfile = {
     uid: string;
     displayName: string;
-    email: string;
+    email: string | null;
     photoURL?: string | null;
     createdAt?: string;
 };
@@ -19,7 +19,18 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
     try {
         const docSnap = await getDoc(userDocRef);
         if (docSnap.exists()) {
-            return docSnap.data() as UserProfile;
+            const data = docSnap.data();
+            const createdAt = data.createdAt instanceof Timestamp 
+                ? data.createdAt.toDate().toISOString()
+                : new Date().toISOString();
+
+            return {
+                uid: data.uid,
+                displayName: data.displayName,
+                email: data.email,
+                photoURL: data.photoURL,
+                createdAt: createdAt,
+            } as UserProfile;
         }
         return null;
     } catch (error) {
@@ -64,13 +75,21 @@ export async function uploadProfilePicture(file: File): Promise<string> {
 }
 
 export async function createUserDocument(user: { uid: string, email?: string | null, displayName?: string | null }): Promise<void> {
-    const userDocRef = doc(db, `users/${user.uid}`);
-    const userData = {
+    const userDocRef = doc(db, 'users', user.uid);
+    const userData: UserProfile = {
         uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
+        email: user.email ?? null,
+        displayName: user.displayName ?? 'Anonymous User',
         createdAt: new Date().toISOString(),
+        photoURL: null,
     };
-    await setDoc(userDocRef, userData);
+    
+    try {
+        await setDoc(userDocRef, userData);
+        console.log(`User document created for ${user.uid}`);
+    } catch (error) {
+        console.error(`Error creating user document for ${user.uid}:`, error);
+        // We throw the error so the calling function knows something went wrong.
+        throw new Error('Failed to create user document.');
+    }
 }
-
