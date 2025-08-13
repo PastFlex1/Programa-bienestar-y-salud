@@ -114,10 +114,11 @@ export default function HabitsPage() {
                 const fetchedHabits = await getHabitsForDate(dateKey);
                 if (isMounted) {
                     setHabits(fetchedHabits);
+                    // Sync progress provider with fetched data
                     setInitialHabits(dateKey, fetchedHabits.filter(h => h.completed).length);
                 }
             } catch (err) {
-                console.error(err);
+                console.error("Failed to load habits:", err);
                 if (isMounted) setHabits([]);
             } finally {
                 if (isMounted) setIsLoading(false);
@@ -146,8 +147,7 @@ export default function HabitsPage() {
         const currentHabits = habits || [];
         const newHabitsList = [...currentHabits, newHabit];
         
-        // Optimistic UI Update
-        setHabits(newHabitsList);
+        setHabits(newHabitsList); // Optimistic UI Update
         
         try {
             await updateHabitsForDate(dateKey, newHabitsList);
@@ -183,8 +183,7 @@ export default function HabitsPage() {
             return habit;
         });
         
-        // Optimistic UI Update
-        setHabits(toggledHabits);
+        setHabits(toggledHabits); // Optimistic UI Update
         
         try {
             await updateHabitsForDate(dateKey, toggledHabits);
@@ -192,8 +191,8 @@ export default function HabitsPage() {
                 setIsCompletionModalOpen(true);
             }
         } catch (error) {
-            // Revert on error
-            setHabits(originalHabits); 
+            console.error("Error toggling habit:", error);
+            setHabits(originalHabits); // Revert on error
             logHabit(date, !toggledHabits.find(h => h.id === id)?.completed); // Revert progress log
             toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastErrorDescription });
         }
