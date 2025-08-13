@@ -3,7 +3,6 @@
 
 import { collection, doc, getDocs, addDoc, deleteDoc, query, orderBy, Timestamp } from "firebase/firestore";
 import { db } from "./config";
-import { revalidatePath } from "next/cache";
 import { getSession } from "./auth";
 
 export type JournalEntry = {
@@ -16,7 +15,6 @@ export type JournalEntry = {
 
 // This function gets a reference to the 'journal' subcollection for a specific user.
 const getJournalCollectionRef = (userId: string) => {
-    // Path: users/{userId}/journal
     return collection(db, 'users', userId, 'journal');
 }
 
@@ -84,8 +82,6 @@ export async function saveJournalEntry(entryData: Omit<JournalEntry, 'id' | 'isU
 
         const docRef = await addDoc(journalCollectionRef, newEntryPayload);
         
-        revalidatePath("/dashboard/journal");
-        
         return {
           id: docRef.id,
           content: entryData.content,
@@ -109,7 +105,6 @@ export async function deleteJournalEntry(entryId: string): Promise<void> {
     try {
         const entryRef = getJournalDocRef(session.uid, entryId);
         await deleteDoc(entryRef);
-        revalidatePath("/dashboard/journal");
     } catch(error) {
         console.error("[deleteJournalEntry] Error deleting entry:", error);
         throw new Error("Could not delete journal entry.");
