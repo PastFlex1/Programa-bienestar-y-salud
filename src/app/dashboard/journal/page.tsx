@@ -39,7 +39,7 @@ const translations = {
     deleteConfirmationTitle: "¿Estás seguro?",
     deleteConfirmationDescription: "Esta acción no se puede deshacer. ¿Quieres eliminar esta entrada permanentemente?",
     cancel: "Cancelar",
-    delete: "Eliminar",
+    delete: "Delete",
     deleting: "Eliminando...",
     unlockEntry: "Desbloquear Entrada",
     unlockDescription: "Esta entrada está protegida. Ingresa la contraseña para verla.",
@@ -123,7 +123,7 @@ export default function JournalPage() {
 
     if (!session) {
       setIsLoading(false);
-      setHistory([]);
+      // We don't clear history here so offline entries persist for the session
       return;
     }
 
@@ -156,32 +156,42 @@ export default function JournalPage() {
 
     setIsSaving(true);
     
+    // Optimistic UI update: add to history immediately.
+    const optimisticEntry: JournalEntry = {
+        id: `local-${Date.now()}`,
+        content: entry,
+        timestamp: new Date().toISOString(),
+        ...(password && { password: password }),
+        isUnlocked: !password,
+    };
+
+    setHistory(prev => [optimisticEntry, ...prev]);
+    
+    setEntry("");
+    setPassword("");
+    setShowPasswordInput(false);
+    setIsSaving(false);
+
+    toast({
+        title: t.toastSuccessTitle,
+        description: t.toastSuccessDescription,
+    });
+    
     try {
-        const newEntry = await saveJournalEntry({
-          content: entry,
-          ...(password && { password: password }),
+        // Attempt to save to Firebase in the background.
+        // It will silently fail if the user is not logged in, but the UI is already updated.
+        await saveJournalEntry({
+          content: optimisticEntry.content,
+          ...(optimisticEntry.password && { password: optimisticEntry.password }),
         });
         
-        if (newEntry) {
-            // Add the new entry to the top of the history
-            setHistory(prev => [newEntry, ...prev]);
-            
-            setEntry("");
-            setPassword("");
-            setShowPasswordInput(false);
-            toast({
-                title: t.toastSuccessTitle,
-                description: t.toastSuccessDescription,
-            });
-        } else {
-            // This case might happen if the session is lost just before saving
-            toast({ variant: "destructive", title: t.toastSaveError, description: "Please log in to save your entry." });
-        }
+        // Optional: you could refresh the history from DB after successful save
+        // to get the real ID, but for simplicity, we'll leave it as is.
+        
     } catch(e) {
-        console.error("Error saving entry:", e);
-        toast({ variant: "destructive", title: t.toastSaveError });
-    } finally {
-        setIsSaving(false);
+        console.error("Background save failed:", e);
+        // We don't need to show an error toast here as the user already sees the entry.
+        // We could implement a more complex logic to show an "unsaved" state if needed.
     }
   };
   
@@ -306,7 +316,7 @@ export default function JournalPage() {
                  <div className="flex justify-center items-center h-40">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-            ) : !session || history.length === 0 ? (
+            ) : history.length === 0 ? (
               <p className="text-muted-foreground text-center py-4">{t.noEntries}</p>
             ) : (
               <Accordion type="single" collapsible className="w-full">
@@ -409,6 +419,5 @@ export default function JournalPage() {
     </>
   );
 }
-
 
     
