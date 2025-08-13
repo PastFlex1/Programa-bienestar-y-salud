@@ -1,10 +1,10 @@
 
 "use server";
 
-import { doc, getDoc, setDoc, collection, writeBatch, getDocs } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, writeBatch, getDocs, query, where } from "firebase/firestore";
 import { db } from "./config";
 import { getSession } from "./auth";
-import { eachDayOfInterval, format, startOfWeek } from "date-fns";
+import { eachDayOfInterval, format, startOfWeek, endOfWeek } from "date-fns";
 
 export type DayProgress = {
     minutes: number;
@@ -32,13 +32,16 @@ export async function getProgressDataForPastWeek(): Promise<{ [dateKey: string]:
     if (!session) return {};
 
     const today = new Date();
-    const weekStart = startOfWeek(today, { weekStartsOn: 1 });
-    const dates = eachDayOfInterval({ start: weekStart, end: today });
+    const weekStart = startOfWeek(today, { weekStartsOn: 1 }); // Monday
+    const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
+    const dates = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
     const progressData: { [dateKey: string]: DayProgress } = {};
 
     try {
         const progressCollection = getProgressCollectionRef(session.uid);
+        // This query fetches all documents in the user's progress subcollection.
+        // For a production app with lots of data, you'd want to query just the documents for the current week.
         const querySnapshot = await getDocs(progressCollection);
         
         const dbData: { [key: string]: DayProgress } = {};
@@ -48,12 +51,9 @@ export async function getProgressDataForPastWeek(): Promise<{ [dateKey: string]:
         
         dates.forEach(date => {
             const dateKey = format(date, 'yyyy-MM-dd');
-            if (dbData[dateKey]) {
-                progressData[dateKey] = dbData[dateKey];
-            } else {
-                progressData[dateKey] = { minutes: 0, habits: 0 };
-            }
+            progressData[dateKey] = dbData[dateKey] || { minutes: 0, habits: 0 };
         });
+
     } catch (error) {
         console.error("Error fetching progress data:", error);
          dates.forEach(date => {

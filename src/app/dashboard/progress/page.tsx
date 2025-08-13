@@ -7,6 +7,7 @@ import { useLanguage } from "@/context/language-provider";
 import { useProgress } from "@/context/progress-provider";
 import { useEffect } from "react";
 import { getProgressDataForPastWeek } from "@/lib/firebase/progress";
+import { useSession } from "@/context/session-provider";
 
 const translations = {
   es: {
@@ -25,13 +26,16 @@ const translations = {
 export default function ProgressPage() {
   const { language } = useLanguage();
   const t = translations[language];
+  const { session } = useSession();
   const { setInitialProgress } = useProgress();
 
   useEffect(() => {
-    getProgressDataForPastWeek().then(data => {
-      setInitialProgress(data);
-    });
-  }, [setInitialProgress]);
+    if (session) {
+      getProgressDataForPastWeek().then(data => {
+        setInitialProgress(data);
+      });
+    }
+  }, [session, setInitialProgress]);
 
 
   return (

@@ -4,6 +4,7 @@
 import * as React from "react";
 import { format } from "date-fns";
 import { updateProgressData } from "@/lib/firebase/progress";
+import { useSession } from "./session-provider";
 
 export type ProgressData = {
   [dateKey: string]: {
@@ -36,6 +37,7 @@ const ProgressProviderContext = React.createContext<ProgressProviderState>(initi
 
 export function ProgressProvider({ children, ...props }: ProgressProviderProps) {
   const [progressData, setProgressData] = React.useState<ProgressData>({});
+  const { session } = useSession();
 
   const setInitialProgress = React.useCallback((data: ProgressData) => {
     setProgressData(data);
@@ -58,15 +60,17 @@ export function ProgressProvider({ children, ...props }: ProgressProviderProps) 
       const newMinutes = dayData.minutes + minutes;
       const updatedDayData = { ...dayData, minutes: newMinutes };
       
-      // Update firebase in the background
-      updateProgressData(dateKey, updatedDayData).catch(console.error);
+      // Update firebase in the background only if logged in
+      if (session) {
+        updateProgressData(dateKey, updatedDayData).catch(console.error);
+      }
 
       return {
         ...prev,
         [dateKey]: updatedDayData,
       };
     });
-  }, []);
+  }, [session]);
 
   const logHabit = React.useCallback((date: Date, completed: boolean) => {
     const dateKey = format(date, "yyyy-MM-dd");
@@ -75,15 +79,17 @@ export function ProgressProvider({ children, ...props }: ProgressProviderProps) 
       const newHabitCount = completed ? dayData.habits + 1 : Math.max(0, dayData.habits - 1);
       const updatedDayData = { ...dayData, habits: newHabitCount };
 
-      // Update firebase in the background
-      updateProgressData(dateKey, updatedDayData).catch(console.error);
+      // Update firebase in the background only if logged in
+      if (session) {
+        updateProgressData(dateKey, updatedDayData).catch(console.error);
+      }
 
       return {
         ...prev,
         [dateKey]: updatedDayData,
       };
     });
-  }, []);
+  }, [session]);
 
   const value = {
     progressData,
