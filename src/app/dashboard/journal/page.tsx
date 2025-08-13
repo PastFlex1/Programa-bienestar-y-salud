@@ -175,7 +175,7 @@ export default function JournalPage() {
             });
         } else {
             // This case might happen if the session is lost just before saving
-            throw new Error("Failed to save: No session or server error.");
+            toast({ variant: "destructive", title: t.toastSaveError, description: "Please log in to save your entry." });
         }
     } catch(e) {
         console.error("Error saving entry:", e);
@@ -409,3 +409,6 @@ export default function JournalPage() {
     </>
   );
 }
+
+
+    
