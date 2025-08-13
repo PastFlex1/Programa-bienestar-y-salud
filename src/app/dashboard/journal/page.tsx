@@ -117,18 +117,24 @@ export default function JournalPage() {
   
   const loadEntries = React.useCallback(async () => {
     if (!session) {
-      setHistory([]);
+      // If there's no session, we don't clear local history.
+      // This allows local-only entries to persist for the session.
       setIsLoading(false);
       return;
     }
     setIsLoading(true);
     try {
         const entries = await getJournalEntries();
-        setHistory(entries);
+        // We merge server entries with any potential local-only entries.
+        // This is a simplistic merge, a real-world app might need a more robust strategy.
+        setHistory(prev => {
+            const serverIds = new Set(entries.map(e => e.id));
+            const localOnly = prev.filter(p => !serverIds.has(p.id) && p.id.startsWith('temp-'));
+            return [...entries, ...localOnly].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        });
     } catch (err) {
         console.error(err);
         toast({ variant: "destructive", title: "Error", description: "Could not load journal entries."});
-        setHistory([]);
     } finally {
         setIsLoading(false);
     }
@@ -144,10 +150,6 @@ export default function JournalPage() {
   const handleSaveEntry = async () => {
     if (entry.trim() === "") {
       toast({ variant: "destructive", title: t.toastEmptyError });
-      return;
-    }
-    if (!session) {
-      toast({ variant: "destructive", title: t.notLoggedInTitle, description: t.notLoggedInDescription });
       return;
     }
 
@@ -169,6 +171,13 @@ export default function JournalPage() {
     setPassword("");
     setShowPasswordInput(false);
 
+    // If user is not logged in, we skip the firebase part.
+    if (!session) {
+        setIsSaving(false);
+        toast({ title: t.notLoggedInTitle, description: t.notLoggedInDescription });
+        return;
+    }
+
     try {
       const savedEntry = await saveJournalEntry({
         content: newEntry.content,
@@ -181,7 +190,9 @@ export default function JournalPage() {
         toast({ title: t.toastSuccessTitle, description: t.toastSuccessDescription });
       } else {
          // This case might happen if the session is lost just before saving
-         throw new Error("Failed to save: No session or server error.");
+         toast({ variant: "destructive", title: t.toastSaveError });
+         // Revert optimistic update on failure
+         setHistory(prev => prev.filter(item => item.id !== tempId));
       }
 
     } catch (e) {
@@ -202,6 +213,12 @@ export default function JournalPage() {
       
       setHistory(prev => prev.filter(e => e.id !== entryToDelete.id));
       setEntryToDelete(null);
+
+      // No need to try deleting from DB if it's a local-only entry
+      if (entryToDelete.id.startsWith('temp-') || !session) {
+          setIsDeleting(false);
+          return;
+      }
 
       try {
         await deleteJournalEntry(entryToDelete.id);
@@ -265,7 +282,6 @@ export default function JournalPage() {
                   value={entry}
                   onChange={(e) => setEntry(e.target.value)}
                   rows={6}
-                  disabled={!session}
                 />
                  {showPasswordInput && (
                     <Input 
@@ -273,16 +289,15 @@ export default function JournalPage() {
                         placeholder={t.passwordPlaceholder}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        disabled={!session}
                     />
                  )}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <Button onClick={handleSaveEntry} disabled={isSaving || !entry.trim() || !session}>
+                        <Button onClick={handleSaveEntry} disabled={isSaving || !entry.trim()}>
                           {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                           {isSaving ? t.savingButton : t.saveButton}
                         </Button>
-                        <Button variant="outline" size="icon" onClick={() => setShowPasswordInput(!showPasswordInput)} title={t.setPassword} disabled={!session}>
+                        <Button variant="outline" size="icon" onClick={() => setShowPasswordInput(!showPasswordInput)} title={t.setPassword}>
                             <LockKeyhole className="h-4 w-4" />
                         </Button>
                     </div>
