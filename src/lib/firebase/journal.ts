@@ -63,13 +63,11 @@ export async function saveJournalEntry(entryData: Omit<JournalEntry, 'id' | 'isU
     try {
         const journalCollection = getJournalCollectionRef(session.uid);
         
-        // Prepare data for Firestore, converting ISO string back to Timestamp
         const newEntry: any = {
             content: entryData.content,
             timestamp: Timestamp.fromDate(new Date(entryData.timestamp)),
         };
 
-        // Only include password if it was provided
         if (entryData.password) {
             newEntry.password = entryData.password;
         }
@@ -77,13 +75,12 @@ export async function saveJournalEntry(entryData: Omit<JournalEntry, 'id' | 'isU
         const docRef = await addDoc(journalCollection, newEntry);
         revalidatePath("/dashboard/journal");
         
-        // Return a complete JournalEntry object for client-side state updates
         const savedEntry: JournalEntry = {
           id: docRef.id,
           content: entryData.content,
           timestamp: new Date(entryData.timestamp).toISOString(),
           password: newEntry.password,
-          isUnlocked: !newEntry.password ? false : true,
+          isUnlocked: !newEntry.password,
         };
         
         return savedEntry;
@@ -98,7 +95,7 @@ export async function deleteJournalEntry(entryId: string): Promise<void> {
     const session = await getSession();
     if (!session?.uid) {
         console.log("No session found, can't delete entry.");
-        return;
+        throw new Error("User not authenticated.");
     }
 
     try {
