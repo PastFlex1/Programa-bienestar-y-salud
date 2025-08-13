@@ -4,7 +4,7 @@
 import { doc, getDoc, setDoc, collection, getDocs, query } from "firebase/firestore";
 import { db } from "./config";
 import { getSession } from "./auth";
-import { eachDayOfInterval, format, startOfWeek, endOfWeek } from "date-fns";
+import { eachDayOfInterval, format, startOfWeek, endOfWeek, addDays } from "date-fns";
 
 export type DayProgress = {
     minutes: number;
@@ -28,7 +28,7 @@ export async function updateProgressData(dateKey: string, data: DayProgress): Pr
         await setDoc(progressDocRef, data, { merge: true });
     } catch (error) {
         console.error(`Error updating progress for ${dateKey}:`, error);
-        // Optionally re-throw or handle the error
+        throw new Error("Could not update progress data.");
     }
 }
 
@@ -37,17 +37,12 @@ export async function getProgressDataForPastWeek(): Promise<{ [dateKey: string]:
     if (!session?.uid) return {};
 
     const today = new Date();
-    // Ensure week starts on Monday, consistent with the progress chart component
-    const weekStart = startOfWeek(today, { weekStartsOn: 1 }); 
-    const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
-    const dates = eachDayOfInterval({ start: weekStart, end: weekEnd });
-
+    const weekStart = startOfWeek(today, { weekStartsOn: 1 }); // Monday
+    
     const progressData: { [dateKey: string]: DayProgress } = {};
 
     try {
         const progressCollection = getProgressCollectionRef(session.uid);
-        // In a large-scale app, you'd query for documents within the date range.
-        // For this app, fetching all progress docs is acceptable.
         const q = query(progressCollection);
         const querySnapshot = await getDocs(q);
         
@@ -57,19 +52,23 @@ export async function getProgressDataForPastWeek(): Promise<{ [dateKey: string]:
         });
         
         // Initialize data for every day of the week to ensure the chart is complete
-        dates.forEach(date => {
+        for(let i=0; i<7; i++) {
+            const date = addDays(weekStart, i);
             const dateKey = format(date, 'yyyy-MM-dd');
             progressData[dateKey] = dbData[dateKey] || { minutes: 0, habits: 0 };
-        });
+        }
 
     } catch (error) {
         console.error("Error fetching progress data:", error);
          // If fetching fails, initialize with empty data to prevent crashes
-         dates.forEach(date => {
+        for(let i=0; i<7; i++) {
+            const date = addDays(weekStart, i);
             const dateKey = format(date, 'yyyy-MM-dd');
             progressData[dateKey] = { minutes: 0, habits: 0 };
-        });
+        }
     }
 
     return progressData;
 }
+
+    

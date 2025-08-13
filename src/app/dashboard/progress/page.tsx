@@ -5,20 +5,23 @@ import { ProgressCharts } from "@/components/progress-charts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/context/language-provider";
 import { useProgress } from "@/context/progress-provider";
-import { useEffect } from "react";
-import { getProgressDataForPastWeek } from "@/lib/firebase/progress";
+import { useEffect, useState } from "react";
+import { getProgressDataForPastWeek, type DayProgress } from "@/lib/firebase/progress";
 import { useSession } from "@/context/session-provider";
+import { Loader2 } from "lucide-react";
 
 const translations = {
   es: {
     title: "Tu Progreso",
     description: "Visualiza tu viaje y celebra tus logros.",
-    content: "Tus estadísticas de meditación y rachas de hábitos se muestran aquí."
+    content: "Tus estadísticas de meditación y rachas de hábitos se muestran aquí.",
+    loading: "Cargando datos de progreso..."
   },
   en: {
     title: "Your Progress",
     description: "Visualize your journey and celebrate your achievements.",
-    content: "Your meditation stats and habit streaks are displayed here."
+    content: "Your meditation stats and habit streaks are displayed here.",
+    loading: "Loading progress data..."
   }
 };
 
@@ -26,16 +29,38 @@ const translations = {
 export default function ProgressPage() {
   const { language } = useLanguage();
   const t = translations[language];
-  const { session } = useSession();
-  const { setInitialProgress } = useProgress();
+  const { session, loading: sessionLoading } = useSession();
+  const { progressData, setInitialProgress } = useProgress();
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (session) {
-      getProgressDataForPastWeek().then(data => {
-        setInitialProgress(data);
-      });
+    if (sessionLoading) {
+      setIsLoading(true);
+      return;
     }
-  }, [session, setInitialProgress]);
+    
+    let isMounted = true;
+
+    async function loadData() {
+      if (session) {
+        try {
+          const data = await getProgressDataForPastWeek();
+          if(isMounted) {
+            setInitialProgress(data);
+          }
+        } catch (error) {
+          console.error("Failed to load progress data", error);
+        }
+      }
+      if(isMounted) {
+        setIsLoading(false);
+      }
+    }
+    
+    loadData();
+
+    return () => { isMounted = false; }
+  }, [session, sessionLoading, setInitialProgress]);
 
 
   return (
@@ -46,12 +71,27 @@ export default function ProgressPage() {
             <CardTitle>{t.title}</CardTitle>
             <CardDescription>{t.description}</CardDescription>
           </CardHeader>
-          <CardContent>
-            <p>{t.content}</p>
-          </CardContent>
+           <CardContent>
+            {isLoading ? (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>{t.loading}</span>
+              </div>
+            ) : (
+               <p>{t.content}</p>
+            )}
+           </CardContent>
         </Card>
-        <ProgressCharts />
+        {isLoading ? (
+          <Card className="flex justify-center items-center min-h-[300px]">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </Card>
+        ) : (
+          <ProgressCharts chartData={progressData} />
+        )}
       </div>
     </div>
   );
 }
+
+    

@@ -7,8 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from "@/components/ui/chart";
 import { TrendingUp } from "lucide-react";
 import { useLanguage } from "@/context/language-provider";
-import { useProgress } from "@/context/progress-provider";
-import { startOfWeek, format } from "date-fns";
+import { startOfWeek, format, addDays } from "date-fns";
+import type { ProgressData } from "@/context/progress-provider";
 
 const translations = {
   es: {
@@ -29,15 +29,18 @@ const translations = {
   }
 };
 
+interface ProgressChartsProps {
+    chartData: ProgressData;
+}
 
-export function ProgressCharts() {
+export function ProgressCharts({ chartData }: ProgressChartsProps) {
   const { language } = useLanguage();
-  const { progressData } = useProgress();
   const t = translations[language];
 
-  const chartData = React.useMemo(() => {
+  const processedChartData = React.useMemo(() => {
     const today = new Date();
-    const weekStart = startOfWeek(today, { weekStartsOn: 1 }); // Monday
+    // Monday as the start of the week
+    const weekStart = startOfWeek(today, { weekStartsOn: 1 }); 
     
     const dayLabels = {
         en: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
@@ -47,10 +50,9 @@ export function ProgressCharts() {
     const daysOfWeek = dayLabels[language];
 
     return daysOfWeek.map((dayLabel, index) => {
-        const date = new Date(weekStart);
-        date.setDate(date.getDate() + index);
+        const date = addDays(weekStart, index);
         const dateKey = format(date, 'yyyy-MM-dd');
-        const dayData = progressData[dateKey] || { minutes: 0, habits: 0 };
+        const dayData = chartData[dateKey] || { minutes: 0, habits: 0 };
 
         return {
             day: dayLabel,
@@ -58,7 +60,7 @@ export function ProgressCharts() {
             habits: dayData.habits
         };
     });
-  }, [progressData, language]);
+  }, [chartData, language]);
 
 
   const chartConfig = {
@@ -87,7 +89,7 @@ export function ProgressCharts() {
           <div>
             <h3 className="text-lg font-semibold font-headline mb-2 text-center">{t.meditationMinutes}</h3>
             <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
-              <BarChart accessibilityLayer data={chartData}>
+              <BarChart accessibilityLayer data={processedChartData}>
                 <XAxis
                   dataKey="day"
                   tickLine={false}
@@ -104,7 +106,7 @@ export function ProgressCharts() {
           <div>
             <h3 className="text-lg font-semibold font-headline mb-2 text-center">{t.habitsCompleted}</h3>
             <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
-              <BarChart accessibilityLayer data={chartData}>
+              <BarChart accessibilityLayer data={processedChartData}>
                 <XAxis
                   dataKey="day"
                   tickLine={false}
@@ -123,3 +125,5 @@ export function ProgressCharts() {
     </Card>
   );
 }
+
+    

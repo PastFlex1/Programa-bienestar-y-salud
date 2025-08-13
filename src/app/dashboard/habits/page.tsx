@@ -88,7 +88,7 @@ export default function HabitsPage() {
     const t = translations[language];
     const { toast } = useToast();
     const { logHabit, setInitialHabits } = useProgress();
-    const { session } = useSession();
+    const { session, loading: sessionLoading } = useSession();
 
     const [date, setDate] = React.useState<Date | undefined>(new Date());
     const [habits, setHabits] = React.useState<Habit[]>([]);
@@ -101,28 +101,37 @@ export default function HabitsPage() {
     const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
 
     React.useEffect(() => {
+        if (sessionLoading) {
+            setIsLoading(true);
+            return;
+        }
         if (!dateKey) return;
         
+        let isMounted = true;
+
         async function loadHabits() {
             setIsLoading(true);
             if (session) {
                 try {
                     const fetchedHabits = await getHabitsForDate(dateKey);
-                    setHabits(fetchedHabits || []);
-                    setInitialHabits(dateKey, (fetchedHabits || []).filter(h => h.completed).length);
+                    if (isMounted) {
+                        setHabits(fetchedHabits || []);
+                        setInitialHabits(dateKey, (fetchedHabits || []).filter(h => h.completed).length);
+                    }
                 } catch (err) {
                     console.error(err);
-                    setHabits([]); // On error, reset to empty
+                    if (isMounted) setHabits([]);
                 }
             } else {
-                // Offline mode: reset habits when date changes if offline
-                setHabits([]);
+                 if (isMounted) setHabits([]);
             }
-            setIsLoading(false);
+            if (isMounted) setIsLoading(false);
         }
 
         loadHabits();
-    }, [dateKey, session, setInitialHabits]);
+
+        return () => { isMounted = false };
+    }, [dateKey, session, sessionLoading, setInitialHabits]);
 
 
     const handleAddHabit = async () => {
@@ -147,9 +156,7 @@ export default function HabitsPage() {
         setIsAddDialogOpen(false);
         
         try {
-            if (session) {
-                await updateHabitsForDate(newHabitsList, dateKey);
-            }
+            await updateHabitsForDate(newHabitsList, dateKey);
             toast({ title: t.toastSuccessTitle, description: t.toastHabitAdded });
         } catch (error) {
             console.error(error);
@@ -186,9 +193,7 @@ export default function HabitsPage() {
         }
 
         try {
-            if (session) {
-                await updateHabitsForDate(toggledHabits, dateKey);
-            }
+            await updateHabitsForDate(toggledHabits, dateKey);
         } catch (error) {
             setHabits(originalHabits);
             toast({ variant: "destructive", title: t.toastErrorTitle, description: t.toastErrorDescription });
@@ -222,7 +227,7 @@ export default function HabitsPage() {
                                     selected={date}
                                     onSelect={setDate}
                                     className="rounded-md border p-0"
-                                    disabled={isSaving || (isLoading && !!session)}
+                                    disabled={isSaving || isLoading}
                                 />
                             </CardContent>
                         </Card>
@@ -235,7 +240,7 @@ export default function HabitsPage() {
                                 </div>
                                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                                     <DialogTrigger asChild>
-                                        <Button size="icon" variant="outline" disabled={isLoading && !!session}>
+                                        <Button size="icon" variant="outline" disabled={isLoading}>
                                             <Plus className="h-4 w-4" />
                                             <span className="sr-only">{t.addHabit}</span>
                                         </Button>
@@ -278,7 +283,7 @@ export default function HabitsPage() {
                                 </Dialog>
                             </CardHeader>
                             <CardContent>
-                                {(isLoading && !!session) ? (
+                                {isLoading ? (
                                     <div className="flex justify-center items-center h-40">
                                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                                     </div>
@@ -312,3 +317,5 @@ export default function HabitsPage() {
         </div>
     );
 }
+
+    

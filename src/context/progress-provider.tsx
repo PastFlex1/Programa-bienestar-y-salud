@@ -6,11 +6,13 @@ import { format } from "date-fns";
 import { updateProgressData } from "@/lib/firebase/progress";
 import { useSession } from "./session-provider";
 
+export type DayProgress = {
+  minutes: number;
+  habits: number;
+};
+
 export type ProgressData = {
-  [dateKey: string]: {
-    minutes: number;
-    habits: number;
-  };
+  [dateKey: string]: DayProgress
 };
 
 type ProgressProviderProps = {
@@ -38,36 +40,19 @@ const ProgressProviderContext = React.createContext<ProgressProviderState>(initi
 export function ProgressProvider({ children, ...props }: ProgressProviderProps) {
   const [progressData, setProgressData] = React.useState<ProgressData>({});
   const { session } = useSession();
-  
-  const isInitialDataLoaded = React.useRef(false);
 
-  React.useEffect(() => {
-    if (!isInitialDataLoaded.current || !session) {
-      return;
-    }
-    
-    const syncToFirebase = async () => {
-        // Create a stable copy of the data to sync
-        const dataToSync = { ...progressData };
-        for (const dateKey in dataToSync) {
-            await updateProgressData(dateKey, dataToSync[dateKey]);
+  const handleDataUpdate = React.useCallback(async (dateKey: string, newDayData: DayProgress) => {
+    if (session) {
+        try {
+            await updateProgressData(dateKey, newDayData);
+        } catch (error) {
+            console.error("Failed to sync progress data:", error);
         }
-    };
-    
-    // Using a timeout to debounce the firebase update.
-    const timer = setTimeout(() => {
-        syncToFirebase().catch(console.error);
-    }, 1000); // Wait 1 second after the last change to save
-
-    return () => clearTimeout(timer);
-
-  }, [progressData, session]);
-
+    }
+  }, [session]);
 
   const setInitialProgress = React.useCallback((data: ProgressData) => {
     setProgressData(data);
-    // Mark as loaded only after the first full data fetch
-    isInitialDataLoaded.current = true;
   }, []);
 
   const setInitialHabits = React.useCallback((dateKey: string, count: number) => {
@@ -85,24 +70,28 @@ export function ProgressProvider({ children, ...props }: ProgressProviderProps) 
     setProgressData(prev => {
       const dayData = prev[dateKey] || { minutes: 0, habits: 0 };
       const newMinutes = dayData.minutes + minutes;
+      const newDayData = { ...dayData, minutes: newMinutes };
+      handleDataUpdate(dateKey, newDayData);
       return {
         ...prev,
-        [dateKey]: { ...dayData, minutes: newMinutes },
+        [dateKey]: newDayData,
       };
     });
-  }, []);
+  }, [handleDataUpdate]);
 
   const logHabit = React.useCallback((date: Date, completed: boolean) => {
     const dateKey = format(date, "yyyy-MM-dd");
     setProgressData(prev => {
       const dayData = prev[dateKey] || { minutes: 0, habits: 0 };
       const newHabitCount = completed ? dayData.habits + 1 : Math.max(0, dayData.habits - 1);
+      const newDayData = { ...dayData, habits: newHabitCount };
+      handleDataUpdate(dateKey, newDayData);
       return {
         ...prev,
-        [dateKey]: { ...dayData, habits: newHabitCount },
+        [dateKey]: newDayData,
       };
     });
-  }, []);
+  }, [handleDataUpdate]);
 
 
   const value = {
@@ -128,3 +117,5 @@ export const useProgress = () => {
 
   return context;
 };
+
+    

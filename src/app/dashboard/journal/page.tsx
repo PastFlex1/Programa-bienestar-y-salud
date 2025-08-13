@@ -95,7 +95,7 @@ export default function JournalPage() {
   const { language } = useLanguage();
   const t = translations[language];
   const { toast } = useToast();
-  const { session } = useSession();
+  const { session, loading: sessionLoading } = useSession();
 
   const [entry, setEntry] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -112,23 +112,31 @@ export default function JournalPage() {
   const [isUnlocking, setIsUnlocking] = React.useState(false);
 
   React.useEffect(() => {
+    if (sessionLoading) {
+      setIsLoading(true);
+      return;
+    }
+
+    let isMounted = true;
     async function loadEntries() {
         setIsLoading(true);
         if (session) {
             try {
                 const entries = await getJournalEntries();
-                setHistory(entries);
+                if (isMounted) setHistory(entries);
             } catch (err) {
                 console.error(err);
-                setHistory([]);
+                if (isMounted) setHistory([]);
             }
         } else {
-            setHistory([]);
+            if (isMounted) setHistory([]);
         }
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
     }
     loadEntries();
-  }, [session]);
+
+    return () => { isMounted = false; }
+  }, [session, sessionLoading]);
 
 
   const handleSaveEntry = async () => {
@@ -148,12 +156,13 @@ export default function JournalPage() {
         timestamp: new Date().toISOString(),
         ...(password && { password: password }),
     };
-
+    
+    // Optimistically update the UI
     const tempId = `temp-${Date.now()}`;
     const tempEntry: JournalEntry = {
         ...newEntryData,
         id: tempId,
-        isUnlocked: !!password ? false : true,
+        isUnlocked: !password,
     };
     
     setHistory(prev => [tempEntry, ...prev]);
@@ -162,16 +171,15 @@ export default function JournalPage() {
     setShowPasswordInput(false);
 
     try {
-        if (session) {
-            const savedEntry = await saveJournalEntry(newEntryData);
-            setHistory(prev => prev.map(e => (e.id === tempId ? savedEntry : e)));
-        }
-
+        const savedEntry = await saveJournalEntry(newEntryData);
+        // Replace temp entry with the real one from the database
+        setHistory(prev => prev.map(e => (e.id === tempId ? savedEntry : e)));
         toast({
             title: t.toastSuccessTitle,
             description: t.toastSuccessDescription,
         });
     } catch(e) {
+        // Rollback on failure
         setHistory(prev => prev.filter(e => e.id !== tempId));
         toast({ variant: "destructive", title: t.toastErrorTitle, description: "Could not save entry." });
     } finally {
@@ -185,15 +193,15 @@ export default function JournalPage() {
       setIsDeleting(true);
       const originalHistory = [...history];
       
+      // Optimistic update
       setHistory(prev => prev.filter(e => e.id !== entryToDelete.id));
       setEntryToDelete(null);
 
       try {
-        if (session) {
-            await deleteJournalEntry(entryToDelete.id);
-        }
+        await deleteJournalEntry(entryToDelete.id);
         toast({ title: t.toastDeleteSuccess });
       } catch (error) {
+        // Rollback
         setHistory(originalHistory);
         toast({ variant: "destructive", title: t.toastDeleteError });
       } finally {
@@ -281,7 +289,7 @@ export default function JournalPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {(isLoading && !!session) ? (
+            {isLoading ? (
                  <div className="flex justify-center items-center h-40">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
@@ -388,3 +396,5 @@ export default function JournalPage() {
     </>
   );
 }
+
+    
