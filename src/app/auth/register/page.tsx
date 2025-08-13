@@ -3,6 +3,7 @@
 
 import { useEffect, useState, useActionState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useFormStatus } from 'react-dom';
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -82,7 +83,6 @@ export default function RegisterPage() {
     const handleCloseModal = () => {
         setIsErrorModalOpen(false);
     }
-
 
     return (
         <>

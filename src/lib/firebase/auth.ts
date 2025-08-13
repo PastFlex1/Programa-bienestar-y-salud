@@ -2,10 +2,10 @@
 "use server";
 
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, type User } from "firebase/auth";
-import { ref, set } from "firebase/database";
-import { auth, db } from './config';
+import { auth } from './config';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { createUserDocument } from "./users";
 
 export type SessionPayload = {
     uid: string;
@@ -63,6 +63,7 @@ export async function loginAction(previousState: any, formData: FormData): Promi
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         await createSession(userCredential.user);
+        return { success: true, message: "Login successful!" };
     } catch (error: any) {
         let message = 'An unexpected error occurred. Please try again.';
         if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
@@ -70,11 +71,6 @@ export async function loginAction(previousState: any, formData: FormData): Promi
         }
         return { success: false, message };
     }
-    
-    // Although we redirect client-side after the modal,
-    // this server-side redirect is a good fallback.
-    // The client-side logic will intercept and show the modal first.
-    redirect('/dashboard');
 }
 
 export async function signUpAction(previousState: any, formData: FormData) {
@@ -94,16 +90,10 @@ export async function signUpAction(previousState: any, formData: FormData) {
         const user = userCredential.user;
 
         await updateProfile(user, { displayName: username });
+        // Create user document in Firestore
+        await createUserDocument({ uid: user.uid, email: user.email, displayName: username });
+        
         await createSession({ ...user, displayName: username });
-
-
-        const userRef = ref(db, "users/" + user.uid);
-        await set(userRef, {
-            uid: user.uid,
-            email: user.email,
-            displayName: username,
-            createdAt: new Date().toISOString()
-        });
 
     } catch (error: any)
      {

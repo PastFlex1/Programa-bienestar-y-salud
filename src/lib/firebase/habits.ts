@@ -1,7 +1,7 @@
 
 "use server";
 
-import { ref, get, set } from "firebase/database";
+import { doc, getDoc, setDoc, collection, updateDoc } from "firebase/firestore";
 import { db } from "./config";
 import { revalidatePath } from "next/cache";
 import { getSession } from "./auth";
@@ -17,7 +17,7 @@ export type Habit = {
 const getHabitDateRef = (userId: string, dateKey: string) => {
     // Path: /users/{userId}/habitDates/{yyyy-MM-dd}
     const path = `users/${userId}/habitDates/${dateKey}`;
-    return ref(db, path);
+    return doc(db, path);
 }
 
 /**
@@ -28,26 +28,21 @@ const getHabitDateRef = (userId: string, dateKey: string) => {
 export async function getHabitsForDate(dateKey: string): Promise<Habit[]> {
     const session = await getSession();
     if (!session) {
-        // For offline mode, we don't fetch from DB. The component will handle it.
         return [];
     }
 
     try {
-        const dateRef = getHabitDateRef(session.uid, dateKey);
-        const snapshot = await get(dateRef);
+        const dateDocRef = getHabitDateRef(session.uid, dateKey);
+        const docSnap = await getDoc(dateDocRef);
 
-        if (snapshot.exists()) {
-            const data = snapshot.val();
-            // Realtime DB stores arrays as objects if keys are not 0,1,2..., so we convert it back
-            const habits = data.habits ? Object.values(data.habits) as Habit[] : [];
-            return habits;
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            return data.habits || [];
         } else {
-            // Return an empty array if no habits are found for the date
             return [];
         }
     } catch (error) {
         console.error("[getHabitsForDate] Error getting habits for date:", dateKey, error);
-        // Return an empty array on error to prevent app crashes
         return [];
     }
 }
@@ -60,19 +55,15 @@ export async function getHabitsForDate(dateKey: string): Promise<Habit[]> {
 export async function updateHabitsForDate(habits: Habit[], dateKey: string): Promise<void> {
     const session = await getSession();
     if (!session) {
-        // In offline mode, this function shouldn't throw an error, just do nothing.
-        // The component state handles the updates visually.
         return;
     }
     
     try {
-        const dateRef = getHabitDateRef(session.uid, dateKey);
-        // Ensure that what we're setting is an object, even for an empty array
-        const habitsToSet = habits.length > 0 ? habits : {};
-        await set(dateRef, {
-            habits: habitsToSet,
+        const dateDocRef = getHabitDateRef(session.uid, dateKey);
+        await setDoc(dateDocRef, {
+            habits: habits,
             lastUpdated: new Date().toISOString()
-        });
+        }, { merge: true });
 
         revalidatePath("/dashboard/habits");
     } catch (error) {
@@ -80,5 +71,3 @@ export async function updateHabitsForDate(habits: Habit[], dateKey: string): Pro
         throw new Error("Could not update habits in the database.");
     }
 }
-
-    
