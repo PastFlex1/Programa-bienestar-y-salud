@@ -39,34 +39,34 @@ export function ProgressProvider({ children, ...props }: ProgressProviderProps) 
   const [progressData, setProgressData] = React.useState<ProgressData>({});
   const { session } = useSession();
   
-  // Ref to track if the initial data has been set
   const isInitialDataLoaded = React.useRef(false);
 
-  // useEffect to sync data to Firebase when it changes
   React.useEffect(() => {
-    // Don't run on the initial data load, only on subsequent user-triggered changes
     if (!isInitialDataLoaded.current || !session) {
       return;
     }
-
-    // This function will run after the state has been updated and the component re-rendered.
-    // We can safely perform side effects here.
+    
     const syncToFirebase = async () => {
-        for (const dateKey in progressData) {
-            // A more robust solution might track which keys are "dirty"
-            // but for this app's scale, updating all loaded keys is fine.
-            await updateProgressData(dateKey, progressData[dateKey]);
+        // Create a stable copy of the data to sync
+        const dataToSync = { ...progressData };
+        for (const dateKey in dataToSync) {
+            await updateProgressData(dateKey, dataToSync[dateKey]);
         }
     };
+    
+    // Using a timeout to debounce the firebase update.
+    const timer = setTimeout(() => {
+        syncToFirebase().catch(console.error);
+    }, 1000); // Wait 1 second after the last change to save
 
-    // Debounce or throttle this in a real app if updates are frequent
-    syncToFirebase().catch(console.error);
+    return () => clearTimeout(timer);
 
   }, [progressData, session]);
 
 
   const setInitialProgress = React.useCallback((data: ProgressData) => {
     setProgressData(data);
+    // Mark as loaded only after the first full data fetch
     isInitialDataLoaded.current = true;
   }, []);
 
@@ -78,7 +78,6 @@ export function ProgressProvider({ children, ...props }: ProgressProviderProps) 
         habits: count,
       }
      }));
-     // We don't mark initial data as loaded here, as this is part of the initial setup
   }, []);
 
   const logMeditation = React.useCallback((date: Date, minutes: number) => {
