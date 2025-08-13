@@ -18,7 +18,8 @@ const getDefaultHabits = (): Habit[] => [];
 export async function getHabitsForDate(dateKey: string): Promise<Habit[]> {
     const session = await getSession();
     if (!session?.uid) {
-        return getDefaultHabits();
+        // Return empty array for non-logged-in users
+        return [];
     }
 
     try {
@@ -27,13 +28,16 @@ export async function getHabitsForDate(dateKey: string): Promise<Habit[]> {
 
         if (docSnap.exists()) {
             const data = docSnap.data();
-            return data.habits && Array.isArray(data.habits) ? data.habits : getDefaultHabits();
+            // Ensure data.habits is an array before returning
+            return data.habits && Array.isArray(data.habits) ? data.habits : [];
         } else {
-            return getDefaultHabits();
+            // If document doesn't exist for the date, return empty array.
+            return [];
         }
     } catch (error) {
         console.error("[getHabitsForDate] Error getting habits:", error);
-        return getDefaultHabits();
+        // Throw error to be caught by the calling function
+        throw new Error("Could not fetch habits from Firestore.");
     }
 }
 
@@ -42,6 +46,8 @@ export async function updateHabitsForDate(habits: Habit[], dateKey: string): Pro
     const session = await getSession();
     if (!session?.uid) {
         console.log("No session found, skipping Firestore update for habits.");
+        // We don't throw an error here, to allow for optimistic UI updates.
+        // The UI should handle not being logged in.
         return;
     }
     
@@ -56,4 +62,3 @@ export async function updateHabitsForDate(habits: Habit[], dateKey: string): Pro
         throw new Error("Could not update habits in Firestore.");
     }
 }
-

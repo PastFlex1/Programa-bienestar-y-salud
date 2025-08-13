@@ -44,7 +44,7 @@ export async function getJournalEntries(): Promise<JournalEntry[]> {
         });
     } catch (error) {
         console.error("[getJournalEntries] Error fetching entries:", error);
-        return [];
+        throw new Error("Could not fetch journal entries.");
     }
 }
 
@@ -74,6 +74,7 @@ export async function saveJournalEntry(entryData: { content: string, password?: 
 
         const docRef = await addDoc(journalCollectionRef, newEntryPayload);
         
+        // Return the full entry object, including the new ID from Firestore
         return {
           id: docRef.id,
           content: entryData.content,

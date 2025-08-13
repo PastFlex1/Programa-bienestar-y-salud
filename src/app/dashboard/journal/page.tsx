@@ -114,7 +114,9 @@ export default function JournalPage() {
   const [entryToUnlock, setEntryToUnlock] = React.useState<JournalEntry | null>(null);
   const [unlockAttempt, setUnlockAttempt] = React.useState("");
   const [isUnlocking, setIsUnlocking] = React.useState(false);
-
+  
+  // This is the key change for data persistence.
+  // We use a callback to avoid re-running the effect unnecessarily.
   const loadEntries = React.useCallback(async () => {
     if (!session) {
       setHistory([]);
@@ -127,11 +129,14 @@ export default function JournalPage() {
         setHistory(entries);
     } catch (err) {
         console.error(err);
+        toast({ variant: "destructive", title: "Error", description: "Could not load journal entries."});
         setHistory([]);
+    } finally {
+        setIsLoading(false);
     }
-    setIsLoading(false);
-  }, [session]);
+  }, [session, toast]);
 
+  // We now trigger the loadEntries effect based on the session and loading state.
   React.useEffect(() => {
     if (!sessionLoading) {
       loadEntries();
@@ -140,49 +145,34 @@ export default function JournalPage() {
 
 
   const handleSaveEntry = async () => {
-    if (entry.trim() === "") {
-      toast({ variant: "destructive", title: t.toastEmptyError });
-      return;
+    if (!session) {
+        toast({ variant: "destructive", title: t.notLoggedInTitle, description: t.notLoggedInDescription });
+        return;
     }
-
+    if (entry.trim() === "") {
+        toast({ variant: "destructive", title: t.toastEmptyError });
+        return;
+    }
     setIsSaving(true);
-    
-    // Optimistically update UI
-    const localId = `local-${Date.now()}`;
-    const newEntry: JournalEntry = {
-        id: localId,
-        content: entry,
-        timestamp: new Date().toISOString(),
-        ...(password && { password: password }),
-        isUnlocked: !password,
-    };
-
-    setHistory(prev => [newEntry, ...prev].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
-    setEntry("");
-    setPassword("");
-    setShowPasswordInput(false);
-
     try {
-        const savedEntry = await saveJournalEntry({
-            content: newEntry.content,
-            ...(newEntry.password && { password: newEntry.password }),
+        // The saveJournalEntry function now returns the full saved entry with its new ID
+        const newEntry = await saveJournalEntry({
+            content: entry,
+            ...(password && { password }),
         });
 
-        // If saved to DB, update local entry with real ID
-        if (savedEntry) {
-            setHistory(prev => prev.map(e => e.id === localId ? savedEntry : e));
+        if (newEntry) {
+            // Add the new entry to the top of the list and re-sort
+            setHistory(prev => [newEntry, ...prev].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+            setEntry("");
+            setPassword("");
+            setShowPasswordInput(false);
             toast({ title: t.toastSuccessTitle, description: t.toastSuccessDescription });
-        } else if (session) {
-            // It was supposed to save but failed
-            toast({ variant: "destructive", title: t.toastSaveError });
-            // Revert optimistic update
-            setHistory(prev => prev.filter(item => item.id !== localId));
+        } else {
+             toast({ variant: "destructive", title: t.toastSaveError });
         }
-        // If no session, do nothing, just keep local state
     } catch(e) {
         console.error("Error saving entry:", e);
-        // Revert optimistic update
-        setHistory(prev => prev.filter(item => item.id !== localId));
         toast({ variant: "destructive", title: t.toastSaveError });
     } finally {
         setIsSaving(false);
@@ -199,9 +189,7 @@ export default function JournalPage() {
       setEntryToDelete(null);
 
       try {
-        if(!entryToDelete.id.startsWith('local-')){
-             await deleteJournalEntry(entryToDelete.id);
-        }
+        await deleteJournalEntry(entryToDelete.id);
         toast({ title: t.toastDeleteSuccess });
       } catch (error) {
         setHistory(originalHistory);
@@ -262,6 +250,7 @@ export default function JournalPage() {
                   value={entry}
                   onChange={(e) => setEntry(e.target.value)}
                   rows={6}
+                  disabled={!session}
                 />
                  {showPasswordInput && (
                     <Input 
@@ -269,22 +258,23 @@ export default function JournalPage() {
                         placeholder={t.passwordPlaceholder}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
+                        disabled={!session}
                     />
                  )}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <Button onClick={handleSaveEntry} disabled={isSaving || !entry.trim()}>
+                        <Button onClick={handleSaveEntry} disabled={isSaving || !entry.trim() || !session}>
                           {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                           {isSaving ? t.savingButton : t.saveButton}
                         </Button>
-                        <Button variant="outline" size="icon" onClick={() => setShowPasswordInput(!showPasswordInput)} title={t.setPassword}>
+                        <Button variant="outline" size="icon" onClick={() => setShowPasswordInput(!showPasswordInput)} title={t.setPassword} disabled={!session}>
                             <LockKeyhole className="h-4 w-4" />
                         </Button>
                     </div>
                     {!session && !sessionLoading && (
-                        <div className="text-right">
-                           <p className="text-sm font-semibold text-primary">{t.notLoggedInTitle}</p>
-                           <p className="text-xs text-muted-foreground">{t.notLoggedInDescription}</p>
+                        <div className="text-right flex items-center gap-2 text-muted-foreground">
+                            <LogIn className="h-4 w-4"/>
+                           <p className="text-sm font-semibold">{t.notLoggedInTitle}</p>
                         </div>
                     )}
                 </div>
