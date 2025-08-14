@@ -5,13 +5,13 @@ import * as React from "react";
 import { useRouter } from 'next/navigation';
 import { db } from "@/lib/firebase/config";
 import { collection, addDoc, query, where, getDocs, doc, updateDoc, getDoc } from "firebase/firestore";
-import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
 
 // Define the User object structure
 export type User = {
     id: string; // Firestore document ID
     name: string;
     email: string;
+    photoURL?: string;
 };
 
 type AuthProviderProps = {
@@ -25,6 +25,7 @@ type AuthProviderState = {
   register: (name: string, email: string, pass: string) => Promise<User | null>;
   logout: () => void;
   updateUser: (user: User) => void;
+  updateUserProfile: (userId: string, data: { name?: string; photoURL?: string }) => Promise<void>;
 };
 
 const initialState: AuthProviderState = {
@@ -34,6 +35,7 @@ const initialState: AuthProviderState = {
   register: async () => null,
   logout: () => {},
   updateUser: () => {},
+  updateUserProfile: async () => {},
 };
 
 const AuthProviderContext = React.createContext<AuthProviderState>(initialState);
@@ -78,6 +80,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             id: userDoc.id,
             name: userDoc.data().name,
             email: userDoc.data().email,
+            photoURL: userDoc.data().photoURL || undefined,
         };
 
         setUser(userData);
@@ -110,6 +113,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             email: email,
             password: pass, // Storing password in plain text. NOT FOR PRODUCTION.
             createdAt: new Date(),
+            photoURL: "",
         });
         
         const newUser: User = { id: docRef.id, name, email };
@@ -133,6 +137,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUser(updatedUser);
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
   };
+  
+  const updateUserProfile = async (userId: string, data: { name?: string; photoURL?: string }) => {
+    const userDocRef = doc(db, "users", userId);
+    await updateDoc(userDocRef, data);
+
+    // Update local state
+    setUser(prevUser => {
+        if (!prevUser) return null;
+        const updatedUser = { ...prevUser, ...data };
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
+        return updatedUser;
+    });
+  };
 
   const value = {
     user,
@@ -141,6 +158,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     register,
     logout,
     updateUser,
+    updateUserProfile,
   };
 
   return (

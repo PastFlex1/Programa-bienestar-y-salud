@@ -14,6 +14,7 @@ import {
 import { Button } from "./ui/button";
 import { useAuth } from "@/context/auth-provider";
 import { useLanguage } from "@/context/language-provider";
+import Image from 'next/image';
 
 const translations = {
   es: {
@@ -42,9 +43,18 @@ export function AppHeader() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
-                    <User className="h-5 w-5 text-primary" />
-                </div>
+                {user.photoURL ? (
+                    <Image 
+                        src={user.photoURL}
+                        alt={user.name}
+                        fill
+                        className="rounded-full object-cover"
+                    />
+                ) : (
+                    <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
+                        <User className="h-5 w-5 text-primary" />
+                    </div>
+                )}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56" align="end" forceMount>
