@@ -4,7 +4,8 @@
 import * as React from "react";
 import { useRouter } from 'next/navigation';
 import { db } from "@/lib/firebase/config";
-import { collection, addDoc, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
+import { collection, addDoc, query, where, getDocs, doc, updateDoc, getDoc } from "firebase/firestore";
+import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
 
 // Define the User object structure
 export type User = {
@@ -23,6 +24,7 @@ type AuthProviderState = {
   login: (email: string, pass: string) => Promise<User | null>;
   register: (name: string, email: string, pass: string) => Promise<User | null>;
   logout: () => void;
+  updateUser: (user: User) => void;
 };
 
 const initialState: AuthProviderState = {
@@ -31,6 +33,7 @@ const initialState: AuthProviderState = {
   login: async () => null,
   register: async () => null,
   logout: () => {},
+  updateUser: () => {},
 };
 
 const AuthProviderContext = React.createContext<AuthProviderState>(initialState);
@@ -126,12 +129,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
     router.push('/auth/login');
   };
 
+  const updateUser = (updatedUser: User) => {
+    setUser(updatedUser);
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
+  };
+
   const value = {
     user,
     loading,
     login,
     register,
     logout,
+    updateUser,
   };
 
   return (
