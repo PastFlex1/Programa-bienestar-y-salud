@@ -13,9 +13,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/context/language-provider";
 import { useAuth } from "@/context/auth-provider";
+import { StatusDialog } from "@/components/status-dialog";
 
 const translations = {
   es: {
@@ -53,8 +53,8 @@ export default function LoginPage() {
   const t = translations[language];
   const { login } = useAuth();
   const router = useRouter();
-  const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
+  const [dialogState, setDialogState] = React.useState<{ open: boolean; variant: 'success' | 'error'; title: string; description: string; }>({ open: false, variant: 'success', title: '', description: '' });
 
   const formSchema = z.object({
     email: z.string().email({
@@ -80,77 +80,85 @@ export default function LoginPage() {
     try {
         const user = await login(values.email, values.password);
         if (user) {
-            toast({ title: t.successTitle, description: t.successDescription });
-            router.push("/dashboard");
+            setDialogState({ open: true, variant: 'success', title: t.successTitle, description: t.successDescription });
         } else {
-             toast({
-                variant: "destructive",
-                title: t.errorTitle,
-                description: t.errorDescription,
-            });
+             setDialogState({ open: true, variant: 'error', title: t.errorTitle, description: t.errorDescription });
         }
     } catch (error) {
         console.error(error);
-        toast({
-            variant: "destructive",
-            title: t.errorTitle,
-            description: t.errorDescription,
-        });
+        setDialogState({ open: true, variant: 'error', title: t.errorTitle, description: t.errorDescription });
     } finally {
         setIsLoading(false);
     }
   }
 
+  const handleDialogClose = () => {
+    if (dialogState.variant === 'success') {
+      router.push("/dashboard");
+    }
+    setDialogState({ ...dialogState, open: false });
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t.title}</CardTitle>
-        <CardDescription>{t.description}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t.emailLabel}</FormLabel>
-                  <FormControl>
-                    <Input placeholder="nombre@ejemplo.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t.passwordLabel}</FormLabel>
-                  <FormControl>
-                    <Input type="password" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isLoading ? t.loadingButton : t.submitButton}
-            </Button>
-          </form>
-        </Form>
-      </CardContent>
-      <CardFooter className="justify-center">
-        <p className="text-sm text-muted-foreground">
-          {t.noAccount}{" "}
-          <Link href="/auth/register" className="text-primary hover:underline">
-            {t.register}
-          </Link>
-        </p>
-      </CardFooter>
-    </Card>
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>{t.title}</CardTitle>
+          <CardDescription>{t.description}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t.emailLabel}</FormLabel>
+                    <FormControl>
+                      <Input placeholder="nombre@ejemplo.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t.passwordLabel}</FormLabel>
+                    <FormControl>
+                      <Input type="password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isLoading ? t.loadingButton : t.submitButton}
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+        <CardFooter className="justify-center">
+          <p className="text-sm text-muted-foreground">
+            {t.noAccount}{" "}
+            <Link href="/auth/register" className="text-primary hover:underline">
+              {t.register}
+            </Link>
+          </p>
+        </CardFooter>
+      </Card>
+      <StatusDialog
+        open={dialogState.open}
+        onOpenChange={(open) => { if (!open) handleDialogClose()}}
+        variant={dialogState.variant}
+        title={dialogState.title}
+        description={dialogState.description}
+        onClose={handleDialogClose}
+      />
+    </>
   );
 }
