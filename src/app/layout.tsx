@@ -11,6 +11,9 @@ import { AuthProvider } from '@/context/auth-provider';
 export const metadata: Metadata = {
   title: 'AppMeditacion',
   description: 'A serene interface for guided meditation and habit tracking.',
+  icons: {
+    icon: '/favicon.svg',
+  },
 };
 
 export default async function RootLayout({
@@ -22,6 +25,7 @@ export default async function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
+        <link rel="icon" href="/favicon.svg?v=1" type="image/svg+xml" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@400;700&display=swap" rel="stylesheet" />
@@ -45,3 +49,4 @@ export default async function RootLayout({
     </html>
   );
 }
+
