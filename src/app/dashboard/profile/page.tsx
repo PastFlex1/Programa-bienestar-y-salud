@@ -102,7 +102,7 @@ export default function ProfilePage() {
         <Card>
           <CardHeader className="items-center text-center">
              <div className="relative h-24 w-24">
-                {user.photoURL && user.photoURL.trim() !== '' ? (
+                {user.photoURL && user.photoURL.startsWith('/') ? (
                     <Image 
                         src={user.photoURL}
                         alt="User Avatar"

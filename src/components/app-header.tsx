@@ -43,7 +43,7 @@ export function AppHeader() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                {user.photoURL && user.photoURL.trim() !== '' ? (
+                {user.photoURL && user.photoURL.startsWith('/') ? (
                     <Image 
                         src={user.photoURL}
                         alt={user.name}
