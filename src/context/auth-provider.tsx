@@ -4,7 +4,7 @@
 import * as React from "react";
 import { useRouter } from 'next/navigation';
 import { db } from "@/lib/firebase/config";
-import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
+import { collection, addDoc, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
 
 // Define the User object structure
 export type User = {
@@ -110,8 +110,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         });
         
         const newUser: User = { id: docRef.id, name, email };
-        setUser(newUser);
-        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(newUser));
+        // We don't set the user here, we let them log in.
         return newUser;
     } catch (error) {
         console.error("Registration error:", error);
