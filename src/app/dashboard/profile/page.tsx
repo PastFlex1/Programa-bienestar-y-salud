@@ -102,7 +102,7 @@ export default function ProfilePage() {
         <Card>
           <CardHeader className="items-center text-center">
              <div className="relative h-24 w-24">
-                {user.photoURL ? (
+                {user.photoURL && user.photoURL.trim() !== '' ? (
                     <Image 
                         src={user.photoURL}
                         alt="User Avatar"
@@ -144,8 +144,8 @@ export default function ProfilePage() {
             <CardHeader>
                 <CardTitle>{t.chooseAvatar}</CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-wrap gap-4 justify-center">
-                {isUpdating && <div className="absolute inset-0 bg-background/50 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>}
+            <CardContent className="flex flex-wrap gap-4 justify-center relative">
+                {isUpdating && <div className="absolute inset-0 bg-background/50 flex items-center justify-center rounded-lg"><Loader2 className="h-8 w-8 animate-spin" /></div>}
                 {avatars.map((avatar) => (
                     <button 
                         key={avatar} 
