@@ -31,7 +31,7 @@ const translations = {
     errorTitle: "Error de Registro",
     errorDescription: "No se pudo crear la cuenta. Revisa los datos o puede que el correo ya esté en uso.",
     successTitle: "¡Registro Exitoso!",
-    successDescription: "Tu cuenta ha sido creada. ¡Bienvenido/a!"
+    successDescription: "Tu cuenta ha sido creada. Ahora, inicia sesión."
   },
   en: {
     title: "Create an Account",
@@ -46,7 +46,7 @@ const translations = {
     errorTitle: "Registration Failed",
     errorDescription: "Could not create account. Check your details or the email may already be in use.",
     successTitle: "Registration Successful!",
-    successDescription: "Your account has been created. Welcome!"
+    successDescription: "Your account has been created. Now, please log in."
   }
 };
 
@@ -94,7 +94,7 @@ export default function RegisterPage() {
 
   const handleDialogClose = () => {
     if (dialogState.variant === 'success') {
-      router.push("/dashboard");
+      router.push("/auth/login");
     }
     setDialogState({ ...dialogState, open: false });
   }

@@ -28,9 +28,9 @@ const translations = {
     noAccount: "¿No tienes una cuenta?",
     register: "Regístrate",
     errorTitle: "Error de Inicio de Sesión",
-    errorDescription: "El correo electrónico o la contraseña son incorrectos. Por favor, inténtalo de nuevo.",
-    successTitle: "¡Bienvenido/a!",
-    successDescription: "Has iniciado sesión correctamente."
+    errorDescription: "No existe el usuario o el correo o la contraseña son incorrectos.",
+    successTitle: "Inicio de sesión exitoso",
+    successDescription: "Has iniciado sesión correctamente. Serás redirigido."
   },
   en: {
     title: "Login",
@@ -42,9 +42,9 @@ const translations = {
     noAccount: "Don't have an account?",
     register: "Register",
     errorTitle: "Login Failed",
-    errorDescription: "The email or password was incorrect. Please try again.",
-    successTitle: "Welcome!",
-    successDescription: "You have successfully logged in."
+    errorDescription: "User does not exist or email/password is incorrect.",
+    successTitle: "Login Successful!",
+    successDescription: "You have successfully logged in. You will be redirected."
   }
 };
 
