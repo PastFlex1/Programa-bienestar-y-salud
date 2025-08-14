@@ -9,7 +9,6 @@ Zenith es una aplicación web moderna y serena, diseñada para ser tu santuario 
 *   **📖 Diario Personal:** Un espacio privado y seguro para registrar tus pensamientos, sentimientos y reflexiones diarias.
 *   **📊 Visualización de Progreso:** Gráficos semanales que muestran tus minutos de meditación y los hábitos completados para celebrar tus logros.
 *   **👤 Perfil Personalizable:** Elige tu propio avatar y gestiona la información de tu cuenta.
-*   **🌐 Soporte Multilenguaje:** Interfaz disponible en Español e Inglés.
 *   **🎨 Tema Personalizable:** Elige entre un tema claro, oscuro o el predeterminado del sistema.
 
 ## 🚀 Pila Tecnológica
@@ -96,4 +95,3 @@ npm run dev
 *   `npm run build`: Compila la aplicación para producción.
 *   `npm run start`: Inicia un servidor de producción.
 *   `npm run lint`: Ejecuta el linter de código.
-```
