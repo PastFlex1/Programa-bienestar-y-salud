@@ -8,8 +8,8 @@ import { useLanguage } from "@/context/language-provider";
 import { format } from "date-fns";
 import { es } from 'date-fns/locale';
 import { CheckCircle2, Plus, Loader2 } from "lucide-react";
-import type { Habit } from "@/lib/local-data/habits";
-import { getHabitsForDate, updateHabitsForDate } from "@/lib/local-data/habits";
+import type { Habit } from "@/lib/firebase/habits";
+import { getHabitsForDate, updateHabitsForDate } from "@/lib/firebase/habits";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { HabitTracker } from "@/components/habit-tracker";
 import { useProgress } from "@/context/progress-provider";
+import { useAuth } from "@/context/auth-provider";
 
 const translations = {
   es: {
@@ -81,6 +82,7 @@ export default function HabitsPage() {
     const t = translations[language];
     const { toast } = useToast();
     const { logHabit, setInitialHabits } = useProgress();
+    const { user } = useAuth();
 
     const [date, setDate] = React.useState<Date | undefined>(new Date());
     const [habits, setHabits] = React.useState<Habit[]>([]);
@@ -93,19 +95,20 @@ export default function HabitsPage() {
     const dateKey = date ? format(date, 'yyyy-MM-dd') : '';
 
     React.useEffect(() => {
-        if (!dateKey) return;
+        if (!dateKey || !user) return;
         
         setIsLoading(true);
-        const fetchedHabits = getHabitsForDate(dateKey);
-        setHabits(fetchedHabits);
-        setInitialHabits(dateKey, fetchedHabits.filter(h => h.completed).length);
-        setIsLoading(false);
+        getHabitsForDate(user.id, dateKey).then(fetchedHabits => {
+            setHabits(fetchedHabits);
+            setInitialHabits(dateKey, fetchedHabits.filter(h => h.completed).length);
+            setIsLoading(false);
+        });
 
-    }, [dateKey, setInitialHabits]);
+    }, [dateKey, user, setInitialHabits]);
 
 
-    const handleAddHabit = () => {
-        if (newHabitName.trim() === "" || !dateKey) {
+    const handleAddHabit = async () => {
+        if (newHabitName.trim() === "" || !dateKey || !user) {
              toast({ variant: "destructive", title: "Error", description: "El nombre del hábito no puede estar vacío." });
             return;
         }
@@ -120,8 +123,8 @@ export default function HabitsPage() {
         const currentHabits = habits || [];
         const newHabitsList = [...currentHabits, newHabit];
         
+        await updateHabitsForDate(user.id, dateKey, newHabitsList);
         setHabits(newHabitsList);
-        updateHabitsForDate(dateKey, newHabitsList);
         toast({ title: t.toastSuccessTitle, description: t.toastHabitAdded });
         
         setIsSaving(false);
@@ -131,7 +134,7 @@ export default function HabitsPage() {
 
 
     const handleToggleHabit = (id: string) => {
-        if (!date) return;
+        if (!date || !user) return;
 
         let habitJustCompleted = false;
         
@@ -149,8 +152,8 @@ export default function HabitsPage() {
             return habit;
         });
         
+        updateHabitsForDate(user.id, dateKey, toggledHabits);
         setHabits(toggledHabits);
-        updateHabitsForDate(dateKey, toggledHabits);
         
         if (habitJustCompleted) {
             setIsCompletionModalOpen(true);

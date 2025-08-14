@@ -13,12 +13,12 @@ export type DayProgress = z.infer<typeof DayProgressSchema>;
 
 const ProgressDataSchema = z.record(DayProgressSchema); // { "yyyy-MM-dd": DayProgress }
 
-const STORAGE_KEY = "zenith-local-progress";
+const STORAGE_KEY_PREFIX = "zenith-local-progress-";
 
-function getAllProgressData(): z.infer<typeof ProgressDataSchema> {
+function getAllProgressData(userId: string): z.infer<typeof ProgressDataSchema> {
     if (typeof window === 'undefined') return {};
     try {
-        const storedData = localStorage.getItem(STORAGE_KEY);
+        const storedData = localStorage.getItem(`${STORAGE_KEY_PREFIX}${userId}`);
         return storedData ? ProgressDataSchema.parse(JSON.parse(storedData)) : {};
     } catch (error) {
         console.error("Failed to parse progress data from localStorage:", error);
@@ -26,19 +26,19 @@ function getAllProgressData(): z.infer<typeof ProgressDataSchema> {
     }
 }
 
-export function updateProgressData(dateKey: string, data: DayProgress): void {
+export function updateProgressData(userId: string, dateKey: string, data: DayProgress): void {
     if (typeof window === 'undefined') return;
-    const allData = getAllProgressData();
+    const allData = getAllProgressData(userId);
     allData[dateKey] = data;
     try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
+        localStorage.setItem(`${STORAGE_KEY_PREFIX}${userId}`, JSON.stringify(allData));
     } catch (error) {
         console.error(`Error saving progress for ${dateKey} to localStorage:`, error);
     }
 }
 
-export function getProgressDataForPastWeek(): { [dateKey: string]: DayProgress } {
-    const allProgress = getAllProgressData();
+export function getProgressDataForPastWeek(userId: string): { [dateKey: string]: DayProgress } {
+    const allProgress = getAllProgressData(userId);
     const today = new Date();
     const weekStart = startOfWeek(today, { weekStartsOn: 1 });
     const progressData: { [dateKey: string]: DayProgress } = {};

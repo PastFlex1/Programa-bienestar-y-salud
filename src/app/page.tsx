@@ -3,6 +3,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/auth-provider';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const LoadingScreen = () => (
@@ -19,11 +20,17 @@ const LoadingScreen = () => (
 
 export default function Home() {
     const router = useRouter();
+    const { user, loading } = useAuth();
 
     useEffect(() => {
-        // Redirect to the dashboard page by default
-        router.replace('/dashboard');
-    }, [router]);
+        if (!loading) {
+            if (user) {
+                router.replace('/dashboard');
+            } else {
+                router.replace('/auth/login');
+            }
+        }
+    }, [user, loading, router]);
 
     return <LoadingScreen />;
 }

@@ -10,39 +10,37 @@ export type Habit = {
   completed: boolean;
 };
 
-// The data is now public, so we don't need a user ID.
-// The dateKey serves as the document ID in the "Habitos" collection.
-export async function getHabitsForDate(dateKey: string): Promise<Habit[]> {
-    if (!db) {
-        console.warn("Firebase not configured, returning empty habits.");
+// Now we need the user ID to find the correct document.
+export async function getHabitsForDate(userId: string, dateKey: string): Promise<Habit[]> {
+    if (!db || !userId) {
+        console.warn("Firebase not configured or no user ID provided, returning empty habits.");
         return [];
     }
     try {
-        const dateDocRef = doc(db, 'Habitos', dateKey);
+        const dateDocRef = doc(db, 'users', userId, 'habits', dateKey);
         const docSnap = await getDoc(dateDocRef);
 
         if (docSnap.exists()) {
             const data = docSnap.data();
-            return data.habits && Array.isArray(data.habits) ? data.habits : [];
+            return data.items && Array.isArray(data.items) ? data.items : [];
         } else {
             return [];
         }
     } catch (error) {
-        console.error(`[getHabitsForDate] Error getting habits for ${dateKey}:`, error);
+        console.error(`[getHabitsForDate] Error getting habits for user ${userId} and date ${dateKey}:`, error);
         return [];
     }
 }
 
-// The data is now public, so we don't need a user ID.
-export async function updateHabitsForDate(dateKey: string, habits: Habit[]): Promise<void> {
-    if (!db) {
-        console.warn("Firebase not configured, skipping habit update.");
+export async function updateHabitsForDate(userId: string, dateKey: string, habits: Habit[]): Promise<void> {
+    if (!db || !userId) {
+        console.warn("Firebase not configured or no user ID provided, skipping habit update.");
         return;
     }
     try {
-        const dateDocRef = doc(db, 'Habitos', dateKey);
+        const dateDocRef = doc(db, 'users', userId, 'habits', dateKey);
         await setDoc(dateDocRef, {
-            habits: habits,
+            items: habits,
             lastUpdated: new Date().toISOString()
         });
     } catch (error) {

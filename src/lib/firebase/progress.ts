@@ -10,15 +10,14 @@ export type DayProgress = {
     habits: number;
 };
 
-// Data is public, so it's stored in a root "Progreso" collection.
-export async function updateProgressData(dateKey: string, data: Partial<DayProgress>): Promise<void> {
-    if (!db) {
-        console.warn("Firebase not configured, skipping progress update.");
+export async function updateProgressData(userId: string, dateKey: string, data: Partial<DayProgress>): Promise<void> {
+    if (!db || !userId) {
+        console.warn("Firebase not configured or no userId, skipping progress update.");
         return;
     };
     
     try {
-        const progressDocRef = doc(db, 'Progreso', dateKey);
+        const progressDocRef = doc(db, 'users', userId, 'progress', dateKey);
         await setDoc(progressDocRef, data, { merge: true });
     } catch (error) {
         console.error(`Error updating progress for ${dateKey}:`, error);
@@ -26,7 +25,7 @@ export async function updateProgressData(dateKey: string, data: Partial<DayProgr
     }
 }
 
-export async function getProgressDataForPastWeek(): Promise<{ [dateKey: string]: DayProgress }> {
+export async function getProgressDataForPastWeek(userId: string): Promise<{ [dateKey: string]: DayProgress }> {
     const today = new Date();
     const weekStart = startOfWeek(today, { weekStartsOn: 1 }); 
     const progressData: { [dateKey: string]: DayProgress } = {};
@@ -39,13 +38,13 @@ export async function getProgressDataForPastWeek(): Promise<{ [dateKey: string]:
         dateKeys.push(dateKey);
     }
     
-    if (!db) {
-        console.warn("Firebase not configured, returning empty progress data.");
+    if (!db || !userId) {
+        console.warn("Firebase not configured or no userId, returning empty progress data.");
         return progressData;
     }
 
     try {
-        const progressCollectionRef = collection(db, 'Progreso');
+        const progressCollectionRef = collection(db, 'users', userId, 'progress');
         
         for (const dateKey of dateKeys) {
             const docRef = doc(progressCollectionRef, dateKey);

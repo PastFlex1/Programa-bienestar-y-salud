@@ -6,8 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useLanguage } from "@/context/language-provider";
 import { useProgress } from "@/context/progress-provider";
 import { useEffect, useState } from "react";
-import { getProgressDataForPastWeek } from "@/lib/local-data/progress";
+import { getProgressDataForPastWeek } from "@/lib/firebase/progress";
 import { Loader2 } from "lucide-react";
+import { useAuth } from "@/context/auth-provider";
 
 const translations = {
   es: {
@@ -29,24 +30,27 @@ export default function ProgressPage() {
   const { language } = useLanguage();
   const t = translations[language];
   const { progressData, setInitialProgress } = useProgress();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) return;
     let isMounted = true;
 
     function loadData() {
         setIsLoading(true);
-        const data = getProgressDataForPastWeek();
-        if(isMounted) {
-          setInitialProgress(data);
-          setIsLoading(false);
-        }
+        getProgressDataForPastWeek(user!.id).then(data => {
+            if(isMounted) {
+                setInitialProgress(data);
+                setIsLoading(false);
+            }
+        });
     }
     
     loadData();
 
     return () => { isMounted = false; }
-  }, [setInitialProgress]);
+  }, [setInitialProgress, user]);
 
 
   return (

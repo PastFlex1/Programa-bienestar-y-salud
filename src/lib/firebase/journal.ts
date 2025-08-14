@@ -10,19 +10,18 @@ export type JournalEntry = {
   timestamp: string; // ISO 8601 format
 };
 
-// Data is now public, so we reference a root "Diario" collection.
-const getJournalCollectionRef = () => {
-    return collection(db, 'Diario');
+const getJournalCollectionRef = (userId: string) => {
+    return collection(db, 'users', userId, 'journal');
 }
 
-export async function getJournalEntries(): Promise<JournalEntry[]> {
-    if (!db) {
-        console.warn("Firebase not configured, returning empty journal entries.");
+export async function getJournalEntries(userId: string): Promise<JournalEntry[]> {
+    if (!db || !userId) {
+        console.warn("Firebase not configured or no userId, returning empty journal entries.");
         return [];
     }
 
     try {
-        const journalCollection = getJournalCollectionRef();
+        const journalCollection = getJournalCollectionRef(userId);
         const q = query(journalCollection, orderBy("timestamp", "desc"));
         const querySnapshot = await getDocs(q);
         
@@ -44,14 +43,14 @@ export async function getJournalEntries(): Promise<JournalEntry[]> {
     }
 }
 
-export async function saveJournalEntry(entryData: { content: string }): Promise<JournalEntry> {
-    if (!db) {
-        console.warn("Firebase not configured, cannot save journal entry.");
+export async function saveJournalEntry(userId: string, entryData: { content: string }): Promise<JournalEntry> {
+    if (!db || !userId) {
+        console.warn("Firebase not configured or no userId, cannot save journal entry.");
         throw new Error("Database not available.");
     }
     
     try {
-        const journalCollectionRef = getJournalCollectionRef();
+        const journalCollectionRef = getJournalCollectionRef(userId);
         const timestamp = new Date();
 
         const newEntryPayload = {
@@ -73,14 +72,14 @@ export async function saveJournalEntry(entryData: { content: string }): Promise<
     }
 }
 
-export async function deleteJournalEntry(entryId: string): Promise<void> {
-    if (!db) {
-         console.warn("Firebase not configured, cannot delete journal entry.");
+export async function deleteJournalEntry(userId: string, entryId: string): Promise<void> {
+    if (!db || !userId) {
+         console.warn("Firebase not configured or no userId, cannot delete journal entry.");
          throw new Error("Database not available.");
     }
 
     try {
-        const entryRef = doc(db, 'Diario', entryId);
+        const entryRef = doc(db, 'users', userId, 'journal', entryId);
         await deleteDoc(entryRef);
     } catch(error) {
         console.error("[deleteJournalEntry] Error deleting entry:", error);

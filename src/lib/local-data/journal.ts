@@ -13,12 +13,12 @@ export type JournalEntry = z.infer<typeof JournalEntrySchema>;
 
 const JournalDataSchema = z.array(JournalEntrySchema);
 
-const STORAGE_KEY = "zenith-local-journal";
+const STORAGE_KEY_PREFIX = "zenith-local-journal-";
 
-function getAllEntries(): JournalEntry[] {
+function getAllEntries(userId: string): JournalEntry[] {
     if (typeof window === "undefined") return [];
     try {
-        const storedData = localStorage.getItem(STORAGE_KEY);
+        const storedData = localStorage.getItem(`${STORAGE_KEY_PREFIX}${userId}`);
         if (!storedData) return [];
         return JournalDataSchema.parse(JSON.parse(storedData));
     } catch (error) {
@@ -27,34 +27,34 @@ function getAllEntries(): JournalEntry[] {
     }
 }
 
-function saveAllEntries(entries: JournalEntry[]): void {
+function saveAllEntries(userId: string, entries: JournalEntry[]): void {
     if (typeof window === "undefined") return;
     try {
         const sortedEntries = entries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(sortedEntries));
+        localStorage.setItem(`${STORAGE_KEY_PREFIX}${userId}`, JSON.stringify(sortedEntries));
     } catch (error) {
         console.error("Failed to save journal entries to localStorage:", error);
     }
 }
 
-export function getJournalEntries(): JournalEntry[] {
-    return getAllEntries();
+export function getJournalEntries(userId: string): JournalEntry[] {
+    return getAllEntries(userId);
 }
 
-export function saveJournalEntry(entryData: { content: string }): JournalEntry {
-    const allEntries = getAllEntries();
+export function saveJournalEntry(userId: string, entryData: { content: string }): JournalEntry {
+    const allEntries = getAllEntries(userId);
     const newEntry: JournalEntry = {
         id: `journal-${Date.now()}`,
         content: entryData.content,
         timestamp: new Date().toISOString(),
     };
     const updatedEntries = [newEntry, ...allEntries];
-    saveAllEntries(updatedEntries);
+    saveAllEntries(userId, updatedEntries);
     return newEntry;
 }
 
-export function deleteJournalEntry(entryId: string): void {
-    const allEntries = getAllEntries();
+export function deleteJournalEntry(userId: string, entryId: string): void {
+    const allEntries = getAllEntries(userId);
     const updatedEntries = allEntries.filter(entry => entry.id !== entryId);
-    saveAllEntries(updatedEntries);
+    saveAllEntries(userId, updatedEntries);
 }
